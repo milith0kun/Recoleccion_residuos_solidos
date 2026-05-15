@@ -219,7 +219,7 @@ export default function TrackingPage() {
                     key={`vehicle-${v.routeId}`}
                     center={v.position}
                     radius={12}
-                    pathOptions={{ color: '#fff', fillColor: statusColors[v.status], fillOpacity: 1, weight: 4, shadowBlur: 20 }}
+                    pathOptions={{ color: '#fff', fillColor: statusColors[v.status], fillOpacity: 1, weight: 4 }}
                   >
                     <Popup>
                       <div className="p-2 font-sans min-w-[200px]">
