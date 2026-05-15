@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 // Change this to your computer's local IP when testing on a physical device
 // For emulators: Android = 10.0.2.2, iOS = localhost
-const API_BASE = 'http://10.0.2.2:3000';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://srss.ecosdelseo.com';
 
 const api = axios.create({
   baseURL: `${API_BASE}/api/v1`,
