@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IVehicle extends Document {
+export interface IVehicle {
   plate: string;
   type: 'compactor' | 'open_truck' | 'mini_truck';
   capacity: number;

@@ -289,7 +289,7 @@ export default function ZonesPage() {
           </div>
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">Color (Hex)</label>
-            <input required type="color" className="w-full h-12 rounded-xl bg-slate-50 border border-slate-200" value={formData.colorCode || formData.color || '#000000'} onChange={e => setFormData({...formData, color: e.target.value})} />
+            <input required type="color" className="w-full h-12 rounded-xl bg-slate-50 border border-slate-200" value={formData.color || '#000000'} onChange={e => setFormData({...formData, color: e.target.value})} />
           </div>
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">Coordenadas JSON (ej: [[[-71.9, -13.5], ...]]])</label>
