@@ -9,11 +9,10 @@ import {
   Truck, 
   Recycle, 
   Car,
-  Settings,
-  Shield,
   Database,
   CheckCircle2,
-  AlertCircle
+  Shield,
+  Info
 } from 'lucide-react';
 
 interface Stats {
@@ -64,154 +63,419 @@ export default function DashboardPage() {
     loadStats();
   }, [apiFetch, user]);
 
-  const cards = [
-    { label: 'Zonas', value: stats.zones, icon: MapIcon, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-    { label: 'Rutas', value: stats.routes, icon: Truck, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-    { label: 'Vehículos', value: stats.vehicles, icon: Car, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-    { label: 'Tipos Residuos', value: stats.wasteTypes, icon: Recycle, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
+  const statCards = [
+    ...(user?.role === 'admin' ? [{ label: 'Usuarios', value: stats.users, icon: Users, color: '#E11D48' }] : []),
+    { label: 'Zonas', value: stats.zones, icon: MapIcon, color: '#059669' },
+    { label: 'Rutas', value: stats.routes, icon: Truck, color: '#2563EB' },
+    { label: 'Vehículos', value: stats.vehicles, icon: Car, color: '#D97706' },
+    { label: 'Tipos Residuos', value: stats.wasteTypes, icon: Recycle, color: '#7C3AED' },
   ];
 
-  if (user?.role === 'admin') {
-    cards.unshift({ label: 'Usuarios', value: stats.users, icon: Users, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-100' });
-  }
+  const systemStatus = [
+    { label: 'Rastreo GPS', desc: 'Conexión satelital activa', status: 'Activo' },
+    { label: 'Notificaciones', desc: 'Push & Email Gateway', status: 'Online' },
+    { label: 'Base de Datos', desc: 'MongoDB Atlas Cluster', status: 'Sincronizada' },
+    { label: 'Seguridad SSL', desc: 'Encriptación AES-256', status: 'Protegido' },
+  ];
+
+  const creds = [
+    { role: 'Administrador', email: 'admin@residuos.cusco.gob.pe', pass: 'admin123' },
+    { role: 'Operador', email: 'operador@residuos.cusco.gob.pe', pass: 'operator123' },
+    { role: 'Ciudadano', email: 'ciudadano@gmail.com', pass: 'citizen123' },
+  ];
 
   return (
-    <div className="space-y-12 animate-fade-in pb-10">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="dp-root animate-fade-in">
+      <style>{dpStyles}</style>
+
+      {/* Header */}
+      <div className="dp-header">
         <div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
-            Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">{user?.firstName}</span> 👋
+          <h1 className="dp-title">
+            Hola, <span>{user?.firstName}</span> 👋
           </h1>
-          <p className="text-slate-500 mt-3 text-lg font-medium max-w-2xl">
-            Bienvenido al panel de control de <span className="text-emerald-600 font-bold">EcoRutas</span>. Gestiona la recolección de residuos de forma eficiente.
+          <p className="dp-subtitle">
+            Panel de control del Sistema de Recolección de Residuos Sólidos. 
+            Gestiona la recolección de forma eficiente.
           </p>
         </div>
-        <div className="hidden md:flex items-center gap-3 p-1 bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <div className="px-4 py-2 bg-emerald-50 rounded-xl text-emerald-700 text-sm font-bold border border-emerald-100">
-            {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </div>
+        <div className="dp-date">
+          {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${cards.length === 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'} gap-6`}>
-        {cards.map((card, idx) => {
+      {/* Stats */}
+      <div className="dp-stats">
+        {statCards.map((card, i) => {
           const Icon = card.icon;
           return (
-            <div
-              key={card.label}
-              className="relative group bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 transition-all duration-500 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-2 overflow-hidden"
-              style={{ animationDelay: `${idx * 100}ms` }}
-            >
-              <div className={`absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full opacity-[0.03] group-hover:opacity-[0.08] transition-opacity ${card.bg}`} />
-              
-              <div className="flex items-center justify-between mb-6 relative">
-                <div className={`p-4 rounded-2xl ${card.bg} ${card.color} border ${card.border} transition-transform group-hover:scale-110 duration-500`}>
-                  <Icon className="w-7 h-7" />
+            <div key={card.label} className="stat-card" style={{ animationDelay: `${i * 60}ms` }}>
+              <div className="stat-top">
+                <div className="stat-icon" style={{ background: card.color + '12', color: card.color }}>
+                  <Icon style={{ width: 22, height: 22 }} />
                 </div>
                 {loading ? (
-                  <div className="w-6 h-6 border-2 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
+                  <div className="stat-spinner" />
                 ) : (
-                  <div className="text-right">
-                    <span className={`text-4xl font-black ${card.color} tracking-tighter`}>
-                      {card.value}
-                    </span>
-                  </div>
+                  <span className="stat-value" style={{ color: card.color }}>{card.value}</span>
                 )}
               </div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] relative">{card.label}</p>
+              <span className="stat-label">{card.label}</span>
             </div>
           );
         })}
       </div>
 
-      {/* Main Content Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Status System - 3 cols */}
-        <div className="lg:col-span-3 bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 opacity-50" />
-          
-          <div className="flex items-center justify-between mb-10 relative">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-slate-900 text-white shadow-lg shadow-slate-200">
-                <Settings className="w-6 h-6" />
-              </div>
+      {/* Bottom row */}
+      <div className="dp-bottom">
+        {/* System status */}
+        <div className="dp-system">
+          <div className="dp-system-header">
+            <div className="dp-system-title">
+              <Database style={{ width: 18, height: 18 }} />
               <div>
-                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Estado del Sistema</h2>
-                <p className="text-slate-400 text-sm font-medium">Monitoreo de servicios core</p>
+                <h2>Estado del Sistema</h2>
+                <p>Monitoreo de servicios</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">Operativo</span>
+            <div className="dp-system-badge">
+              <span className="dp-badge-dot" />
+              Operativo
             </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
-            {[
-              { label: 'Rastreo GPS', desc: 'Conexión satelital activa', status: 'Activo', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-              { label: 'Notificaciones', desc: 'Push & Email Gateway', status: 'Online', icon: CheckCircle2, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100' },
-              { label: 'Base de Datos', desc: 'MongoDB Atlas Cluster', status: 'Sincronizada', icon: Database, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-              { label: 'Seguridad SSL', desc: 'Encriptación AES-256', status: 'Protegido', icon: Shield, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
-            ].map((item) => (
-              <div key={item.label} className="p-6 rounded-3xl bg-slate-50/50 border border-slate-100 group transition-all hover:bg-white hover:shadow-md hover:border-slate-200">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-2.5 rounded-xl ${item.bg} ${item.color} border ${item.border}`}>
-                    <item.icon className="w-5 h-5" />
-                  </div>
-                  <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${item.bg} ${item.color} border ${item.border}`}>
-                    {item.status}
-                  </span>
+          <div className="dp-system-grid">
+            {systemStatus.map((s) => (
+              <div key={s.label} className="dp-status-item">
+                <div className="dp-status-top">
+                  <CheckCircle2 style={{ width: 16, height: 16, color: '#059669' }} />
+                  <span className="dp-status-tag">{s.status}</span>
                 </div>
-                <h3 className="text-sm font-bold text-slate-800 mb-1">{item.label}</h3>
-                <p className="text-xs text-slate-400 font-medium">{item.desc}</p>
+                <h3>{s.label}</h3>
+                <p>{s.desc}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Demo Credentials - 2 cols */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2.5rem] p-8 md:p-10 shadow-2xl shadow-slate-900/20 text-white relative overflow-hidden group">
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-500 rounded-full -mb-32 -mr-32 opacity-10 group-hover:opacity-20 transition-opacity blur-3xl" />
-          
-          <div className="flex items-center gap-4 mb-10">
-            <div className="p-3 rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
-              <Shield className="w-6 h-6" />
-            </div>
+        {/* Credentials */}
+        <div className="dp-creds">
+          <div className="dp-creds-header">
+            <Shield style={{ width: 18, height: 18 }} />
             <div>
-              <h2 className="text-2xl font-extrabold tracking-tight">Acceso Demo</h2>
-              <p className="text-slate-400 text-sm font-medium">Entorno de pruebas</p>
+              <h2>Acceso Demo</h2>
+              <p>Credenciales de prueba</p>
             </div>
           </div>
-
-          <div className="space-y-4">
-            {[
-              { role: 'Administrador', email: 'admin@residuos.cusco.gob.pe', pass: 'admin123', color: 'bg-rose-500' },
-              { role: 'Operador', email: 'operador@residuos.cusco.gob.pe', pass: 'operator123', color: 'bg-amber-500' },
-              { role: 'Ciudadano', email: 'ciudadano@gmail.com', pass: 'citizen123', color: 'bg-emerald-500' },
-            ].map((cred) => (
-              <div key={cred.role} className="p-5 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${cred.color} shadow-[0_0_8px] shadow-current`} />
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-300">{cred.role}</span>
-                  </div>
-                  <code className="text-[10px] font-black bg-white/10 text-white px-2.5 py-1 rounded-lg border border-white/5">{cred.pass}</code>
+          <div className="dp-creds-list">
+            {creds.map((c) => (
+              <div key={c.role} className="dp-cred-item">
+                <div className="dp-cred-top">
+                  <span className="dp-cred-role">{c.role}</span>
+                  <code className="dp-cred-pass">{c.pass}</code>
                 </div>
-                <p className="text-sm font-bold text-slate-100 truncate">{cred.email}</p>
+                <span className="dp-cred-email">{c.email}</span>
               </div>
             ))}
           </div>
-
-          <div className="mt-8 flex items-start gap-4 p-5 bg-white/5 rounded-3xl border border-white/5">
-            <AlertCircle className="w-6 h-6 text-emerald-400 shrink-0" />
-            <p className="text-xs font-medium text-slate-300 leading-relaxed">
-              Use estas credenciales para explorar las diferentes funcionalidades del sistema según el rol del usuario.
-            </p>
+          <div className="dp-creds-note">
+            <Info style={{ width: 14, height: 14, flexShrink: 0 }} />
+            <span>Use estas credenciales para explorar el sistema según el rol.</span>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+const dpStyles = `
+  .dp-root {
+    padding-bottom: 2rem;
+  }
+
+  /* Header */
+  .dp-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  .dp-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1A1A1A;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .dp-title span {
+    color: #059669;
+  }
+  .dp-subtitle {
+    font-size: 0.9rem;
+    color: #8A8780;
+    font-weight: 400;
+    margin-top: 0.5rem;
+    max-width: 500px;
+    line-height: 1.6;
+  }
+  .dp-date {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #059669;
+    background: #F0FDF4;
+    border: 1px solid #D1FAE5;
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    text-transform: capitalize;
+  }
+
+  /* Stats */
+  .dp-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: #FFFFFF;
+    border: 1px solid #F0EEEB;
+    border-radius: 14px;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+  }
+  .stat-card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    transform: translateY(-2px);
+  }
+  .stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+  }
+  .stat-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #E8E5E0;
+    border-top-color: #059669;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  .stat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #8A8780;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  /* Bottom row */
+  .dp-bottom {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  @media (min-width: 1024px) {
+    .dp-bottom {
+      grid-template-columns: 3fr 2fr;
+    }
+  }
+
+  /* System status */
+  .dp-system {
+    background: #FFFFFF;
+    border: 1px solid #F0EEEB;
+    border-radius: 16px;
+    padding: 1.5rem;
+  }
+  .dp-system-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+  .dp-system-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #1A1A1A;
+  }
+  .dp-system-title h2 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1A1A1A;
+    letter-spacing: -0.01em;
+  }
+  .dp-system-title p {
+    font-size: 0.7rem;
+    color: #B0ADA8;
+    font-weight: 400;
+  }
+  .dp-system-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #059669;
+    background: #F0FDF4;
+    border: 1px solid #D1FAE5;
+    padding: 0.3rem 0.75rem;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .dp-badge-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #059669;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .dp-system-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .dp-status-item {
+    padding: 1rem;
+    border-radius: 12px;
+    background: #FAFAF8;
+    border: 1px solid #F0EEEB;
+    transition: all 0.2s ease;
+  }
+  .dp-status-item:hover {
+    background: #FFFFFF;
+    border-color: #E8E5E0;
+  }
+  .dp-status-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+  }
+  .dp-status-tag {
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: #059669;
+    background: #F0FDF4;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .dp-status-item h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1A1A1A;
+    margin-bottom: 0.15rem;
+  }
+  .dp-status-item p {
+    font-size: 0.7rem;
+    color: #B0ADA8;
+    font-weight: 400;
+  }
+
+  /* Credentials */
+  .dp-creds {
+    background: #1A1A1A;
+    border-radius: 16px;
+    padding: 1.5rem;
+    color: #FFFFFF;
+  }
+  .dp-creds-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+    color: #FFFFFF;
+  }
+  .dp-creds-header h2 {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .dp-creds-header p {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+    font-weight: 400;
+  }
+  .dp-creds-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .dp-cred-item {
+    padding: 0.85rem;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .dp-cred-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+  }
+  .dp-cred-role {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.5);
+  }
+  .dp-cred-pass {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+  .dp-cred-email {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+  }
+  .dp-creds-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.35);
+    font-size: 0.7rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 640px) {
+    .dp-header { flex-direction: column; align-items: flex-start; }
+    .dp-title { font-size: 1.5rem; }
+    .dp-system-grid { grid-template-columns: 1fr; }
+  }
+`;

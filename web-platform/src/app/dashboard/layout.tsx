@@ -14,7 +14,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Leaf,
   Menu,
   X,
   Bell,
@@ -35,11 +34,11 @@ const menuItems = [
   { href: '/dashboard/tracking', label: 'Seguimiento', icon: Radio },
 ];
 
-  const roleLabels: Record<string, string> = {
-    admin: 'Administrador',
-    operator: 'Operador',
-    citizen: 'Ciudadano',
-  };
+const roleLabels: Record<string, string> = {
+  admin: 'Administrador',
+  operator: 'Operador',
+  citizen: 'Ciudadano',
+};
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Resumen General',
@@ -47,99 +46,11 @@ const pageTitles: Record<string, string> = {
   '/dashboard/zones': 'Zonas de Recolección',
   '/dashboard/waste-types': 'Tipos de Residuos',
   '/dashboard/routes': 'Rutas de Recolección',
+  '/dashboard/vehicles': 'Vehículos',
+  '/dashboard/incidents': 'Incidentes',
+  '/dashboard/reports': 'Reportes',
   '/dashboard/tracking': 'Seguimiento GPS',
 };
-
-interface NavContentProps {
-  collapsed: boolean;
-  pathname: string;
-  filteredMenu: typeof menuItems;
-  user: {
-    firstName: string;
-    lastName: string;
-    role: string;
-  };
-  logout: () => void;
-  roleLabels: Record<string, string>;
-  setMobileMenuOpen: (open: boolean) => void;
-}
-
-const NavContent = ({ 
-  collapsed, 
-  pathname, 
-  filteredMenu, 
-  user, 
-  logout, 
-  roleLabels, 
-  setMobileMenuOpen 
-}: NavContentProps) => (
-  <>
-    {/* Logo */}
-    <div className="p-8 flex items-center gap-4">
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-        <Leaf className="w-7 h-7 text-white" />
-      </div>
-      {!collapsed && (
-        <div className="animate-fade-in">
-          <div className="font-black text-slate-900 text-xl tracking-tight leading-none">EcoRutas</div>
-          <div className="text-[10px] uppercase tracking-[0.3em] font-black text-slate-400 mt-1">Cusco</div>
-        </div>
-      )}
-    </div>
-
-    {/* Menu */}
-    <nav className="flex-1 px-6 space-y-2 mt-4 overflow-y-auto">
-      {filteredMenu.map((item) => {
-        const isActive = pathname === item.href;
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setMobileMenuOpen(false)}
-            className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative ${
-              isActive
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
-                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-          >
-            <Icon className={`w-5 h-5 flex-shrink-0 transition-colors ${isActive ? 'text-white' : 'group-hover:text-emerald-500'}`} />
-            {!collapsed && (
-              <span className={`text-sm font-bold tracking-tight ${isActive ? 'text-white' : ''}`}>
-                {item.label}
-              </span>
-            )}
-          </Link>
-        );
-      })}
-    </nav>
-
-    {/* User info */}
-    <div className="p-6 mt-auto">
-      {!collapsed && (
-        <div className="bg-slate-50 rounded-3xl p-5 mb-4 animate-fade-in border border-slate-100">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">En línea</div>
-          </div>
-          <div className="text-sm font-black text-slate-900 truncate leading-tight">{user.firstName} {user.lastName}</div>
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{roleLabels[user.role]}</div>
-        </div>
-      )}
-      <button
-        onClick={logout}
-        className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-sm font-black transition-all border ${
-          collapsed 
-            ? 'bg-rose-50 text-rose-600 border-rose-100' 
-            : 'bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 shadow-sm hover:shadow-md'
-        }`}
-      >
-        <LogOut className="w-5 h-5" />
-        {!collapsed && <span>Cerrar Sesión</span>}
-      </button>
-    </div>
-  </>
-);
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, isLoading } = useAuth();
@@ -154,8 +65,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAFAF8' }}>
+        <div style={{ width: 36, height: 36, border: '3px solid #E8E5E0', borderTopColor: '#059669', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
@@ -164,98 +75,115 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     (item) => !item.roles || item.roles.includes(user.role)
   );
 
-  const navProps = {
-    collapsed,
-    pathname,
-    filteredMenu,
-    user,
-    logout,
-    roleLabels,
-    setMobileMenuOpen
-  };
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <>
+      {/* Brand */}
+      <div className="sb-brand">
+        <span className="sb-brand-name">{collapsed && !isMobile ? 'S' : 'SRSS'}</span>
+        {(!collapsed || isMobile) && <span className="sb-brand-sub">Cusco</span>}
+      </div>
+
+      {/* Nav */}
+      <nav className="sb-nav">
+        {filteredMenu.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`sb-link ${isActive ? 'sb-link--active' : ''}`}
+            >
+              <Icon style={{ width: 18, height: 18, flexShrink: 0 }} />
+              {(!collapsed || isMobile) && <span>{item.label}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User */}
+      <div className="sb-footer">
+        {(!collapsed || isMobile) && (
+          <div className="sb-user">
+            <div className="sb-user-status">
+              <div className="sb-user-dot" />
+              <span>En línea</span>
+            </div>
+            <div className="sb-user-name">{user.firstName} {user.lastName}</div>
+            <div className="sb-user-role">{roleLabels[user.role]}</div>
+          </div>
+        )}
+        <button onClick={logout} className="sb-logout">
+          <LogOut style={{ width: 18, height: 18 }} />
+          {(!collapsed || isMobile) && <span>Cerrar Sesión</span>}
+        </button>
+      </div>
+    </>
+  );
 
   return (
-    <div className="min-h-screen flex bg-[#FBFDFF] text-slate-900">
+    <div className="dash-root">
+      <style>{dashStyles}</style>
+
       {/* Sidebar Desktop */}
-      <aside
-        className={`hidden lg:flex flex-col transition-all duration-500 relative z-30 bg-white border-r border-slate-100 ${
-          collapsed ? 'w-28' : 'w-80'
-        }`}
-      >
-        <NavContent {...navProps} />
-        
-        {/* Collapse toggle */}
+      <aside className={`sb ${collapsed ? 'sb--collapsed' : ''}`}>
+        <SidebarContent />
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-4 top-24 w-8 h-8 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-100 shadow-xl shadow-slate-200/50 transition-all z-40 group hover:scale-110"
+          className="sb-toggle"
         >
-          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          {collapsed ? <ChevronRight style={{ width: 16, height: 16 }} /> : <ChevronLeft style={{ width: 16, height: 16 }} />}
         </button>
       </aside>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile overlay */}
       {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
+        <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)} />
       )}
 
       {/* Sidebar Mobile */}
-      <aside
-        className={`fixed top-0 bottom-0 left-0 w-72 bg-white z-50 transition-transform duration-300 lg:hidden ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <NavContent {...navProps} />
+      <aside className={`sb-mobile ${mobileMenuOpen ? 'sb-mobile--open' : ''}`}>
+        <SidebarContent isMobile />
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* Main area */}
+      <div className="dash-main">
         {/* Desktop Header */}
-        <header className="hidden lg:flex h-16 bg-white border-b border-slate-100 items-center px-8 shrink-0 gap-4 z-20">
-          <div className="flex-1 flex items-center gap-2 min-w-0">
-            <Leaf className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="text-sm text-slate-400 font-semibold shrink-0">EcoRutas</span>
-            <ChevronRight className="w-4 h-4 text-slate-200 shrink-0" />
-            <span className="text-sm font-bold text-slate-800 truncate">
-              {pageTitles[pathname] ?? 'Panel'}
-            </span>
+        <header className="dash-header">
+          <div className="dash-breadcrumb">
+            <span className="bc-system">SRSS</span>
+            <ChevronRight style={{ width: 14, height: 14, color: '#D1D0CC' }} />
+            <span className="bc-page">{pageTitles[pathname] ?? 'Panel'}</span>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button className="relative p-2.5 rounded-xl hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-all">
-              <Bell className="w-[18px] h-[18px]" />
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-emerald-500 rounded-full ring-2 ring-white" />
+          <div className="dash-header-right">
+            <button className="header-bell">
+              <Bell style={{ width: 17, height: 17 }} />
+              <span className="bell-dot" />
             </button>
-            <div className="h-5 w-px bg-slate-100 mx-1" />
-            <div className="flex items-center gap-3 pl-1 pr-3 py-1.5 rounded-xl hover:bg-slate-50 transition-all cursor-pointer">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-xs shadow-md shadow-emerald-500/20">
+            <div className="header-sep" />
+            <div className="header-avatar">
+              <div className="avatar-circle">
                 {user.firstName[0]}{user.lastName[0]}
               </div>
-              <div className="hidden xl:block">
-                <div className="text-sm font-bold text-slate-800 leading-tight">{user.firstName} {user.lastName}</div>
-                <div className="text-[11px] text-slate-400 font-semibold">{roleLabels[user.role]}</div>
+              <div className="avatar-info">
+                <div className="avatar-name">{user.firstName} {user.lastName}</div>
+                <div className="avatar-role">{roleLabels[user.role]}</div>
               </div>
             </div>
           </div>
         </header>
 
         {/* Mobile Header */}
-        <header className="lg:hidden h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
-          <div className="flex items-center gap-2">
-            <Leaf className="w-6 h-6 text-emerald-600" />
-            <span className="font-bold text-slate-900">EcoRutas</span>
-          </div>
-          <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg bg-slate-50 text-slate-600"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        <header className="dash-header-mobile">
+          <span className="mobile-brand">SRSS Cusco</span>
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="mobile-menu-btn">
+            {mobileMenuOpen ? <X style={{ width: 22, height: 22 }} /> : <Menu style={{ width: 22, height: 22 }} />}
           </button>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-10 bg-slate-50/30">
-          <div className="max-w-[1400px] mx-auto animate-fade-in">
+        <main className="dash-content">
+          <div className="dash-content-inner animate-fade-in">
             {children}
           </div>
         </main>
@@ -263,3 +191,354 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   );
 }
+
+const dashStyles = `
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .dash-root {
+    min-height: 100vh;
+    display: flex;
+    background: #FAFAF8;
+    color: #1A1A1A;
+    font-family: 'Outfit', 'DM Sans', -apple-system, sans-serif;
+  }
+
+  /* ═══ SIDEBAR ═══ */
+  .sb {
+    width: 260px;
+    display: none;
+    flex-direction: column;
+    background: #FFFFFF;
+    border-right: 1px solid #F0EEEB;
+    position: relative;
+    z-index: 30;
+    transition: width 0.3s ease;
+  }
+  .sb--collapsed { width: 80px; }
+
+  @media (min-width: 1024px) {
+    .sb { display: flex; }
+  }
+
+  .sb-brand {
+    padding: 1.5rem 1.25rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    border-bottom: 1px solid #F7F6F4;
+  }
+  .sb-brand-name {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1A1A1A;
+    letter-spacing: -0.02em;
+  }
+  .sb-brand-sub {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #B0ADA8;
+  }
+
+  .sb-nav {
+    flex: 1;
+    padding: 1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+  }
+
+  .sb-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #8A8780;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .sb-link:hover {
+    background: #FAFAF8;
+    color: #3A3A38;
+  }
+  .sb-link--active {
+    background: #059669;
+    color: #FFFFFF !important;
+  }
+  .sb-link--active:hover {
+    background: #047857;
+  }
+
+  .sb-footer {
+    padding: 1rem 0.75rem;
+    margin-top: auto;
+  }
+  .sb-user {
+    padding: 0.875rem;
+    border-radius: 10px;
+    background: #FAFAF8;
+    border: 1px solid #F0EEEB;
+    margin-bottom: 0.5rem;
+  }
+  .sb-user-status {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+  }
+  .sb-user-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #059669;
+  }
+  .sb-user-status span {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #059669;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .sb-user-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1A1A1A;
+    line-height: 1.2;
+  }
+  .sb-user-role {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: #B0ADA8;
+    margin-top: 1px;
+  }
+
+  .sb-logout {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem;
+    border-radius: 8px;
+    border: 1px solid #F0EEEB;
+    background: #FFFFFF;
+    color: #8A8780;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .sb-logout:hover {
+    background: #FEF2F2;
+    border-color: #FECACA;
+    color: #DC2626;
+  }
+
+  .sb-toggle {
+    position: absolute;
+    right: -14px;
+    top: 80px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #FFFFFF;
+    border: 1px solid #F0EEEB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8A8780;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 40;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .sb-toggle:hover {
+    color: #059669;
+    border-color: #D1FAE5;
+  }
+
+  /* Mobile sidebar */
+  .mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 40;
+    display: none;
+  }
+  .sb-mobile {
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    width: 260px;
+    background: #FFFFFF;
+    z-index: 50;
+    display: none;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .sb-mobile--open { transform: translateX(0); }
+  @media (max-width: 1023px) {
+    .mobile-overlay { display: block; }
+    .sb-mobile { display: flex; }
+  }
+
+  /* ═══ MAIN AREA ═══ */
+  .dash-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Desktop header */
+  .dash-header {
+    display: none;
+    height: 56px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #F0EEEB;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    flex-shrink: 0;
+    z-index: 20;
+  }
+  @media (min-width: 1024px) {
+    .dash-header { display: flex; }
+  }
+
+  .dash-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .bc-system {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #B0ADA8;
+  }
+  .bc-page {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1A1A1A;
+  }
+
+  .dash-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .header-bell {
+    position: relative;
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #8A8780;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .header-bell:hover { background: #FAFAF8; color: #3A3A38; }
+  .bell-dot {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #059669;
+    border: 1.5px solid #FFFFFF;
+  }
+  .header-sep {
+    width: 1px;
+    height: 20px;
+    background: #F0EEEB;
+    margin: 0 0.25rem;
+  }
+  .header-avatar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .header-avatar:hover { background: #FAFAF8; }
+  .avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #059669;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+  .avatar-info { display: none; }
+  @media (min-width: 1280px) {
+    .avatar-info { display: block; }
+  }
+  .avatar-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1A1A1A;
+    line-height: 1.2;
+  }
+  .avatar-role {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: #B0ADA8;
+  }
+
+  /* Mobile header */
+  .dash-header-mobile {
+    display: flex;
+    height: 56px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #F0EEEB;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    flex-shrink: 0;
+  }
+  @media (min-width: 1024px) {
+    .dash-header-mobile { display: none; }
+  }
+  .mobile-brand {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #1A1A1A;
+  }
+  .mobile-menu-btn {
+    padding: 0.4rem;
+    border-radius: 6px;
+    border: none;
+    background: #FAFAF8;
+    color: #5A5750;
+    cursor: pointer;
+  }
+
+  /* Content */
+  .dash-content {
+    flex: 1;
+    overflow: auto;
+    padding: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .dash-content { padding: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .dash-content { padding: 2.5rem; }
+  }
+  .dash-content-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+`;

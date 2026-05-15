@@ -4,7 +4,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "EcoRutas Cusco - Sistema de Recolección de Residuos",
+  title: "SRSS Cusco - Sistema de Recolección de Residuos Sólidos Segregados",
   description: "Sistema inteligente de recolección de residuos sólidos segregados para la gestión ambiental urbana de Cusco",
 };
 
