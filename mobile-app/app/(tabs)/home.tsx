@@ -45,7 +45,7 @@ export default function HomeScreen() {
       <View style={s.header}>
         <View>
           <Text style={s.greeting}>Hola, {user?.firstName}</Text>
-          <Text style={s.subGreeting}>Bienvenido a EcoRutas Cusco</Text>
+          <Text style={s.subGreeting}>Bienvenido a SRSS Cusco</Text>
         </View>
         <View style={s.avatarBox}>
           <Text style={s.avatarText}>{user?.firstName?.[0]}{user?.lastName?.[0]}</Text>

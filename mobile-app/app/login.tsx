@@ -32,10 +32,10 @@ export default function LoginScreen() {
     <ScrollView contentContainerStyle={s.container}>
       <View style={s.logoContainer}>
         <LinearGradient colors={['#10B981', '#059669']} style={s.logoBox}>
-          <Feather name="leaf" size={40} color="#FFF" />
+          <Feather name="map" size={40} color="#FFF" />
         </LinearGradient>
-        <Text style={s.title}>EcoRutas Cusco</Text>
-        <Text style={s.subtitle}>Gestión Ambiental Urbana</Text>
+        <Text style={s.title}>SRSS Cusco</Text>
+        <Text style={s.subtitle}>Sistema de Recolección</Text>
       </View>
 
       <View style={s.card}>
