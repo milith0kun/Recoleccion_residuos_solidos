@@ -2,7 +2,9 @@
 
 import { useApi } from '@/hooks/useApi';
 import { useEffect, useState } from 'react';
-import { Search, Filter, Recycle, Info, AlertCircle, ChevronRight } from 'lucide-react';
+import { Search, Filter, AlertCircle, ChevronRight, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
+import { toast } from 'sonner';
 
 interface WasteTypeData {
   _id: string;
@@ -36,19 +38,107 @@ export default function WasteTypesPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
 
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<WasteTypeData>>({
+    name: '',
+    category: 'organic',
+    description: '',
+    examples: [],
+    handlingInstructions: '',
+    colorCode: '#000000'
+  });
+  const [examplesInput, setExamplesInput] = useState('');
+
+  const load = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (categoryFilter) params.set('category', categoryFilter);
+      const data = await apiFetch(`/api/v1/waste-types?${params}`);
+      setWasteTypes(data.data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (search) params.set('search', search);
-        if (categoryFilter) params.set('category', categoryFilter);
-        const data = await apiFetch(`/api/v1/waste-types?${params}`);
-        setWasteTypes(data.data);
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
-    };
     load();
   }, [apiFetch, search, categoryFilter]);
+
+  const handleOpenModal = (wasteType?: WasteTypeData) => {
+    if (wasteType) {
+      setEditingId(wasteType._id);
+      setFormData({
+        name: wasteType.name,
+        category: wasteType.category,
+        description: wasteType.description,
+        examples: wasteType.examples,
+        handlingInstructions: wasteType.handlingInstructions,
+        colorCode: wasteType.colorCode,
+      });
+      setExamplesInput(wasteType.examples.join(', '));
+    } else {
+      setEditingId(null);
+      setFormData({
+        name: '',
+        category: 'organic',
+        description: '',
+        examples: [],
+        handlingInstructions: '',
+        colorCode: '#000000'
+      });
+      setExamplesInput('');
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...formData,
+        examples: examplesInput.split(',').map(ex => ex.trim()).filter(Boolean)
+      };
+
+      if (editingId) {
+        await apiFetch(`/api/v1/waste-types/${editingId}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+        toast.success('Residuo actualizado exitosamente');
+      } else {
+        await apiFetch('/api/v1/waste-types', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        toast.success('Residuo creado exitosamente');
+      }
+      handleCloseModal();
+      load();
+    } catch (error: any) {
+      toast.error(error.message || 'Error al guardar residuo');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('¿Está seguro de que desea eliminar este residuo?')) {
+      try {
+        await apiFetch(`/api/v1/waste-types/${id}`, {
+          method: 'DELETE',
+        });
+        toast.success('Residuo eliminado exitosamente');
+        load();
+      } catch (error: any) {
+        toast.error(error.message || 'Error al eliminar residuo');
+      }
+    }
+  };
 
   return (
     <div className="space-y-10 animate-fade-in pb-10">
@@ -58,6 +148,13 @@ export default function WasteTypesPage() {
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">Clasificación de Residuos</h1>
           <p className="text-slate-500 mt-2 font-medium text-lg">Catálogo técnico basado en la norma técnica peruana <span className="text-emerald-600 font-bold">NTP 900.058</span>.</p>
         </div>
+        <button
+          onClick={() => handleOpenModal()}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-600/20"
+        >
+          <Plus className="w-5 h-5" />
+          Añadir Residuo
+        </button>
       </div>
 
       {/* Filters Bar */}
@@ -158,20 +255,63 @@ export default function WasteTypesPage() {
                 </p>
               </div>
 
-              {/* Footer */}
+              {/* Footer Actions */}
               <div className="flex items-center justify-between pt-6 border-t border-slate-50 relative">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-3 rounded-full shadow-inner border border-white" style={{ background: wt.colorCode }} />
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{wt.colorCode}</span>
                 </div>
-                <button className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-white hover:shadow-xl border border-transparent hover:border-slate-100 transition-all text-slate-400 hover:text-emerald-600 group/btn">
-                  <ChevronRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => handleOpenModal(wt)} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-all">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDelete(wt._id)} className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-all">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingId ? 'Editar Residuo' : 'Añadir Residuo'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Nombre</label>
+            <input required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Categoría</label>
+            <select required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.category || 'organic'} onChange={e => setFormData({...formData, category: e.target.value})}>
+              <option value="organic">Orgánico</option>
+              <option value="recyclable">Reciclable</option>
+              <option value="non_recyclable">No Reciclable</option>
+              <option value="hazardous">Peligroso</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Descripción</label>
+            <textarea required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" rows={3} value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Ejemplos (separados por coma)</label>
+            <input required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={examplesInput} onChange={e => setExamplesInput(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Instrucciones de Manipulación</label>
+            <textarea required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" rows={2} value={formData.handlingInstructions || ''} onChange={e => setFormData({...formData, handlingInstructions: e.target.value})}></textarea>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Color (Hex)</label>
+            <input required type="color" className="w-full h-12 rounded-xl bg-slate-50 border border-slate-200" value={formData.colorCode || '#000000'} onChange={e => setFormData({...formData, colorCode: e.target.value})} />
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+            <button type="button" onClick={handleCloseModal} className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200">Cancelar</button>
+            <button type="submit" className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700">{editingId ? 'Guardar Cambios' : 'Crear Residuo'}</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

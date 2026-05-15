@@ -17,7 +17,10 @@ import {
   Leaf,
   Menu,
   X,
-  Bell
+  Bell,
+  Car,
+  AlertTriangle,
+  BarChart3
 } from 'lucide-react';
 
 const menuItems = [
@@ -26,6 +29,9 @@ const menuItems = [
   { href: '/dashboard/zones', label: 'Zonas', icon: MapIcon },
   { href: '/dashboard/waste-types', label: 'Residuos', icon: Recycle },
   { href: '/dashboard/routes', label: 'Rutas', icon: Truck },
+  { href: '/dashboard/vehicles', label: 'Vehículos', icon: Car },
+  { href: '/dashboard/incidents', label: 'Incidentes', icon: AlertTriangle },
+  { href: '/dashboard/reports', label: 'Reportes', icon: BarChart3 },
   { href: '/dashboard/tracking', label: 'Seguimiento', icon: Radio },
 ];
 
@@ -248,7 +254,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-10">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-10 bg-slate-50/30">
           <div className="max-w-[1400px] mx-auto animate-fade-in">
             {children}
           </div>

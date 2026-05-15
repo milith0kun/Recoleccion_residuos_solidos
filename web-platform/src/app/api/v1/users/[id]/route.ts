@@ -28,12 +28,28 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await connectDB();
     const { id } = await params;
     const body = await request.json();
-    delete body.password;
-    delete body.email;
+    delete body.password; // do not update password via this generic route
+    delete body.email;    // do not update email directly if logic requires complex check, or we can check below
 
-    const user = await User.findByIdAndUpdate(id, body, { new: true }).populate('zone', 'name district');
-    if (!user) return errorResponse('Usuario no encontrado', 404);
-    return successResponse(user, 'Usuario actualizado');
+    // Check if updating DNI to an existing one
+    if (body.dni) {
+      const existing = await User.findOne({ dni: body.dni, _id: { $ne: id } });
+      if (existing) {
+        return errorResponse('Ya existe otro usuario con ese DNI', 409);
+      }
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { $set: body },
+      { new: true, runValidators: true }
+    ).populate('zone', 'name district');
+
+    if (!user) {
+      return errorResponse('Usuario no encontrado', 404);
+    }
+
+    return successResponse(user, 'Usuario actualizado correctamente');
   } catch (err) {
     console.error(err);
     return errorResponse('Error al actualizar usuario', 500);
@@ -47,11 +63,18 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     await connectDB();
     const { id } = await params;
-    const user = await User.findByIdAndUpdate(id, { isActive: false }, { new: true });
-    if (!user) return errorResponse('Usuario no encontrado', 404);
-    return successResponse(null, 'Usuario desactivado');
+    const user = await User.findById(id);
+    
+    if (!user) {
+      return errorResponse('Usuario no encontrado', 404);
+    }
+
+    user.isActive = false;
+    await user.save();
+
+    return successResponse(null, 'Usuario desactivado correctamente');
   } catch (err) {
     console.error(err);
-    return errorResponse('Error al desactivar usuario', 500);
+    return errorResponse('Error al eliminar usuario', 500);
   }
 }

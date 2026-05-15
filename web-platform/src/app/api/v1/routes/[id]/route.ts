@@ -30,13 +30,22 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await connectDB();
     const { id } = await params;
     const body = await request.json();
-    const route = await Route.findByIdAndUpdate(id, body, { new: true })
+    
+    const route = await Route.findByIdAndUpdate(
+      id,
+      { $set: body },
+      { new: true, runValidators: true }
+    )
       .populate('zone', 'name district color')
       .populate('vehicle', 'plate type')
       .populate('operator', 'firstName lastName email')
       .populate('wasteTypes', 'name category colorCode');
-    if (!route) return errorResponse('Ruta no encontrada', 404);
-    return successResponse(route, 'Ruta actualizada');
+
+    if (!route) {
+      return errorResponse('Ruta no encontrada', 404);
+    }
+
+    return successResponse(route, 'Ruta actualizada correctamente');
   } catch (err) {
     console.error(err);
     return errorResponse('Error al actualizar ruta', 500);
@@ -49,11 +58,18 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     await connectDB();
     const { id } = await params;
-    const route = await Route.findByIdAndUpdate(id, { status: 'inactive' }, { new: true });
-    if (!route) return errorResponse('Ruta no encontrada', 404);
-    return successResponse(null, 'Ruta desactivada');
+    const route = await Route.findById(id);
+    
+    if (!route) {
+      return errorResponse('Ruta no encontrada', 404);
+    }
+
+    route.status = 'inactive';
+    await route.save();
+
+    return successResponse(null, 'Ruta desactivada correctamente');
   } catch (err) {
     console.error(err);
-    return errorResponse('Error al desactivar ruta', 500);
+    return errorResponse('Error al eliminar ruta', 500);
   }
 }

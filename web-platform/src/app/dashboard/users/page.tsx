@@ -2,7 +2,9 @@
 
 import { useApi } from '@/hooks/useApi';
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Filter, UserPlus, MoreHorizontal, UserCheck, UserX, MapPin, Users } from 'lucide-react';
+import { Search, Filter, UserPlus, MoreHorizontal, UserCheck, UserX, MapPin, Users, Edit2, Trash2 } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
+import { toast } from 'sonner';
 
 interface UserData {
   _id: string;
@@ -13,7 +15,7 @@ interface UserData {
   role: string;
   phone?: string;
   isActive: boolean;
-  zone?: { name: string; district: string };
+  zone?: { name: string; district: string; _id: string };
   createdAt: string;
 }
 
@@ -30,20 +32,34 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
 
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<UserData> & { password?: string }>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    dni: '',
+    role: 'citizen',
+    phone: '',
+    password: ''
+  });
+
+  const load = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (roleFilter) params.set('role', roleFilter);
+      const data = await apiFetch(`/api/v1/users?${params}`);
+      setUsers(data.data.users);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (search) params.set('search', search);
-        if (roleFilter) params.set('role', roleFilter);
-        const data = await apiFetch(`/api/v1/users?${params}`);
-        setUsers(data.data.users);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, [apiFetch, search, roleFilter]);
 
@@ -56,6 +72,80 @@ export default function UsersPage() {
     };
   }, [users]);
 
+  const handleOpenModal = (user?: UserData) => {
+    if (user) {
+      setEditingId(user._id);
+      setFormData({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        dni: user.dni,
+        role: user.role,
+        phone: user.phone || '',
+      });
+    } else {
+      setEditingId(null);
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        dni: '',
+        role: 'citizen',
+        phone: '',
+        password: ''
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = { ...formData };
+      if (!payload.password && editingId) {
+        delete payload.password;
+      }
+
+      if (editingId) {
+        await apiFetch(`/api/v1/users/${editingId}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+        toast.success('Usuario actualizado exitosamente');
+      } else {
+        await apiFetch('/api/v1/users', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        toast.success('Usuario creado exitosamente');
+      }
+      handleCloseModal();
+      load();
+    } catch (error: any) {
+      toast.error(error.message || 'Error al guardar usuario');
+    }
+  };
+
+  const handleToggleActive = async (id: string, currentStatus: boolean) => {
+    if (confirm(`¿Está seguro de que desea ${currentStatus ? 'desactivar' : 'activar'} este usuario?`)) {
+      try {
+        await apiFetch(`/api/v1/users/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ isActive: !currentStatus }),
+        });
+        toast.success(`Usuario ${currentStatus ? 'desactivado' : 'activado'} exitosamente`);
+        load();
+      } catch (error: any) {
+        toast.error(error.message || 'Error al cambiar estado del usuario');
+      }
+    }
+  };
+
   return (
     <div className="space-y-10 animate-fade-in pb-10">
       {/* Header Section */}
@@ -64,7 +154,7 @@ export default function UsersPage() {
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">Gestión de Usuarios</h1>
           <p className="text-slate-500 mt-2 font-medium text-lg">Administra ciudadanos, operadores y administradores del sistema.</p>
         </div>
-        <button className="flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+        <button onClick={() => handleOpenModal()} className="flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
           <UserPlus className="w-5 h-5" />
           <span>Nuevo Usuario</span>
         </button>
@@ -187,9 +277,14 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <button className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-white hover:shadow-xl border border-transparent hover:border-slate-100 transition-all text-slate-400 hover:text-emerald-600 group/btn">
-                        <MoreHorizontal className="w-5 h-5 group-hover/btn:rotate-90 transition-transform" />
-                      </button>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleOpenModal(u)} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-all">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleToggleActive(u._id, u.isActive)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${u.isActive ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>
+                          {u.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -219,6 +314,51 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
+
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingId ? 'Editar Usuario' : 'Añadir Usuario'}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Nombre</label>
+              <input required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.firstName || ''} onChange={e => setFormData({...formData, firstName: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Apellido</label>
+              <input required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.lastName || ''} onChange={e => setFormData({...formData, lastName: e.target.value})} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">DNI</label>
+            <input required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.dni || ''} onChange={e => setFormData({...formData, dni: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
+            <input required type="email" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Teléfono</label>
+            <input type="tel" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Rol</label>
+            <select required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.role || 'citizen'} onChange={e => setFormData({...formData, role: e.target.value})}>
+              <option value="citizen">Ciudadano</option>
+              <option value="operator">Operador</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          {!editingId && (
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Contraseña</label>
+              <input required={!editingId} type="password" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.password || ''} onChange={e => setFormData({...formData, password: e.target.value})} />
+            </div>
+          )}
+          <div className="pt-4 flex justify-end gap-3">
+            <button type="button" onClick={handleCloseModal} className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200">Cancelar</button>
+            <button type="submit" className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700">{editingId ? 'Guardar Cambios' : 'Crear Usuario'}</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
