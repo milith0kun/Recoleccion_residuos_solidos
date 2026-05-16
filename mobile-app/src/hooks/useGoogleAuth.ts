@@ -11,7 +11,7 @@ type GoogleAuthResponse =
   | { type: 'dismiss' }
   | { type: 'error'; error: { message: string } };
 
-const EXPO_PROXY_REDIRECT = 'https://auth.expo.io/@anonymous/ecorutas-cusco';
+const EXPO_PROXY_REDIRECT = 'https://auth.expo.io/@anonymous/srss-cusco';
 
 function pickClientId(): string | undefined {
   if (Platform.OS === 'android') {

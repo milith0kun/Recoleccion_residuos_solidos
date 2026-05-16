@@ -2,10 +2,9 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
-import { ArrowRight, Loader2 } from 'lucide-react';
 
 interface GoogleCredentialResponse {
   credential: string;
@@ -14,21 +13,14 @@ interface GoogleCredentialResponse {
 interface GoogleIdConfig {
   client_id: string;
   callback: (resp: GoogleCredentialResponse) => void;
-}
-
-interface GoogleRenderConfig {
-  theme?: 'outline' | 'filled_blue' | 'filled_black';
-  size?: 'large' | 'medium' | 'small';
-  text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
-  width?: number;
-  shape?: 'rectangular' | 'pill';
-  logo_alignment?: 'left' | 'center';
+  auto_select?: boolean;
+  cancel_on_tap_outside?: boolean;
 }
 
 interface GoogleIdApi {
   initialize: (config: GoogleIdConfig) => void;
-  renderButton: (parent: HTMLElement, options: GoogleRenderConfig) => void;
   prompt: () => void;
+  cancel: () => void;
 }
 
 declare global {
@@ -48,10 +40,7 @@ export default function HomePage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const [seedMsg, setSeedMsg] = useState('');
   const [gisReady, setGisReady] = useState(false);
-  const googleBtnRef = useRef<HTMLDivElement | null>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
@@ -80,19 +69,14 @@ export default function HomePage() {
     window.google.accounts.id.initialize({
       client_id: googleClientId,
       callback: handleGoogleCredential,
+      cancel_on_tap_outside: false,
     });
-    if (googleBtnRef.current) {
-      googleBtnRef.current.innerHTML = '';
-      window.google.accounts.id.renderButton(googleBtnRef.current, {
-        theme: 'outline',
-        size: 'large',
-        text: 'continue_with',
-        width: 320,
-        shape: 'rectangular',
-        logo_alignment: 'left',
-      });
-    }
   }, [gisReady, googleClientId, handleGoogleCredential]);
+
+  const handleGoogleClick = () => {
+    if (!gisReady || !googleClientId || !window.google) return;
+    window.google.accounts.id.prompt();
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,29 +92,11 @@ export default function HomePage() {
     }
   };
 
-  const handleSeed = async () => {
-    setSeeding(true);
-    setSeedMsg('');
-    try {
-      const res = await fetch('/api/v1/seed', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        setSeedMsg('Base de datos inicializada correctamente.');
-      } else {
-        setSeedMsg('Error: ' + data.error?.message);
-      }
-    } catch {
-      setSeedMsg('Error de conexión');
-    } finally {
-      setSeeding(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="landing-root" style={{ justifyContent: 'center', alignItems: 'center' }}>
         <style>{styles}</style>
-        <Loader2 style={{ width: 32, height: 32, color: '#059669', animation: 'spin 1s linear infinite' }} />
+        <span className="spinner-lg" aria-label="Cargando" />
       </div>
     );
   }
@@ -150,13 +116,9 @@ export default function HomePage() {
         <div className="left-content animate-fade-in">
 
           <div className="brand">
-            <div className="brand-mark" aria-hidden>
-              <span className="brand-mark-dot" />
-            </div>
-            <div className="brand-text">
-              <h2 className="brand-name">SRSS</h2>
-              <span className="brand-loc">Cusco</span>
-            </div>
+            <span className="wordmark">SRSS</span>
+            <span className="brand-bar" aria-hidden />
+            <span className="brand-loc">Cusco</span>
           </div>
 
           <div className="hero">
@@ -233,14 +195,7 @@ export default function HomePage() {
             )}
 
             <button type="submit" disabled={submitting} className="btn-login">
-              {submitting ? (
-                <Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} />
-              ) : (
-                <>
-                  Ingresar
-                  <ArrowRight style={{ width: 16, height: 16 }} />
-                </>
-              )}
+              {submitting ? <span className="spinner-sm" /> : 'Ingresar'}
             </button>
 
             <div className="forgot-row">
@@ -255,49 +210,20 @@ export default function HomePage() {
           </div>
 
           <div className="google-wrap">
-            {googleClientId ? (
-              <div ref={googleBtnRef} className="google-btn-host" aria-label="Continuar con Google" />
-            ) : (
-              <>
-                <button type="button" disabled className="btn-google-fallback">
-                  Continuar con Google
-                </button>
-                <p className="google-hint">
-                  Configura <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> en <code>.env.local</code> para activar Google Sign-In
-                </p>
-              </>
+            <button
+              type="button"
+              className="btn-google"
+              onClick={handleGoogleClick}
+              disabled={!googleClientId || !gisReady}
+            >
+              Continuar con Google
+            </button>
+            {!googleClientId && (
+              <p className="google-hint">
+                Configura <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> en <code>.env.local</code> para activar Google Sign-In
+              </p>
             )}
           </div>
-
-          {/* Credenciales de prueba - tarjeta oscura */}
-          <div className="creds-dark">
-            <div className="creds-dark-header">
-              <span className="creds-dark-label">Cuentas de prueba</span>
-              <span className="creds-dark-hint">Click para autocompletar</span>
-            </div>
-            <div className="creds-dark-list">
-              {[
-                { role: 'Administrador', email: 'admin@residuos.cusco.gob.pe', pass: 'admin123' },
-                { role: 'Operador', email: 'operador@residuos.cusco.gob.pe', pass: 'operator123' },
-                { role: 'Ciudadano', email: 'ciudadano@gmail.com', pass: 'citizen123' },
-              ].map((c) => (
-                <button
-                  key={c.role}
-                  type="button"
-                  onClick={() => { setEmail(c.email); setPassword(c.pass); }}
-                  className="cred-row-dark"
-                >
-                  <span className="cred-role-dark">{c.role}</span>
-                  <span className="cred-email-dark">{c.email}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button onClick={handleSeed} disabled={seeding} className="seed-link">
-            {seeding ? 'Inicializando...' : 'Inicializar datos de prueba'}
-          </button>
-          {seedMsg && <div className="seed-feedback">{seedMsg}</div>}
 
           <div className="login-footer">
             © 2026 Municipalidad Provincial del Cusco
@@ -365,39 +291,25 @@ const styles = `
   .brand {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.85rem;
   }
-  .brand-mark {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, #059669, #047857);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(5,150,105,0.25);
+  .wordmark {
+    font-size: 1.7rem;
+    font-weight: 900;
+    color: #059669;
+    letter-spacing: -0.05em;
+    line-height: 1;
   }
-  .brand-mark-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #FFFFFF;
-  }
-  .brand-text {
-    display: flex;
-    align-items: baseline;
-    gap: 0.4rem;
-  }
-  .brand-name {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #1A1A1A;
-    letter-spacing: -0.03em;
+  .brand-bar {
+    display: inline-block;
+    width: 1px;
+    height: 22px;
+    background: #D6D3CE;
   }
   .brand-loc {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #A09D98;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #6B6862;
     letter-spacing: 0.02em;
   }
 
@@ -616,108 +528,9 @@ const styles = `
     color: #059669;
   }
 
-  /* Credenciales - tarjeta oscura */
-  .creds-dark {
-    margin-top: 1.75rem;
-    background: #1A1A1A;
-    border-radius: 14px;
-    padding: 1rem;
-    color: #FFFFFF;
-  }
-  .creds-dark-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 0.2rem 0.65rem;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    margin-bottom: 0.5rem;
-  }
-  .creds-dark-label {
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: rgba(255,255,255,0.85);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-  .creds-dark-hint {
-    font-size: 0.62rem;
-    font-weight: 500;
-    color: rgba(255,255,255,0.35);
-  }
-  .creds-dark-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .cred-row-dark {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.55rem 0.55rem;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s ease;
-  }
-  .cred-row-dark:hover {
-    background: rgba(255,255,255,0.06);
-  }
-  .cred-role-dark {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #FFFFFF;
-    flex-shrink: 0;
-  }
-  .cred-email-dark {
-    font-size: 0.68rem;
-    font-weight: 500;
-    color: rgba(255,255,255,0.45);
-    font-family: 'JetBrains Mono', monospace;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  /* Seed */
-  .seed-link {
-    display: block;
-    width: 100%;
-    margin-top: 1rem;
-    border: none;
-    background: transparent;
-    color: #C5C2BD;
-    font-family: inherit;
-    font-size: 0.68rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: color 0.2s;
-    text-align: center;
-    padding: 0.4rem;
-    text-decoration: underline;
-    text-decoration-color: transparent;
-    text-underline-offset: 3px;
-  }
-  .seed-link:hover:not(:disabled) {
-    color: #059669;
-    text-decoration-color: #059669;
-  }
-  .seed-link:disabled { opacity: 0.6; cursor: not-allowed; }
-  .seed-feedback {
-    text-align: center;
-    margin-top: 0.4rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #059669;
-    padding: 0.4rem;
-  }
-
   .login-footer {
-    margin-top: 1.75rem;
-    padding-top: 1rem;
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
     border-top: 1px solid #F0EEEB;
     text-align: center;
     font-size: 0.65rem;
@@ -749,26 +562,32 @@ const styles = `
   .google-wrap {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: stretch;
+    gap: 0.55rem;
   }
-  .google-btn-host {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    min-height: 40px;
-  }
-  .btn-google-fallback {
+  .btn-google {
     width: 100%;
     padding: 0.85rem 1rem;
     border-radius: 10px;
     border: 1.5px solid #ECEAE6;
-    background: #FAFAF8;
-    color: #8A8780;
+    background: #FFFFFF;
+    color: #1A1A1A;
     font-family: inherit;
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  }
+  .btn-google:hover:not(:disabled) {
+    border-color: #059669;
+    background: #FAFAF8;
+  }
+  .btn-google:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+  .btn-google:disabled {
+    opacity: 0.55;
     cursor: not-allowed;
   }
   .google-hint {
@@ -786,6 +605,26 @@ const styles = `
     color: #6B6862;
     padding: 1px 5px;
     border-radius: 4px;
+  }
+
+  /* Spinners (sin librería de iconos) */
+  .spinner-lg {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid #E8E5E0;
+    border-top-color: #059669;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .spinner-sm {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.35);
+    border-top-color: #FFFFFF;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
 
   /* Responsive */

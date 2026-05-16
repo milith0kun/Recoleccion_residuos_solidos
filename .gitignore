@@ -27,6 +27,12 @@ nul
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+build-log*.txt
+
+# Artefactos generados de Story Mapping
+user_story_cards_*.html
+user_story_cards_*.pdf
+user_story_mapping_*.html
 
 # Skills y herramientas locales (workspaces de plugins de editor)
 .codebuddy/

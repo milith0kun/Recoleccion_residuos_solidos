@@ -1,13 +1,20 @@
 {
   "expo": {
-    "name": "EcoRutas Cusco",
-    "slug": "ecorutas-cusco",
+    "name": "SRSS Cusco",
+    "slug": "srss-cusco",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "scheme": "ecorutas",
+    "scheme": "srss",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a2e88712-6ddf-4dba-8047-38630a18d3d9",
+      "fallbackToCacheTimeout": 0
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -44,11 +51,19 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "EcoRutas necesita acceder a tu ubicación para el seguimiento de rutas."
+          "locationAlwaysAndWhenInUsePermission": "SRSS Cusco necesita acceder a tu ubicación para el seguimiento de rutas."
         }
       ],
       "expo-font",
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "expo-updates"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a2e88712-6ddf-4dba-8047-38630a18d3d9"
+      }
+    },
+    "owner": "milith0kun"
   }
 }
