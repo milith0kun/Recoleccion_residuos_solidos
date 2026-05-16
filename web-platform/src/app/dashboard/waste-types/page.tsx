@@ -1,8 +1,8 @@
 'use client';
 
 import { useApi } from '@/hooks/useApi';
-import { useEffect, useState } from 'react';
-import { Search, Filter, AlertCircle, ChevronRight, Plus, Edit2, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Search, Filter, AlertCircle, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'sonner';
 
@@ -51,20 +51,36 @@ export default function WasteTypesPage() {
   });
   const [examplesInput, setExamplesInput] = useState('');
 
-  const load = async () => {
+  const fetchWasteTypes = useCallback(async (): Promise<WasteTypeData[]> => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (categoryFilter) params.set('category', categoryFilter);
+    const data = await apiFetch(`/api/v1/waste-types?${params}`);
+    return data.data;
+  }, [apiFetch, search, categoryFilter]);
+
+  const load = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      if (categoryFilter) params.set('category', categoryFilter);
-      const data = await apiFetch(`/api/v1/waste-types?${params}`);
-      setWasteTypes(data.data);
+      const data = await fetchWasteTypes();
+      setWasteTypes(data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, [fetchWasteTypes]);
 
   useEffect(() => {
-    load();
-  }, [apiFetch, search, categoryFilter]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchWasteTypes();
+        if (!cancelled) setWasteTypes(data);
+      } catch (err) {
+        if (!cancelled) console.error(err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [fetchWasteTypes]);
 
   const handleOpenModal = (wasteType?: WasteTypeData) => {
     if (wasteType) {
@@ -121,8 +137,9 @@ export default function WasteTypesPage() {
       }
       handleCloseModal();
       load();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al guardar residuo');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al guardar residuo';
+      toast.error(message);
     }
   };
 
@@ -134,8 +151,9 @@ export default function WasteTypesPage() {
         });
         toast.success('Residuo eliminado exitosamente');
         load();
-      } catch (error: any) {
-        toast.error(error.message || 'Error al eliminar residuo');
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Error al eliminar residuo';
+        toast.error(message);
       }
     }
   };

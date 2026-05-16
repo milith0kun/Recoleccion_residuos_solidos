@@ -3,16 +3,13 @@
 import { useAuth } from '@/context/AuthContext';
 import { useApi } from '@/hooks/useApi';
 import { useEffect, useState } from 'react';
-import { 
-  Users, 
-  Map as MapIcon, 
-  Truck, 
-  Recycle, 
+import {
+  Users,
+  Map as MapIcon,
+  Truck,
+  Recycle,
   Car,
-  Database,
-  CheckCircle2,
-  Shield,
-  Info
+  CheckCircle2
 } from 'lucide-react';
 
 interface Stats {
@@ -72,10 +69,10 @@ export default function DashboardPage() {
   ];
 
   const systemStatus = [
-    { label: 'Rastreo GPS', desc: 'Conexión satelital activa', status: 'Activo' },
-    { label: 'Notificaciones', desc: 'Push & Email Gateway', status: 'Online' },
-    { label: 'Base de Datos', desc: 'MongoDB Atlas Cluster', status: 'Sincronizada' },
-    { label: 'Seguridad SSL', desc: 'Encriptación AES-256', status: 'Protegido' },
+    { label: 'Rastreo GPS', desc: 'Conexión satelital activa', status: 'Activo', tone: 'green' },
+    { label: 'Notificaciones', desc: 'Push & Email Gateway', status: 'Online', tone: 'green' },
+    { label: 'Base de Datos', desc: 'MongoDB Atlas Cluster', status: 'Sincronizada', tone: 'green' },
+    { label: 'Seguridad SSL', desc: 'Encriptación AES-256', status: 'Protegido', tone: 'green' },
   ];
 
   const creds = [
@@ -90,16 +87,18 @@ export default function DashboardPage() {
 
       {/* Header */}
       <div className="dp-header">
-        <div>
+        <div className="dp-header-left">
+          <span className="dp-eyebrow">Panel de control</span>
           <h1 className="dp-title">
             Hola, <span>{user?.firstName}</span> 👋
           </h1>
           <p className="dp-subtitle">
-            Panel de control del Sistema de Recolección de Residuos Sólidos. 
-            Gestiona la recolección de forma eficiente.
+            Gestiona la recolección de residuos sólidos del Cusco de forma
+            eficiente y en tiempo real.
           </p>
         </div>
         <div className="dp-date">
+          <span className="dp-date-dot" />
           {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
         </div>
       </div>
@@ -111,16 +110,17 @@ export default function DashboardPage() {
           return (
             <div key={card.label} className="stat-card" style={{ animationDelay: `${i * 60}ms` }}>
               <div className="stat-top">
-                <div className="stat-icon" style={{ background: card.color + '12', color: card.color }}>
-                  <Icon style={{ width: 22, height: 22 }} />
+                <span className="stat-label">{card.label}</span>
+                <div className="stat-icon" style={{ background: card.color + '0F', color: card.color }}>
+                  <Icon style={{ width: 16, height: 16 }} />
                 </div>
-                {loading ? (
-                  <div className="stat-spinner" />
-                ) : (
-                  <span className="stat-value" style={{ color: card.color }}>{card.value}</span>
-                )}
               </div>
-              <span className="stat-label">{card.label}</span>
+              {loading ? (
+                <div className="stat-spinner" />
+              ) : (
+                <span className="stat-value">{card.value}</span>
+              )}
+              <div className="stat-foot" style={{ background: card.color }} />
             </div>
           );
         })}
@@ -131,12 +131,9 @@ export default function DashboardPage() {
         {/* System status */}
         <div className="dp-system">
           <div className="dp-system-header">
-            <div className="dp-system-title">
-              <Database style={{ width: 18, height: 18 }} />
-              <div>
-                <h2>Estado del Sistema</h2>
-                <p>Monitoreo de servicios</p>
-              </div>
+            <div>
+              <h2>Estado del Sistema</h2>
+              <p>Monitoreo en tiempo real de los servicios</p>
             </div>
             <div className="dp-system-badge">
               <span className="dp-badge-dot" />
@@ -147,10 +144,12 @@ export default function DashboardPage() {
             {systemStatus.map((s) => (
               <div key={s.label} className="dp-status-item">
                 <div className="dp-status-top">
-                  <CheckCircle2 style={{ width: 16, height: 16, color: '#059669' }} />
-                  <span className="dp-status-tag">{s.status}</span>
+                  <h3>{s.label}</h3>
+                  <span className="dp-status-tag">
+                    <CheckCircle2 style={{ width: 11, height: 11 }} />
+                    {s.status}
+                  </span>
                 </div>
-                <h3>{s.label}</h3>
                 <p>{s.desc}</p>
               </div>
             ))}
@@ -160,11 +159,11 @@ export default function DashboardPage() {
         {/* Credentials */}
         <div className="dp-creds">
           <div className="dp-creds-header">
-            <Shield style={{ width: 18, height: 18 }} />
             <div>
-              <h2>Acceso Demo</h2>
-              <p>Credenciales de prueba</p>
+              <span className="dp-creds-eyebrow">Entorno demo</span>
+              <h2>Acceso de prueba</h2>
             </div>
+            <span className="dp-creds-version">v1.0</span>
           </div>
           <div className="dp-creds-list">
             {creds.map((c) => (
@@ -178,8 +177,7 @@ export default function DashboardPage() {
             ))}
           </div>
           <div className="dp-creds-note">
-            <Info style={{ width: 14, height: 14, flexShrink: 0 }} />
-            <span>Use estas credenciales para explorar el sistema según el rol.</span>
+            Usa estas credenciales para explorar el sistema según el rol asignado.
           </div>
         </div>
       </div>
@@ -195,18 +193,27 @@ const dpStyles = `
   /* Header */
   .dp-header {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 2.25rem;
     flex-wrap: wrap;
   }
+  .dp-eyebrow {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #059669;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.4rem;
+  }
   .dp-title {
-    font-size: 2rem;
+    font-size: 2.15rem;
     font-weight: 800;
     color: #1A1A1A;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
   }
   .dp-title span {
     color: #059669;
@@ -215,72 +222,109 @@ const dpStyles = `
     font-size: 0.9rem;
     color: #8A8780;
     font-weight: 400;
-    margin-top: 0.5rem;
-    max-width: 500px;
+    margin-top: 0.55rem;
+    max-width: 520px;
     line-height: 1.6;
   }
   .dp-date {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #059669;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #047857;
     background: #F0FDF4;
     border: 1px solid #D1FAE5;
-    padding: 0.4rem 1rem;
-    border-radius: 8px;
+    padding: 0.45rem 0.9rem;
+    border-radius: 99px;
     text-transform: capitalize;
+    letter-spacing: 0.01em;
+  }
+  .dp-date-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #059669;
+    animation: pulse 2s infinite;
   }
 
   /* Stats */
   .dp-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     gap: 1rem;
     margin-bottom: 2rem;
   }
   .stat-card {
+    position: relative;
     background: #FFFFFF;
     border: 1px solid #F0EEEB;
     border-radius: 14px;
-    padding: 1.25rem;
-    transition: all 0.3s ease;
+    padding: 1.15rem 1.2rem 1.3rem;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    overflow: hidden;
+    opacity: 0;
+    animation: fade-up 0.5s ease forwards;
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   .stat-card:hover {
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.05);
     transform: translateY(-2px);
+    border-color: #E8E5E0;
+  }
+  .stat-card:hover .stat-foot {
+    transform: scaleX(1);
   }
   .stat-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.9rem;
   }
   .stat-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .stat-value {
-    font-size: 2rem;
-    font-weight: 900;
-    letter-spacing: -0.03em;
+    display: block;
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #1A1A1A;
+    letter-spacing: -0.035em;
+    line-height: 1;
   }
   .stat-spinner {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border: 2px solid #E8E5E0;
     border-top-color: #059669;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
   .stat-label {
-    font-size: 0.65rem;
+    font-size: 0.68rem;
     font-weight: 700;
     color: #8A8780;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
+  }
+  .stat-foot {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+    opacity: 0.7;
   }
 
   /* Bottom row */
@@ -304,40 +348,39 @@ const dpStyles = `
   }
   .dp-system-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
+    gap: 1rem;
     margin-bottom: 1.25rem;
+    padding-bottom: 1.1rem;
+    border-bottom: 1px solid #F4F2EF;
   }
-  .dp-system-title {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    color: #1A1A1A;
-  }
-  .dp-system-title h2 {
-    font-size: 1rem;
+  .dp-system-header h2 {
+    font-size: 1.05rem;
     font-weight: 800;
     color: #1A1A1A;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+    margin-bottom: 0.15rem;
   }
-  .dp-system-title p {
-    font-size: 0.7rem;
-    color: #B0ADA8;
+  .dp-system-header p {
+    font-size: 0.75rem;
+    color: #A09D98;
     font-weight: 400;
   }
   .dp-system-badge {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.6rem;
+    gap: 0.4rem;
+    font-size: 0.62rem;
     font-weight: 700;
     color: #059669;
     background: #F0FDF4;
     border: 1px solid #D1FAE5;
-    padding: 0.3rem 0.75rem;
+    padding: 0.35rem 0.75rem;
     border-radius: 99px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    flex-shrink: 0;
   }
   .dp-badge-dot {
     width: 5px;
@@ -347,8 +390,8 @@ const dpStyles = `
     animation: pulse 2s infinite;
   }
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
   }
   @keyframes spin {
     to { transform: rotate(360deg); }
@@ -360,42 +403,61 @@ const dpStyles = `
     gap: 0.75rem;
   }
   .dp-status-item {
-    padding: 1rem;
+    position: relative;
+    padding: 0.95rem 1rem;
     border-radius: 12px;
     background: #FAFAF8;
     border: 1px solid #F0EEEB;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+  .dp-status-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    border-radius: 0 2px 2px 0;
+    background: #059669;
+    opacity: 0.6;
   }
   .dp-status-item:hover {
     background: #FFFFFF;
-    border-color: #E8E5E0;
+    border-color: #E0DDD8;
+    transform: translateX(2px);
   }
   .dp-status-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.6rem;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
   }
   .dp-status-tag {
-    font-size: 0.55rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.58rem;
     font-weight: 700;
     color: #059669;
-    background: #F0FDF4;
+    background: #FFFFFF;
+    border: 1px solid #D1FAE5;
     padding: 0.2rem 0.5rem;
-    border-radius: 4px;
+    border-radius: 99px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
   .dp-status-item h3 {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 700;
     color: #1A1A1A;
-    margin-bottom: 0.15rem;
+    letter-spacing: -0.01em;
   }
   .dp-status-item p {
-    font-size: 0.7rem;
-    color: #B0ADA8;
+    font-size: 0.72rem;
+    color: #A09D98;
     font-weight: 400;
+    line-height: 1.4;
   }
 
   /* Credentials */
@@ -404,78 +466,115 @@ const dpStyles = `
     border-radius: 16px;
     padding: 1.5rem;
     color: #FFFFFF;
+    position: relative;
+    overflow: hidden;
+  }
+  .dp-creds::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 60%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(5,150,105,0.18), transparent 70%);
+    pointer-events: none;
   }
   .dp-creds-header {
+    position: relative;
     display: flex;
-    align-items: center;
-    gap: 0.6rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
     margin-bottom: 1.25rem;
-    color: #FFFFFF;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .dp-creds-eyebrow {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #34D399;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.35rem;
   }
   .dp-creds-header h2 {
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 800;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+    color: #FFFFFF;
   }
-  .dp-creds-header p {
-    font-size: 0.7rem;
+  .dp-creds-version {
+    font-size: 0.6rem;
+    font-weight: 700;
     color: rgba(255,255,255,0.4);
-    font-weight: 400;
+    background: rgba(255,255,255,0.06);
+    padding: 0.25rem 0.55rem;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
   }
   .dp-creds-list {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.45rem;
   }
   .dp-cred-item {
-    padding: 0.85rem;
+    padding: 0.8rem 0.9rem;
     border-radius: 10px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .dp-cred-item:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.1);
   }
   .dp-cred-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.35rem;
   }
   .dp-cred-role {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.55);
   }
   .dp-cred-pass {
-    font-size: 0.6rem;
+    font-size: 0.62rem;
     font-weight: 700;
-    color: #fff;
-    background: rgba(255,255,255,0.1);
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    font-family: monospace;
+    color: #34D399;
+    background: rgba(5,150,105,0.15);
+    padding: 0.2rem 0.55rem;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
   }
   .dp-cred-email {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    color: rgba(255,255,255,0.85);
+    color: rgba(255,255,255,0.9);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.01em;
   }
   .dp-creds-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
+    position: relative;
     margin-top: 1rem;
-    padding: 0.75rem;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.04);
-    color: rgba(255,255,255,0.35);
-    font-size: 0.7rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.4);
+    font-size: 0.72rem;
     line-height: 1.5;
+    font-weight: 400;
   }
 
   @media (max-width: 640px) {
     .dp-header { flex-direction: column; align-items: flex-start; }
-    .dp-title { font-size: 1.5rem; }
+    .dp-title { font-size: 1.6rem; }
     .dp-system-grid { grid-template-columns: 1fr; }
   }
 `;

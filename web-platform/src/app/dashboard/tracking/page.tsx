@@ -59,7 +59,7 @@ export default function TrackingPage() {
   const [selectedExecId, setSelectedExecId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
-  const [now, setNow] = useState<number>(Date.now());
+  const [now, setNow] = useState<number>(() => Date.now());
   const mapRef = useRef<LeafletMap | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const tickRef = useRef<NodeJS.Timeout | null>(null);
@@ -68,41 +68,41 @@ export default function TrackingPage() {
     import('leaflet/dist/leaflet.css').then(() => setLeafletLoaded(true));
   }, []);
 
-  const fetchActive = useCallback(async () => {
-    try {
-      const res = await apiFetch('/api/v1/gps/active');
-      const list: ActiveVehicle[] = res.data?.data ?? [];
-      setVehicles(list);
-    } catch (err) {
-      console.error('Error fetching active GPS:', err);
-    } finally {
-      setLoading(false);
-    }
+  const fetchActiveData = useCallback(async (): Promise<ActiveVehicle[]> => {
+    const res = await apiFetch('/api/v1/gps/active');
+    return res.data?.data ?? [];
   }, [apiFetch]);
 
-  const fetchTrail = useCallback(
-    async (executionId: string) => {
-      try {
-        const res = await apiFetch(`/api/v1/gps/track?routeExecution=${executionId}`);
-        const points: { lat: number; lng: number; timestamp: string }[] = res.data?.points ?? [];
-        // API returns newest-first; reverse for chronological polyline
-        setTrail(points.slice(0, 20).reverse());
-      } catch (err) {
-        console.error('Error fetching trail:', err);
-        setTrail([]);
-      }
+  const fetchTrailData = useCallback(
+    async (executionId: string): Promise<TrailPoint[]> => {
+      const res = await apiFetch(`/api/v1/gps/track?routeExecution=${executionId}`);
+      const points: { lat: number; lng: number; timestamp: string }[] = res.data?.points ?? [];
+      // API returns newest-first; reverse for chronological polyline
+      return points.slice(0, 20).reverse();
     },
     [apiFetch]
   );
 
   // Polling for active executions
   useEffect(() => {
-    fetchActive();
-    intervalRef.current = setInterval(fetchActive, POLL_INTERVAL_MS);
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const list = await fetchActiveData();
+        if (!cancelled) setVehicles(list);
+      } catch (err) {
+        if (!cancelled) console.error('Error fetching active GPS:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    run();
+    intervalRef.current = setInterval(run, POLL_INTERVAL_MS);
     return () => {
+      cancelled = true;
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [fetchActive]);
+  }, [fetchActiveData]);
 
   // Tick clock for "hace Xs" labels
   useEffect(() => {
@@ -114,14 +114,32 @@ export default function TrackingPage() {
 
   // Refetch trail when selection changes & periodically
   useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!selectedExecId) {
+        if (!cancelled) setTrail([]);
+        return;
+      }
+      try {
+        const pts = await fetchTrailData(selectedExecId);
+        if (!cancelled) setTrail(pts);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error fetching trail:', err);
+          setTrail([]);
+        }
+      }
+    };
+    run();
     if (!selectedExecId) {
-      setTrail([]);
-      return;
+      return () => { cancelled = true; };
     }
-    fetchTrail(selectedExecId);
-    const id = setInterval(() => fetchTrail(selectedExecId), POLL_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [selectedExecId, fetchTrail]);
+    const id = setInterval(run, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [selectedExecId, fetchTrailData]);
 
   const handleSelect = useCallback((v: ActiveVehicle) => {
     setSelectedExecId(v.executionId);

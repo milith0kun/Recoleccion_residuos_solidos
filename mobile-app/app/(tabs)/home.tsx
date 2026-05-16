@@ -1,16 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  RefreshControl,
+  Animated,
+  Easing,
+} from 'react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import api from '../../src/api/client';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
+import { colors, radius, spacing } from '../../src/theme/tokens';
+
+interface Stats {
+  routes: number;
+  vehicles: number;
+}
+
+type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState({ routes: 0, vehicles: 0 });
+  const [stats, setStats] = useState<Stats>({ routes: 0, vehicles: 0 });
+
+  const fade = useRef(new Animated.Value(0)).current;
+  const slide = useRef(new Animated.Value(12)).current;
 
   const loadData = async () => {
     try {
@@ -19,17 +39,31 @@ export default function HomeScreen() {
         api.get('/vehicles'),
       ]);
       setStats({
-        routes: resRoutes.data.data?.length || 0,
-        vehicles: resVehicles.data.data?.length || 0,
+        routes: resRoutes.data?.data?.length || 0,
+        vehicles: resVehicles.data?.data?.length || 0,
       });
     } catch (e) {
-      console.error(e);
+      if (__DEV__) console.warn('[home] resumen failed', e);
     }
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+    Animated.parallel([
+      Animated.timing(fade, {
+        toValue: 1,
+        duration: 420,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slide, {
+        toValue: 0,
+        duration: 460,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fade, slide]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -37,134 +71,400 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
+  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
+
   return (
-    <ScrollView 
+    <ScrollView
       style={s.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />}
+      contentContainerStyle={s.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+      showsVerticalScrollIndicator={false}
     >
-      <View style={s.header}>
-        <View>
-          <Text style={s.greeting}>Hola, {user?.firstName}</Text>
-          <Text style={s.subGreeting}>Bienvenido a SRSS Cusco</Text>
+      <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }] }}>
+        <View style={s.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.helloSub}>Bienvenido</Text>
+            <Text style={s.hello}>Hola, {user?.firstName || 'vecino'}</Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.85}>
+            <View style={s.avatar}>
+              <Text style={s.avatarText}>{initials || 'U'}</Text>
+            </View>
+          </TouchableOpacity>
         </View>
-        <View style={s.avatarBox}>
-          <Text style={s.avatarText}>{user?.firstName?.[0]}{user?.lastName?.[0]}</Text>
-        </View>
-      </View>
 
-      <LinearGradient colors={['#1E293B', '#0F172A']} style={s.statusCard}>
-        <View style={s.statusHeader}>
-          <View style={s.statusIconBox}>
-            <Feather name="truck" size={24} color="#10B981" />
-          </View>
-          <View>
-            <Text style={s.statusTitle}>Próxima Recolección</Text>
-            <Text style={s.statusDesc}>Tu zona está programada para hoy</Text>
-          </View>
+        <View style={s.heroWrap}>
+          <LinearGradient
+            colors={['rgba(16,185,129,0.32)', 'rgba(16,185,129,0.08)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.heroCard}
+          >
+            <LinearGradient
+              colors={['rgba(52,211,153,0.22)', 'rgba(15,23,42,0)']}
+              start={{ x: 1, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={s.heroGlow}
+              pointerEvents="none"
+            />
+            <View style={s.heroBadge}>
+              <View style={s.heroDot} />
+              <Text style={s.heroLabel}>PRÓXIMA RECOLECCIÓN</Text>
+            </View>
+            <Text style={s.heroTime}>14:00 — 16:30</Text>
+            <Text style={s.heroDesc}>Tu zona está programada para hoy</Text>
+            <TouchableOpacity
+              style={s.heroBtn}
+              activeOpacity={0.85}
+              onPress={() => router.push('/(tabs)/map')}
+            >
+              <Feather name="map-pin" size={14} color="#FFF" />
+              <Text style={s.heroBtnText}>Rastrear en el mapa</Text>
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
-        <View style={s.timeBox}>
-          <Text style={s.timeText}>14:00 - 16:30</Text>
-          <Text style={s.timeLabel}>Horario estimado</Text>
-        </View>
-        <TouchableOpacity style={s.btn} onPress={() => router.push('/(tabs)/map')}>
-          <Text style={s.btnText}>Rastrear en el mapa</Text>
-          <Feather name="map-pin" size={18} color="#FFF" style={{ marginLeft: 8 }} />
-        </TouchableOpacity>
-      </LinearGradient>
 
-      <Text style={s.sectionTitle}>Acciones Rápidas</Text>
-      <View style={s.grid}>
-        <TouchableOpacity style={s.gridItem} onPress={() => router.push('/(tabs)/schedule')}>
-          <View style={[s.gridIconBox, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
-            <Feather name="calendar" size={24} color="#3B82F6" />
-          </View>
-          <Text style={s.gridText}>Horarios</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.gridItem} onPress={() => router.push('/(tabs)/education')}>
-          <View style={[s.gridIconBox, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
-            <Feather name="trash-2" size={24} color="#10B981" />
-          </View>
-          <Text style={s.gridText}>Guía de reciclaje</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.gridItem} onPress={() => router.push('/(tabs)/profile')}>
-          <View style={[s.gridIconBox, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
-            <Feather name="user" size={24} color="#F59E0B" />
-          </View>
-          <Text style={s.gridText}>Mi perfil</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity onPress={() => router.push('/(tabs)/education')} activeOpacity={0.85} style={{ marginBottom: 32 }}>
-        <LinearGradient colors={['#1E293B', '#0F172A']} style={s.eduCard}>
-          <View style={s.eduHeader}>
-            <View style={[s.statusIconBox, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
-              <Feather name="book-open" size={22} color="#10B981" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.statusTitle}>Guía de Reciclaje</Text>
-              <Text style={s.eduSubtitle}>Aprende a separar tus residuos · NTP 900.058</Text>
-            </View>
-            <Feather name="chevron-right" size={20} color="#64748B" />
-          </View>
-          <View style={s.eduChips}>
-            <View style={[s.eduChip, { borderColor: 'rgba(146,64,14,0.5)', backgroundColor: 'rgba(146,64,14,0.15)' }]}>
-              <Text style={[s.eduChipText, { color: '#D97706' }]}>Orgánico</Text>
-            </View>
-            <View style={[s.eduChip, { borderColor: 'rgba(59,130,246,0.5)', backgroundColor: 'rgba(59,130,246,0.15)' }]}>
-              <Text style={[s.eduChipText, { color: '#3B82F6' }]}>Reciclable</Text>
-            </View>
-            <View style={[s.eduChip, { borderColor: 'rgba(239,68,68,0.5)', backgroundColor: 'rgba(239,68,68,0.15)' }]}>
-              <Text style={[s.eduChipText, { color: '#EF4444' }]}>Peligroso</Text>
-            </View>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-
-      <Text style={s.sectionTitle}>Resumen de la ciudad</Text>
-      <View style={s.statsRow}>
-        <View style={s.statBox}>
-          <Text style={s.statNum}>{stats.routes}</Text>
-          <Text style={s.statLabel}>Rutas activas</Text>
+        <Text style={s.sectionTitle}>Accesos rápidos</Text>
+        <View style={s.quickRow}>
+          <QuickItem
+            label="Horarios"
+            icon="calendar"
+            onPress={() => router.push('/(tabs)/schedule')}
+            accent={colors.info}
+          />
+          <QuickItem
+            label="Reciclaje"
+            icon="refresh-cw"
+            onPress={() => router.push('/(tabs)/education')}
+            accent={colors.primary}
+          />
+          <QuickItem
+            label="Mi perfil"
+            icon="user"
+            onPress={() => router.push('/(tabs)/profile')}
+            accent={colors.warn}
+          />
         </View>
-        <View style={s.statBox}>
-          <Text style={s.statNum}>{stats.vehicles}</Text>
-          <Text style={s.statLabel}>Camiones</Text>
+
+        <Text style={s.sectionTitle}>Resumen de la ciudad</Text>
+        <View style={s.statsRow}>
+          <StatBox
+            value={stats.routes}
+            label="Rutas activas"
+            accent={colors.primary}
+            icon="git-branch"
+          />
+          <StatBox
+            value={stats.vehicles}
+            label="Camiones"
+            accent={colors.info}
+            icon="truck"
+          />
         </View>
-      </View>
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/(tabs)/education')}
+          style={s.eduCard}
+        >
+          <View style={s.eduIcon}>
+            <Feather name="book-open" size={18} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.eduTitle}>Guía de Reciclaje</Text>
+            <Text style={s.eduSub}>NTP 900.058 · aprende a separar tus residuos</Text>
+          </View>
+          <Feather name="chevron-right" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+      </Animated.View>
     </ScrollView>
   );
 }
 
+interface QuickItemProps {
+  label: string;
+  onPress: () => void;
+  accent: string;
+  icon: FeatherIconName;
+}
+
+function QuickItem({ label, onPress, accent, icon }: QuickItemProps) {
+  return (
+    <TouchableOpacity style={s.quickItem} onPress={onPress} activeOpacity={0.85}>
+      <View style={[s.quickAccent, { backgroundColor: accent }]} />
+      <View style={[s.quickIconWrap, { backgroundColor: `${accent}22`, borderColor: `${accent}55` }]}>
+        <Feather name={icon} size={18} color={accent} />
+      </View>
+      <Text style={s.quickText}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+interface StatBoxProps {
+  value: number;
+  label: string;
+  accent: string;
+  icon: FeatherIconName;
+}
+
+function StatBox({ value, label, accent, icon }: StatBoxProps) {
+  return (
+    <View style={s.statBox}>
+      <View style={s.statHeader}>
+        <Feather name={icon} size={14} color={accent} />
+        <Text style={[s.statLabel, { color: colors.textMuted }]}>{label}</Text>
+      </View>
+      <Text style={[s.statNum, { color: accent }]}>{value}</Text>
+      <LinearGradient
+        colors={[`${accent}00`, accent, `${accent}00`]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={s.statSpark}
+      />
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A', padding: 24, paddingTop: 60 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 },
-  greeting: { fontSize: 28, fontWeight: '900', color: '#F8FAFC', marginBottom: 4, letterSpacing: -0.5 },
-  subGreeting: { fontSize: 15, color: '#94A3B8', fontWeight: '500' },
-  avatarBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(16,185,129,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)' },
-  avatarText: { fontSize: 18, fontWeight: 'bold', color: '#10B981' },
-  statusCard: { borderRadius: 24, padding: 24, borderWidth: 1, borderColor: '#334155', marginBottom: 32, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-  statusHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  statusIconBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(16,185,129,0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-  statusTitle: { fontSize: 18, fontWeight: '800', color: '#F8FAFC' },
-  statusDesc: { fontSize: 14, color: '#10B981', marginTop: 2, fontWeight: '500' },
-  timeBox: { backgroundColor: 'rgba(15,23,42,0.6)', borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: 'rgba(51,65,85,0.5)' },
-  timeText: { fontSize: 28, fontWeight: '900', color: '#3B82F6', marginBottom: 4, letterSpacing: -0.5 },
-  timeLabel: { fontSize: 12, color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700', letterSpacing: 1 },
-  btn: { backgroundColor: '#10B981', borderRadius: 16, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#F8FAFC', marginBottom: 16 },
-  grid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32, gap: 12 },
-  gridItem: { backgroundColor: 'rgba(30,41,59,0.5)', borderRadius: 20, padding: 16, alignItems: 'center', flex: 1, borderWidth: 1, borderColor: '#334155' },
-  gridIconBox: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  gridText: { fontSize: 12, color: '#F8FAFC', fontWeight: '600', textAlign: 'center' },
-  statsRow: { flexDirection: 'row', gap: 16, marginBottom: 40 },
-  statBox: { flex: 1, backgroundColor: 'rgba(59,130,246,0.05)', borderRadius: 20, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(59,130,246,0.15)' },
-  statNum: { fontSize: 36, fontWeight: '900', color: '#3B82F6', marginBottom: 4, letterSpacing: -1 },
-  statLabel: { fontSize: 13, color: '#94A3B8', fontWeight: '600' },
-  eduCard: { borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#334155' },
-  eduHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  eduSubtitle: { fontSize: 12, color: '#94A3B8', marginTop: 2, fontWeight: '500' },
-  eduChips: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  eduChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1 },
-  eduChipText: { fontSize: 11, fontWeight: '700' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.xxl, paddingTop: 60, paddingBottom: 40 },
+
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xxl,
+  },
+  helloSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  hello: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
+  },
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  avatarText: {
+    color: colors.primary,
+    fontWeight: '900',
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
+
+  heroWrap: {
+    marginBottom: spacing.xxxl,
+    borderRadius: radius.xxl,
+    shadowColor: '#10B981',
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
+  },
+  heroCard: {
+    borderRadius: radius.xxl,
+    padding: spacing.xxl,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    overflow: 'hidden',
+  },
+  heroGlow: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(15,23,42,0.45)',
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: spacing.md,
+  },
+  heroDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+    shadowColor: '#10B981',
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  heroLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.3,
+    color: colors.primary,
+  },
+  heroTime: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    letterSpacing: -1.2,
+    marginBottom: 6,
+  },
+  heroDesc: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 18,
+  },
+  heroBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: radius.lg,
+    shadowColor: '#10B981',
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  heroBtnText: { color: '#FFF', fontWeight: '800', fontSize: 14, letterSpacing: 0.3 },
+
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: spacing.md,
+  },
+
+  quickRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.xxxl,
+  },
+  quickItem: {
+    flex: 1,
+    backgroundColor: colors.bgSoft,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  quickAccent: {
+    width: 28,
+    height: 3,
+    borderRadius: 2,
+    marginBottom: spacing.md,
+  },
+  quickIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  quickText: {
+    color: colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.xxxl,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: colors.bgSoft,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  statHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.sm,
+  },
+  statNum: {
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: -1.2,
+    marginBottom: spacing.sm,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  statSpark: {
+    height: 2,
+    borderRadius: 1,
+    opacity: 0.7,
+  },
+
+  eduCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bgSoft,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.md,
+  },
+  eduIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eduTitle: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  eduSub: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '500',
+  },
 });

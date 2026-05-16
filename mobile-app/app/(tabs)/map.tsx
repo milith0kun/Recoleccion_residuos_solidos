@@ -13,8 +13,7 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
-import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { colors, radius, spacing } from '../../src/theme/tokens';
 
 type RouteStatus = 'active' | 'completed' | 'pending' | 'planned' | 'cancelled' | 'inactive';
 
@@ -23,7 +22,12 @@ interface RouteData {
   name?: string;
   status?: RouteStatus;
   path?: { type?: string; coordinates?: [number, number][] };
-  waypoints?: Array<{ order: number; name?: string; estimatedArrival?: string; location: { coordinates: [number, number] } }>;
+  waypoints?: Array<{
+    order: number;
+    name?: string;
+    estimatedArrival?: string;
+    location: { coordinates: [number, number] };
+  }>;
   zone?: { _id: string; name?: string; color?: string } | string;
 }
 
@@ -41,9 +45,9 @@ interface ActiveExecution {
 type FilterKey = 'active' | 'completed' | 'pending';
 
 const FILTER_META: Record<FilterKey, { label: string; color: string }> = {
-  active: { label: 'Activas', color: '#10B981' },
-  completed: { label: 'Completadas', color: '#3B82F6' },
-  pending: { label: 'Pendientes', color: '#94A3B8' },
+  active: { label: 'Activas', color: colors.primary },
+  completed: { label: 'Completadas', color: colors.info },
+  pending: { label: 'Pendientes', color: colors.textMuted },
 };
 
 function minutesAgo(iso: string | null): string {
@@ -58,11 +62,7 @@ function minutesAgo(iso: string | null): string {
   return `${hrs} h atrás`;
 }
 
-interface PulsingMarkerProps {
-  stale: boolean;
-}
-
-function PulsingTruckMarker({ stale }: PulsingMarkerProps) {
+function PulsingTruckMarker({ stale }: { stale: boolean }) {
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -73,11 +73,7 @@ function PulsingTruckMarker({ stale }: PulsingMarkerProps) {
           easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulse, { toValue: 0, duration: 0, useNativeDriver: true }),
       ])
     );
     loop.start();
@@ -86,29 +82,27 @@ function PulsingTruckMarker({ stale }: PulsingMarkerProps) {
 
   const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.4] });
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] });
-  const color = stale ? '#F59E0B' : '#10B981';
+  const color = stale ? colors.warn : colors.primary;
 
   return (
     <View style={mStyles.wrap}>
       <Animated.View
-        style={[
-          mStyles.halo,
-          { backgroundColor: color, opacity, transform: [{ scale }] },
-        ]}
+        style={[mStyles.halo, { backgroundColor: color, opacity, transform: [{ scale }] }]}
       />
-      <View style={[mStyles.core, { borderColor: color, backgroundColor: '#0F172A' }]}>
-        <Feather name="truck" size={14} color={color} />
-      </View>
+      <View style={[mStyles.core, { borderColor: color }]} />
     </View>
   );
 }
 
 const mStyles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center', width: 44, height: 44 },
-  halo: { position: 'absolute', width: 24, height: 24, borderRadius: 12 },
+  wrap: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36 },
+  halo: { position: 'absolute', width: 22, height: 22, borderRadius: 11 },
   core: {
-    width: 32, height: 32, borderRadius: 16, borderWidth: 2, justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 5,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 3,
+    backgroundColor: colors.bg,
   },
 });
 
@@ -117,7 +111,10 @@ export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [routes, setRoutes] = useState<RouteData[]>([]);
   const [executions, setExecutions] = useState<ActiveExecution[]>([]);
-  const [trail, setTrail] = useState<{ executionId: string; points: { latitude: number; longitude: number }[] } | null>(null);
+  const [trail, setTrail] = useState<{
+    executionId: string;
+    points: { latitude: number; longitude: number }[];
+  } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Record<FilterKey, boolean>>({
@@ -136,7 +133,7 @@ export default function MapScreen() {
       const { data } = await api.get('/routes', { params });
       setRoutes((data?.data || []) as RouteData[]);
     } catch (e) {
-      console.error('routes error', e);
+      if (__DEV__) console.warn('[map] /routes failed', e);
     }
   };
 
@@ -145,8 +142,8 @@ export default function MapScreen() {
       const { data } = await api.get('/gps/active');
       setExecutions((data?.data || []) as ActiveExecution[]);
     } catch (e) {
-      // Silent; show empty state
-      console.error('gps/active error', e);
+      if (__DEV__) console.warn('[map] /gps/active failed', e);
+      setExecutions([]);
     }
   };
 
@@ -163,7 +160,7 @@ export default function MapScreen() {
           if (mounted) setErrorMsg('Permiso de ubicación denegado');
         }
       } catch (e) {
-        console.error(e);
+        if (__DEV__) console.warn('[map] location request failed', e);
       }
 
       await Promise.all([loadRoutes(), loadActive()]);
@@ -184,12 +181,21 @@ export default function MapScreen() {
   const onTrackExecution = async (exec: ActiveExecution) => {
     setSelectedExecution(exec);
     try {
-      const { data } = await api.get('/gps/track', { params: { routeExecution: exec.executionId } });
-      const raw = (data?.data || []) as Array<{ location?: { coordinates?: [number, number] }; lat?: number; lng?: number }>;
+      const { data } = await api.get('/gps/track', {
+        params: { routeExecution: exec.executionId },
+      });
+      const raw = (data?.data || []) as Array<{
+        location?: { coordinates?: [number, number] };
+        lat?: number;
+        lng?: number;
+      }>;
       const points = raw
         .map((p) => {
           if (p.location?.coordinates && p.location.coordinates.length >= 2) {
-            return { latitude: p.location.coordinates[1], longitude: p.location.coordinates[0] };
+            return {
+              latitude: p.location.coordinates[1],
+              longitude: p.location.coordinates[0],
+            };
           }
           if (typeof p.lat === 'number' && typeof p.lng === 'number') {
             return { latitude: p.lat, longitude: p.lng };
@@ -209,7 +215,7 @@ export default function MapScreen() {
         });
       }
     } catch (e) {
-      console.error('gps/track error', e);
+      if (__DEV__) console.warn('[map] /gps/track failed', e);
     }
   };
 
@@ -237,28 +243,27 @@ export default function MapScreen() {
       const status = (r.status || 'pending') as RouteStatus;
       if (status === 'active') return filters.active;
       if (status === 'completed') return filters.completed;
-      if (status === 'pending' || status === 'planned' || status === 'inactive') return filters.pending;
+      if (status === 'pending' || status === 'planned' || status === 'inactive')
+        return filters.pending;
       return false;
     });
   }, [routes, filters]);
 
-  const polylineStyleFor = (status: RouteStatus | undefined): { color: string; width: number; dash: number[] | undefined } => {
+  const polylineStyleFor = (status: RouteStatus | undefined) => {
     if (status === 'active') {
-      return { color: 'rgba(16,185,129,1)', width: 5, dash: undefined };
+      return { color: 'rgba(16,185,129,1)', width: 5, dash: undefined as number[] | undefined };
     }
     if (status === 'completed') {
-      return { color: 'rgba(59,130,246,0.5)', width: 3, dash: [8, 8] };
+      return { color: 'rgba(59,130,246,0.5)', width: 3, dash: [8, 8] as number[] | undefined };
     }
-    return { color: 'rgba(148,163,184,0.4)', width: 2, dash: [2, 6] };
+    return { color: 'rgba(148,163,184,0.4)', width: 2, dash: [2, 6] as number[] | undefined };
   };
 
   if (loading) {
     return (
       <View style={s.loadingBox}>
-        <View style={s.skeletonShimmer}>
-          <ActivityIndicator size="large" color="#10B981" />
-          <Text style={s.loadingText}>Cargando mapa y rutas...</Text>
-        </View>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={s.loadingText}>Cargando mapa y rutas...</Text>
       </View>
     );
   }
@@ -266,7 +271,7 @@ export default function MapScreen() {
   if (errorMsg) {
     return (
       <View style={s.loadingBox}>
-        <Feather name="alert-triangle" size={48} color="#EF4444" />
+        <Text style={s.errorTitle}>Sin acceso a tu ubicación</Text>
         <Text style={s.loadingText}>{errorMsg}</Text>
         <TouchableOpacity style={s.retryBtn} onPress={handleRefresh}>
           <Text style={s.retryBtnText}>Reintentar</Text>
@@ -317,7 +322,7 @@ export default function MapScreen() {
               }}
               title={wp.name || `Punto ${wp.order}`}
               description={wp.estimatedArrival ? `Llegada estimada: ${wp.estimatedArrival}` : undefined}
-              pinColor="#3B82F6"
+              pinColor={colors.info}
             />
           ))
         )}
@@ -346,30 +351,31 @@ export default function MapScreen() {
       </MapView>
 
       <View style={s.overlay}>
-        <LinearGradient
-          colors={['rgba(30,41,59,0.95)', 'rgba(15,23,42,0.85)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={s.card}
-        >
+        <View style={s.card}>
           <View style={s.cardHeader}>
-            <View style={s.statusDotWrap}>
-              <View style={[s.statusDot, { backgroundColor: activeTrucks > 0 ? '#10B981' : '#64748B' }]} />
-              {activeTrucks > 0 && <View style={[s.statusDotPulse, { borderColor: '#10B981' }]} />}
-            </View>
+            <View
+              style={[
+                s.statusDot,
+                { backgroundColor: activeTrucks > 0 ? colors.primary : colors.textFaint },
+              ]}
+            />
             <Text style={s.cardTitle}>
               {activeTrucks > 0
                 ? `${activeTrucks} camión${activeTrucks === 1 ? '' : 'es'} en tu zona`
-                : 'Sin recolección activa ahora'}
+                : 'Sin recolección activa'}
             </Text>
           </View>
           <Text style={s.cardDesc}>
             {activeTrucks > 0
               ? 'Toca un camión para ver detalles y rastreo'
-              : 'Te avisaremos cuando un camión esté en ruta.'}
+              : 'Te avisaremos cuando un camión esté en ruta'}
           </Text>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.filtersRow}
+          >
             {(Object.keys(FILTER_META) as FilterKey[]).map((key) => {
               const meta = FILTER_META[key];
               const active = filters[key];
@@ -381,39 +387,36 @@ export default function MapScreen() {
                   style={[
                     s.filterChip,
                     {
-                      borderColor: active ? `${meta.color}80` : '#334155',
+                      borderColor: active ? `${meta.color}80` : colors.border,
                       backgroundColor: active ? `${meta.color}25` : 'rgba(15,23,42,0.6)',
                     },
                   ]}
                 >
-                  <Feather
-                    name={active ? 'check' : 'circle'}
-                    size={10}
-                    color={active ? meta.color : '#94A3B8'}
-                  />
-                  <Text style={[s.filterChipText, { color: active ? meta.color : '#94A3B8' }]}>
+                  <Text
+                    style={[s.filterChipText, { color: active ? meta.color : colors.textMuted }]}
+                  >
                     {meta.label}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
-        </LinearGradient>
+        </View>
       </View>
 
       {selectedExecution && (
         <View style={s.tooltipWrap}>
-          <LinearGradient
-            colors={['rgba(16,185,129,0.95)', 'rgba(5,150,105,0.95)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={s.tooltip}
-          >
+          <View style={s.tooltip}>
             <View style={s.tooltipHeader}>
-              <Feather name="truck" size={16} color="#FFF" />
               <Text style={s.tooltipTitle}>{selectedExecution.routeName}</Text>
-              <TouchableOpacity onPress={() => { setSelectedExecution(null); setTrail(null); }} hitSlop={8}>
-                <Feather name="x" size={18} color="#FFF" />
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedExecution(null);
+                  setTrail(null);
+                }}
+                hitSlop={8}
+              >
+                <Text style={s.tooltipClose}>×</Text>
               </TouchableOpacity>
             </View>
             <Text style={s.tooltipLine}>Operador: {selectedExecution.operatorName}</Text>
@@ -425,16 +428,16 @@ export default function MapScreen() {
               Última señal: {minutesAgo(selectedExecution.lastSeenAt)}
               {selectedExecution.isStale ? ' (sin actualizar)' : ''}
             </Text>
-          </LinearGradient>
+          </View>
         </View>
       )}
 
       <TouchableOpacity style={s.fab} onPress={centerOnUser} activeOpacity={0.85}>
-        <Feather name="navigation" size={20} color="#FFF" />
+        <Text style={s.fabIcon}>◎</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={s.fabSecondary} onPress={handleRefresh} activeOpacity={0.85}>
-        <Feather name="refresh-cw" size={18} color="#10B981" />
+        <Text style={s.fabSecIcon}>↻</Text>
       </TouchableOpacity>
     </View>
   );
@@ -455,40 +458,100 @@ const mapStyle = [
 ];
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
+  container: { flex: 1, backgroundColor: colors.bg },
   map: { width: '100%', height: '100%' },
-  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F172A', gap: 16 },
-  skeletonShimmer: { alignItems: 'center', gap: 12 },
-  loadingText: { color: '#94A3B8', marginTop: 12, fontSize: 14 },
-  retryBtn: { backgroundColor: '#10B981', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 999, marginTop: 12 },
+  loadingBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    gap: spacing.md,
+    padding: spacing.xl,
+  },
+  loadingText: { color: colors.textMuted, marginTop: spacing.md, fontSize: 14, textAlign: 'center' },
+  errorTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 4 },
+  retryBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+    marginTop: spacing.md,
+  },
   retryBtnText: { color: '#FFF', fontWeight: '700' },
+
   overlay: { position: 'absolute', top: 50, left: 16, right: 16 },
-  card: { padding: 16, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(51,65,85,0.8)' },
+  card: {
+    backgroundColor: 'rgba(15,23,42,0.92)',
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  statusDotWrap: { width: 14, height: 14, marginRight: 10, alignItems: 'center', justifyContent: 'center' },
-  statusDot: { width: 10, height: 10, borderRadius: 5 },
-  statusDotPulse: { position: 'absolute', width: 14, height: 14, borderRadius: 7, borderWidth: 1, opacity: 0.6 },
-  cardTitle: { color: '#F8FAFC', fontSize: 15, fontWeight: '800', flex: 1 },
-  cardDesc: { color: '#94A3B8', fontSize: 12, marginBottom: 12 },
-  filtersRow: { gap: 8, paddingRight: 8 },
+  statusDot: { width: 10, height: 10, borderRadius: 5, marginRight: spacing.md },
+  cardTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '800', flex: 1 },
+  cardDesc: { color: colors.textMuted, fontSize: 12, marginBottom: spacing.md },
+  filtersRow: { gap: spacing.sm, paddingRight: spacing.sm },
   filterChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6,
-    borderRadius: 999, borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
   },
   filterChipText: { fontSize: 11, fontWeight: '700' },
+
   fab: {
-    position: 'absolute', bottom: 24, right: 24, backgroundColor: '#10B981', width: 52, height: 52,
-    borderRadius: 26, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    backgroundColor: colors.primary,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
+  fabIcon: { color: '#FFF', fontSize: 22, fontWeight: '700' },
   fabSecondary: {
-    position: 'absolute', bottom: 86, right: 24, backgroundColor: 'rgba(30,41,59,0.95)', width: 44, height: 44,
-    borderRadius: 22, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, borderWidth: 1, borderColor: '#334155',
+    position: 'absolute',
+    bottom: 86,
+    right: 24,
+    backgroundColor: 'rgba(30,41,59,0.95)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
+  fabSecIcon: { color: colors.primary, fontSize: 18, fontWeight: '700' },
+
   tooltipWrap: { position: 'absolute', bottom: 100, left: 16, right: 80 },
-  tooltip: { padding: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(16,185,129,0.4)' },
-  tooltipHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  tooltipTitle: { color: '#FFF', fontWeight: '800', fontSize: 14, flex: 1 },
-  tooltipLine: { color: 'rgba(255,255,255,0.95)', fontSize: 12, marginTop: 2 },
+  tooltip: {
+    backgroundColor: 'rgba(15,23,42,0.95)',
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+  },
+  tooltipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  tooltipTitle: { color: colors.textPrimary, fontWeight: '800', fontSize: 14, flex: 1 },
+  tooltipClose: { color: colors.textMuted, fontSize: 24, fontWeight: '300', paddingHorizontal: 4 },
+  tooltipLine: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
 });

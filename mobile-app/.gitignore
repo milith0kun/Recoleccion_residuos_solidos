@@ -31,7 +31,12 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+.env
+.env.local
+.env.*.local
+
+# google oauth credentials — never commit
+client_secret_*.json
 
 # typescript
 *.tsbuildinfo

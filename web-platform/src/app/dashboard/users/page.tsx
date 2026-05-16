@@ -124,47 +124,71 @@ export default function UsersPage() {
   const [zoneSelection, setZoneSelection] = useState<string>('');
   const [zoneSubmitting, setZoneSubmitting] = useState(false);
 
+  const fetchUsers = useCallback(async (): Promise<UserData[]> => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (roleFilter) params.set('role', roleFilter);
+    if (zoneFilter) params.set('zone', zoneFilter);
+    params.set('limit', '100');
+    const data = await apiFetch(`/api/v1/users?${params.toString()}`);
+    return data.data.users ?? [];
+  }, [apiFetch, search, roleFilter, zoneFilter]);
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      if (roleFilter) params.set('role', roleFilter);
-      if (zoneFilter) params.set('zone', zoneFilter);
-      params.set('limit', '100');
-      const data = await apiFetch(`/api/v1/users?${params.toString()}`);
-      setUsers(data.data.users ?? []);
+      const list = await fetchUsers();
+      setUsers(list);
     } catch (err) {
       console.error(err);
       toast.error('No se pudieron cargar los usuarios');
     } finally {
       setLoading(false);
     }
-  }, [apiFetch, search, roleFilter, zoneFilter]);
+  }, [fetchUsers]);
 
-  const loadZones = useCallback(async () => {
-    try {
-      const data = await apiFetch('/api/v1/zones');
-      const list: ZoneOption[] = (data.data ?? []).map((z: ZoneOption) => ({
-        _id: z._id,
-        name: z.name,
-        color: z.color,
-        district: z.district,
-        isActive: z.isActive,
-      }));
-      setZones(list);
-    } catch (err) {
-      console.error(err);
-    }
+  const fetchZones = useCallback(async (): Promise<ZoneOption[]> => {
+    const data = await apiFetch('/api/v1/zones');
+    return (data.data ?? []).map((z: ZoneOption) => ({
+      _id: z._id,
+      name: z.name,
+      color: z.color,
+      district: z.district,
+      isActive: z.isActive,
+    }));
   }, [apiFetch]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!cancelled) setLoading(true);
+        const list = await fetchUsers();
+        if (!cancelled) setUsers(list);
+      } catch (err) {
+        if (!cancelled) {
+          console.error(err);
+          toast.error('No se pudieron cargar los usuarios');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [fetchUsers]);
 
   useEffect(() => {
-    loadZones();
-  }, [loadZones]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetchZones();
+        if (!cancelled) setZones(list);
+      } catch (err) {
+        if (!cancelled) console.error(err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [fetchZones]);
 
   const stats = useMemo(
     () => ({

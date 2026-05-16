@@ -1,8 +1,8 @@
 'use client';
 
 import { useApi } from '@/hooks/useApi';
-import { useEffect, useState } from 'react';
-import { Search, Filter, AlertCircle, Plus, Edit2, Trash2, Car, Wrench, CheckCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Search, Filter, Plus, Edit2, Trash2, Car } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'sonner';
 
@@ -45,30 +45,44 @@ export default function VehiclesPage() {
     lastMaintenance: new Date().toISOString().split('T')[0]
   });
 
-  const load = async () => {
+  const fetchVehicles = useCallback(async (): Promise<VehicleData[]> => {
+    const mockData: VehicleData[] = [
+      { _id: '1', plate: 'ABC-123', type: 'Compactador', capacity: 15, status: 'active', lastMaintenance: '2023-10-01' },
+      { _id: '2', plate: 'XYZ-987', type: 'Reciclaje', capacity: 8, status: 'maintenance', lastMaintenance: '2023-10-15' }
+    ];
     try {
-      // Mock data in case API is not ready
-      const mockData = [
-        { _id: '1', plate: 'ABC-123', type: 'Compactador', capacity: 15, status: 'active', lastMaintenance: '2023-10-01' },
-        { _id: '2', plate: 'XYZ-987', type: 'Reciclaje', capacity: 8, status: 'maintenance', lastMaintenance: '2023-10-15' }
-      ];
-      
-      try {
-        const params = new URLSearchParams();
-        if (search) params.set('search', search);
-        if (statusFilter) params.set('status', statusFilter);
-        const data = await apiFetch(`/api/v1/vehicles?${params}`);
-        setVehicles(data.data || mockData);
-      } catch (err) {
-        setVehicles(mockData);
-      }
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (statusFilter) params.set('status', statusFilter);
+      const data = await apiFetch(`/api/v1/vehicles?${params}`);
+      return data.data || mockData;
+    } catch {
+      return mockData;
+    }
+  }, [apiFetch, search, statusFilter]);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await fetchVehicles();
+      setVehicles(data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, [fetchVehicles]);
 
   useEffect(() => {
-    load();
-  }, [apiFetch, search, statusFilter]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchVehicles();
+        if (!cancelled) setVehicles(data);
+      } catch (err) {
+        if (!cancelled) console.error(err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [fetchVehicles]);
 
   const handleOpenModal = (vehicle?: VehicleData) => {
     if (vehicle) {
@@ -104,19 +118,21 @@ export default function VehiclesPage() {
       }
       handleCloseModal();
       load();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al guardar vehículo');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al guardar vehículo';
+      toast.error(message);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (_id: string) => {
     if (confirm('¿Está seguro de que desea eliminar este vehículo?')) {
       try {
         // await apiFetch(`/api/v1/vehicles/${id}`, { method: 'DELETE' });
         toast.success('Vehículo eliminado exitosamente (Mock)');
         load();
-      } catch (error: any) {
-        toast.error(error.message || 'Error al eliminar vehículo');
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Error al eliminar vehículo';
+        toast.error(message);
       }
     }
   };

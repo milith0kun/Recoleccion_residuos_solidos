@@ -12,9 +12,8 @@ import {
   UIManager,
 } from 'react-native';
 import api from '../../src/api/client';
-import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../src/context/AuthContext';
+import { colors, radius, spacing } from '../../src/theme/tokens';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -71,11 +70,11 @@ function getBadge(route: RouteData, selectedDay: number, isToday: boolean): Rout
   return 'completed';
 }
 
-const BADGE_META: Record<RouteBadge, { label: string; color: string; bg: string; dot: string }> = {
-  active: { label: 'Activa ahora', color: '#10B981', bg: 'rgba(16,185,129,0.15)', dot: '#10B981' },
-  upcoming: { label: 'Próxima', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)', dot: '#F59E0B' },
-  completed: { label: 'Completada hoy', color: '#3B82F6', bg: 'rgba(59,130,246,0.15)', dot: '#3B82F6' },
-  idle: { label: 'Programada', color: '#94A3B8', bg: 'rgba(148,163,184,0.1)', dot: '#94A3B8' },
+const BADGE_META: Record<RouteBadge, { label: string; color: string; bg: string }> = {
+  active: { label: 'Activa ahora', color: colors.primary, bg: 'rgba(16,185,129,0.15)' },
+  upcoming: { label: 'Próxima', color: colors.warn, bg: 'rgba(245,158,11,0.15)' },
+  completed: { label: 'Completada', color: colors.info, bg: 'rgba(59,130,246,0.15)' },
+  idle: { label: 'Programada', color: colors.textMuted, bg: 'rgba(148,163,184,0.1)' },
 };
 
 export default function ScheduleScreen() {
@@ -94,7 +93,7 @@ export default function ScheduleScreen() {
       const { data } = await api.get('/routes', { params });
       setRoutes((data?.data || []) as RouteData[]);
     } catch (e) {
-      console.error(e);
+      if (__DEV__) console.warn('[schedule] /routes failed', e);
     } finally {
       setLoading(false);
     }
@@ -125,7 +124,8 @@ export default function ScheduleScreen() {
   if (loading) {
     return (
       <View style={s.loadingBox}>
-        <ActivityIndicator size="large" color="#10B981" />
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={s.loadingText}>Cargando horarios...</Text>
       </View>
     );
   }
@@ -134,7 +134,9 @@ export default function ScheduleScreen() {
     <ScrollView
       style={s.container}
       contentContainerStyle={s.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
     >
       <Text style={s.pageTitle}>Horarios</Text>
       <Text style={s.pageSub}>Programación semanal de recolección en tu zona.</Text>
@@ -149,29 +151,39 @@ export default function ScheduleScreen() {
           const isTodayPill = idx === today;
           return (
             <TouchableOpacity key={label} onPress={() => onSelectDay(idx)} activeOpacity={0.85}>
-              <LinearGradient
-                colors={
-                  active
-                    ? ['rgba(16,185,129,0.45)', 'rgba(16,185,129,0.15)']
-                    : ['rgba(30,41,59,0.7)', 'rgba(30,41,59,0.3)']
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
+              <View
                 style={[
                   s.dayPill,
                   {
-                    borderColor: active ? '#10B981' : isTodayPill ? '#3B82F6' : '#334155',
+                    backgroundColor: active ? colors.primarySoft : 'rgba(30,41,59,0.6)',
+                    borderColor: active
+                      ? colors.primary
+                      : isTodayPill
+                      ? colors.info
+                      : colors.border,
                   },
                 ]}
               >
-                {isTodayPill && <View style={s.todayDot} />}
-                <Text style={[s.dayLabel, { color: active ? '#10B981' : isTodayPill ? '#3B82F6' : '#94A3B8' }]}>
+                <Text
+                  style={[
+                    s.dayLabel,
+                    {
+                      color: active
+                        ? colors.primary
+                        : isTodayPill
+                        ? colors.info
+                        : colors.textMuted,
+                    },
+                  ]}
+                >
                   {label}
                 </Text>
                 {isTodayPill && (
-                  <Text style={[s.todayMicro, { color: active ? '#10B981' : '#3B82F6' }]}>HOY</Text>
+                  <Text style={[s.todayMicro, { color: active ? colors.primary : colors.info }]}>
+                    HOY
+                  </Text>
                 )}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -182,7 +194,9 @@ export default function ScheduleScreen() {
           {DAYS_LONG[selectedDay]}
           {isToday ? ' · Hoy' : ''}
         </Text>
-        <Text style={s.subHeaderCount}>{filteredRoutes.length} ruta{filteredRoutes.length === 1 ? '' : 's'}</Text>
+        <Text style={s.subHeaderCount}>
+          {filteredRoutes.length} ruta{filteredRoutes.length === 1 ? '' : 's'}
+        </Text>
       </View>
 
       {filteredRoutes.map((route) => {
@@ -193,39 +207,37 @@ export default function ScheduleScreen() {
         return (
           <View key={route._id} style={s.card}>
             <View style={s.cardHeader}>
-              <View style={s.cardTitleBox}>
-                <Feather name="map" size={18} color="#10B981" style={{ marginRight: 8 }} />
-                <Text style={s.routeName}>{route.name}</Text>
-              </View>
-              <View style={[s.statusBadge, { backgroundColor: meta.bg, borderColor: `${meta.color}60` }]}>
-                <View style={[s.statusDot, { backgroundColor: meta.dot }]} />
+              <Text style={s.routeName} numberOfLines={1}>
+                {route.name}
+              </Text>
+              <View
+                style={[
+                  s.statusBadge,
+                  { backgroundColor: meta.bg, borderColor: `${meta.color}55` },
+                ]}
+              >
                 <Text style={[s.statusBadgeText, { color: meta.color }]}>{meta.label}</Text>
               </View>
             </View>
 
             {zone && (
-              <View style={s.zoneRow}>
-                <Feather name="map-pin" size={12} color={zone.color || '#3B82F6'} style={{ marginRight: 6 }} />
-                <Text style={[s.zoneText, { color: zone.color || '#3B82F6' }]}>{zone.name || 'Zona'}</Text>
-              </View>
+              <Text style={[s.zoneText, { color: zone.color || colors.info }]}>
+                {zone.name || 'Zona'}
+              </Text>
             )}
 
             <View style={s.detailGrid}>
               <View style={s.detailItem}>
-                <Feather name="clock" size={14} color="#94A3B8" />
-                <View style={{ marginLeft: 8 }}>
-                  <Text style={s.detailLabel}>Inicio</Text>
-                  <Text style={s.detailValue}>{route.schedule?.startTime || '—'}</Text>
-                </View>
+                <Text style={s.detailLabel}>INICIO</Text>
+                <Text style={s.detailValue}>{route.schedule?.startTime || '—'}</Text>
               </View>
               <View style={s.detailItem}>
-                <Feather name="watch" size={14} color="#94A3B8" />
-                <View style={{ marginLeft: 8 }}>
-                  <Text style={s.detailLabel}>Duración</Text>
-                  <Text style={s.detailValue}>
-                    {route.schedule?.estimatedDuration ? `${route.schedule.estimatedDuration} min` : '—'}
-                  </Text>
-                </View>
+                <Text style={s.detailLabel}>DURACIÓN</Text>
+                <Text style={s.detailValue}>
+                  {route.schedule?.estimatedDuration
+                    ? `${route.schedule.estimatedDuration} min`
+                    : '—'}
+                </Text>
               </View>
             </View>
 
@@ -236,7 +248,13 @@ export default function ScheduleScreen() {
                   {route.wasteTypes.map((wt) => (
                     <View
                       key={wt._id}
-                      style={[s.wasteTag, { backgroundColor: `${wt.colorCode}15`, borderColor: `${wt.colorCode}40` }]}
+                      style={[
+                        s.wasteTag,
+                        {
+                          backgroundColor: `${wt.colorCode}15`,
+                          borderColor: `${wt.colorCode}40`,
+                        },
+                      ]}
                     >
                       <View style={[s.wasteColorDot, { backgroundColor: wt.colorCode }]} />
                       <Text style={[s.wasteTagText, { color: wt.colorCode }]}>{wt.name}</Text>
@@ -247,15 +265,22 @@ export default function ScheduleScreen() {
             )}
 
             {isToday && badge === 'completed' && (
-              <View style={s.notice}>
-                <Feather name="check" size={12} color="#3B82F6" style={{ marginRight: 6 }} />
-                <Text style={s.noticeText}>La recolección de hoy ya terminó.</Text>
+              <View style={[s.notice, { backgroundColor: 'rgba(59,130,246,0.1)' }]}>
+                <Text style={[s.noticeText, { color: colors.info }]}>
+                  La recolección de hoy ya terminó.
+                </Text>
               </View>
             )}
             {isToday && badge === 'upcoming' && (
-              <View style={[s.notice, { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)' }]}>
-                <Feather name="bell" size={12} color="#F59E0B" style={{ marginRight: 6 }} />
-                <Text style={[s.noticeText, { color: '#F59E0B' }]}>Aún no inicia hoy. Prepara tus residuos.</Text>
+              <View
+                style={[
+                  s.notice,
+                  { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)' },
+                ]}
+              >
+                <Text style={[s.noticeText, { color: colors.warn }]}>
+                  Aún no inicia hoy. Prepara tus residuos.
+                </Text>
               </View>
             )}
           </View>
@@ -264,9 +289,10 @@ export default function ScheduleScreen() {
 
       {filteredRoutes.length === 0 && (
         <View style={s.emptyBox}>
-          <Feather name="inbox" size={48} color="#334155" style={{ marginBottom: 16 }} />
           <Text style={s.emptyTitle}>Sin rutas este día</Text>
-          <Text style={s.emptyText}>No hay recolección programada para {DAYS_LONG[selectedDay]}.</Text>
+          <Text style={s.emptyText}>
+            No hay recolección programada para {DAYS_LONG[selectedDay]}.
+          </Text>
         </View>
       )}
     </ScrollView>
@@ -274,61 +300,124 @@ export default function ScheduleScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 40 },
-  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F172A' },
-  pageTitle: { fontSize: 26, fontWeight: '900', color: '#F8FAFC', marginBottom: 4, letterSpacing: -0.5 },
-  pageSub: { fontSize: 13, color: '#94A3B8', marginBottom: 18, fontWeight: '500' },
-  weekRow: { gap: 8, paddingBottom: 4 },
-  dayPill: {
-    width: 56, paddingVertical: 10, paddingHorizontal: 6, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.xxl, paddingTop: 60, paddingBottom: 40 },
+  loadingBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    gap: spacing.md,
   },
-  todayDot: {
-    position: 'absolute', top: 6, right: 8, width: 6, height: 6, borderRadius: 3, backgroundColor: '#3B82F6',
+  loadingText: { color: colors.textMuted, fontSize: 13, fontWeight: '500' },
+
+  pageTitle: { fontSize: 26, fontWeight: '900', color: colors.textPrimary, marginBottom: 4, letterSpacing: -0.5 },
+  pageSub: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.lg, fontWeight: '500' },
+
+  weekRow: { gap: spacing.sm, paddingBottom: 4 },
+  dayPill: {
+    width: 56,
+    paddingVertical: spacing.md,
+    paddingHorizontal: 6,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   dayLabel: { fontSize: 13, fontWeight: '800' },
   todayMicro: { fontSize: 8, fontWeight: '900', letterSpacing: 1, marginTop: 2 },
-  subHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, marginBottom: 14 },
-  subHeaderText: { color: '#F8FAFC', fontSize: 16, fontWeight: '800' },
-  subHeaderCount: { color: '#94A3B8', fontSize: 12, fontWeight: '700' },
+
+  subHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  subHeaderText: { color: colors.textPrimary, fontSize: 16, fontWeight: '800' },
+  subHeaderCount: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+
   card: {
-    backgroundColor: 'rgba(30,41,59,0.6)', borderRadius: 20, padding: 18, marginBottom: 14,
-    borderWidth: 1, borderColor: '#334155',
+    backgroundColor: colors.bgSoft,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  cardTitleBox: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
-  routeName: { fontSize: 16, fontWeight: '800', color: '#F8FAFC', flex: 1 },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  routeName: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, flex: 1 },
   statusBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 999, borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    borderWidth: 1,
   },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusBadgeText: { fontSize: 11, fontWeight: '800' },
-  zoneRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  zoneText: { fontSize: 12, fontWeight: '700' },
-  detailGrid: { flexDirection: 'row', gap: 16, marginBottom: 14 },
+
+  zoneText: { fontSize: 12, fontWeight: '700', marginBottom: spacing.md },
+
+  detailGrid: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
   detailItem: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(15,23,42,0.6)',
-    padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#1E293B',
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.6)',
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.bgElevated,
   },
-  detailLabel: { fontSize: 10, color: '#64748B', fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
-  detailValue: { fontSize: 14, color: '#F8FAFC', fontWeight: '800', marginTop: 2 },
+  detailLabel: {
+    fontSize: 10,
+    color: colors.textFaint,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  detailValue: { fontSize: 15, color: colors.textPrimary, fontWeight: '800' },
+
   wasteBox: { marginTop: 2 },
-  wasteLabel: { color: '#64748B', fontSize: 10, fontWeight: '800', marginBottom: 8, letterSpacing: 1 },
+  wasteLabel: {
+    color: colors.textFaint,
+    fontSize: 10,
+    fontWeight: '800',
+    marginBottom: spacing.sm,
+    letterSpacing: 1,
+  },
   wasteTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   wasteTag: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 10, borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.md,
+    borderWidth: 1,
   },
   wasteColorDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
   wasteTagText: { fontSize: 11, fontWeight: '700' },
+
   notice: {
-    flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingVertical: 8, paddingHorizontal: 12,
-    backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(59,130,246,0.3)',
   },
-  noticeText: { fontSize: 11, color: '#3B82F6', fontWeight: '600' },
+  noticeText: { fontSize: 12, fontWeight: '600' },
+
   emptyBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyTitle: { color: '#F8FAFC', fontSize: 15, fontWeight: '800', marginBottom: 6 },
-  emptyText: { color: '#94A3B8', fontSize: 13, fontWeight: '500', textAlign: 'center', paddingHorizontal: 30 },
+  emptyTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '800', marginBottom: 6 },
+  emptyText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    paddingHorizontal: 30,
+  },
 });

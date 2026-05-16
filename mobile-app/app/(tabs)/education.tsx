@@ -17,8 +17,7 @@ import {
   Alert,
 } from 'react-native';
 import api from '../../src/api/client';
-import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { colors, radius, spacing } from '../../src/theme/tokens';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -40,15 +39,14 @@ interface CategoryChip {
   key: Category;
   label: string;
   color: string;
-  icon: keyof typeof Feather.glyphMap;
 }
 
 const CATEGORIES: CategoryChip[] = [
-  { key: 'all', label: 'Todos', color: '#10B981', icon: 'grid' },
-  { key: 'organic', label: 'Orgánico', color: '#92400E', icon: 'feather' },
-  { key: 'recyclable', label: 'Reciclable', color: '#3B82F6', icon: 'refresh-cw' },
-  { key: 'non_recyclable', label: 'No reciclable', color: '#475569', icon: 'trash-2' },
-  { key: 'hazardous', label: 'Peligroso', color: '#EF4444', icon: 'alert-octagon' },
+  { key: 'all', label: 'Todos', color: colors.primary },
+  { key: 'organic', label: 'Orgánico', color: '#92400E' },
+  { key: 'recyclable', label: 'Reciclable', color: colors.info },
+  { key: 'non_recyclable', label: 'No reciclable', color: '#475569' },
+  { key: 'hazardous', label: 'Peligroso', color: colors.danger },
 ];
 
 interface AnimatedItemProps {
@@ -77,9 +75,7 @@ function AnimatedItem({ index, children }: AnimatedItemProps) {
     ]).start();
   }, [opacity, translateY, index]);
 
-  return (
-    <Animated.View style={{ opacity, transform: [{ translateY }] }}>{children}</Animated.View>
-  );
+  return <Animated.View style={{ opacity, transform: [{ translateY }] }}>{children}</Animated.View>;
 }
 
 export default function EducationScreen() {
@@ -107,6 +103,7 @@ export default function EducationScreen() {
           ? (e as { message: string }).message
           : 'No pudimos cargar los residuos';
       setError(msg);
+      if (__DEV__) console.warn('[education] /waste-types failed', e);
     } finally {
       setLoading(false);
     }
@@ -117,7 +114,6 @@ export default function EducationScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Debounce search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -153,7 +149,12 @@ export default function EducationScreen() {
 
   const renderCard = (wt: WasteType, idx: number) => (
     <AnimatedItem key={wt._id} index={idx}>
-      <View style={[s.card, { borderColor: `${wt.colorCode}40`, backgroundColor: `${wt.colorCode}0A` }]}>
+      <View
+        style={[
+          s.card,
+          { borderColor: `${wt.colorCode}40`, backgroundColor: `${wt.colorCode}0A` },
+        ]}
+      >
         <View style={s.cardHeader}>
           <View style={[s.colorBox, { backgroundColor: wt.colorCode }]} />
           <Text style={s.cardTitle}>{wt.name}</Text>
@@ -162,12 +163,9 @@ export default function EducationScreen() {
         {wt.description ? <Text style={s.descText}>{wt.description}</Text> : null}
 
         {wt.examples && wt.examples.length > 0 ? (
-          <View style={s.examplesRow}>
-            <Feather name="list" size={12} color="#64748B" style={{ marginRight: 6 }} />
-            <Text style={s.examplesText} numberOfLines={2}>
-              Ejemplos: {wt.examples.join(', ')}
-            </Text>
-          </View>
+          <Text style={s.examplesText} numberOfLines={2}>
+            Ejemplos: {wt.examples.join(', ')}
+          </Text>
         ) : null}
 
         <TouchableOpacity
@@ -176,7 +174,6 @@ export default function EducationScreen() {
           activeOpacity={0.8}
         >
           <Text style={[s.moreBtnText, { color: wt.colorCode }]}>Ver más</Text>
-          <Feather name="chevron-right" size={14} color={wt.colorCode} style={{ marginLeft: 4 }} />
         </TouchableOpacity>
       </View>
     </AnimatedItem>
@@ -186,8 +183,7 @@ export default function EducationScreen() {
     if (error) {
       return (
         <View style={s.emptyBox}>
-          <Feather name="wifi-off" size={48} color="#EF4444" style={{ marginBottom: 16 }} />
-          <Text style={s.emptyTitle}>Algo salió mal</Text>
+          <Text style={s.emptyTitle}>No pudimos cargar</Text>
           <Text style={s.emptyText}>{error}</Text>
           <TouchableOpacity
             style={s.retryBtn}
@@ -195,8 +191,8 @@ export default function EducationScreen() {
               setLoading(true);
               fetchWasteTypes(query, activeCategory);
             }}
+            activeOpacity={0.85}
           >
-            <Feather name="refresh-cw" size={14} color="#FFF" style={{ marginRight: 6 }} />
             <Text style={s.retryBtnText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
@@ -206,7 +202,6 @@ export default function EducationScreen() {
     if (wasteTypes.length === 0) {
       return (
         <View style={s.emptyBox}>
-          <Feather name="search" size={48} color="#334155" style={{ marginBottom: 16 }} />
           <Text style={s.emptyTitle}>Sin resultados</Text>
           <Text style={s.emptyText}>
             {query.trim().length > 0
@@ -222,8 +217,8 @@ export default function EducationScreen() {
                   'Hemos registrado tu sugerencia. La municipalidad la revisará pronto.'
                 )
               }
+              activeOpacity={0.85}
             >
-              <Feather name="send" size={14} color="#FFF" style={{ marginRight: 6 }} />
               <Text style={s.retryBtnText}>Sugerir residuo</Text>
             </TouchableOpacity>
           )}
@@ -234,24 +229,21 @@ export default function EducationScreen() {
     if (query.trim().length > 0) {
       return (
         <View>
-          <Text style={s.sectionLabel}>{wasteTypes.length} resultado{wasteTypes.length === 1 ? '' : 's'}</Text>
+          <Text style={s.sectionLabel}>
+            {wasteTypes.length} resultado{wasteTypes.length === 1 ? '' : 's'}
+          </Text>
           {wasteTypes.map((wt, idx) => renderCard(wt, idx))}
         </View>
       );
     }
 
-    // Grouped by category
     let counter = 0;
     return Object.entries(grouped).map(([cat, items]) => {
       const meta = CATEGORIES.find((c) => c.key === (cat as Category));
       return (
-        <View key={cat} style={{ marginBottom: 8 }}>
+        <View key={cat} style={{ marginBottom: spacing.sm }}>
           <View style={s.groupHeader}>
-            {meta ? (
-              <View style={[s.groupDot, { backgroundColor: meta.color }]} />
-            ) : (
-              <View style={[s.groupDot, { backgroundColor: '#64748B' }]} />
-            )}
+            <View style={[s.groupDot, { backgroundColor: meta?.color || colors.textFaint }]} />
             <Text style={s.groupTitle}>{meta?.label || cat}</Text>
             <Text style={s.groupCount}>{items.length}</Text>
           </View>
@@ -272,11 +264,10 @@ export default function EducationScreen() {
         <Text style={s.pageSub}>NTP 900.058 — busca, filtra y aprende a separar.</Text>
 
         <View style={s.searchBox}>
-          <Feather name="search" size={16} color="#94A3B8" style={{ marginRight: 8 }} />
           <TextInput
             style={s.searchInput}
             placeholder="Buscar residuo (ej: papel, pilas...)"
-            placeholderTextColor="#64748B"
+            placeholderTextColor={colors.textFaint}
             value={query}
             onChangeText={setQuery}
             autoCapitalize="none"
@@ -286,7 +277,7 @@ export default function EducationScreen() {
           />
           {query.length > 0 && Platform.OS !== 'ios' ? (
             <TouchableOpacity onPress={() => setQuery('')} hitSlop={8}>
-              <Feather name="x" size={16} color="#94A3B8" />
+              <Text style={s.searchClear}>×</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -303,20 +294,20 @@ export default function EducationScreen() {
                 key={c.key}
                 onPress={() => onSelectCategory(c.key)}
                 activeOpacity={0.8}
-                style={s.chipTouch}
               >
-                <LinearGradient
-                  colors={active ? [`${c.color}40`, `${c.color}15`] : ['rgba(30,41,59,0.6)', 'rgba(30,41,59,0.3)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <View
                   style={[
                     s.chip,
-                    { borderColor: active ? `${c.color}80` : '#334155' },
+                    {
+                      borderColor: active ? `${c.color}80` : colors.border,
+                      backgroundColor: active ? `${c.color}25` : 'rgba(30,41,59,0.6)',
+                    },
                   ]}
                 >
-                  <Feather name={c.icon} size={12} color={active ? c.color : '#94A3B8'} />
-                  <Text style={[s.chipLabel, { color: active ? c.color : '#94A3B8' }]}>{c.label}</Text>
-                </LinearGradient>
+                  <Text style={[s.chipLabel, { color: active ? c.color : colors.textMuted }]}>
+                    {c.label}
+                  </Text>
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -326,12 +317,14 @@ export default function EducationScreen() {
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
         keyboardShouldPersistTaps="handled"
       >
         {loading ? (
           <View style={s.loadingBox}>
-            <ActivityIndicator size="large" color="#10B981" />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           renderResults()
@@ -352,7 +345,7 @@ export default function EducationScreen() {
                   <View style={[s.colorBox, { backgroundColor: selected.colorCode }]} />
                   <Text style={s.modalTitle}>{selected.name}</Text>
                   <TouchableOpacity onPress={() => setSelected(null)} hitSlop={8}>
-                    <Feather name="x" size={20} color="#94A3B8" />
+                    <Text style={s.modalClose}>×</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -377,13 +370,15 @@ export default function EducationScreen() {
                   <View
                     style={[
                       s.instructionBox,
-                      { backgroundColor: `${selected.colorCode}15`, borderColor: `${selected.colorCode}40` },
+                      {
+                        backgroundColor: `${selected.colorCode}15`,
+                        borderColor: `${selected.colorCode}40`,
+                      },
                     ]}
                   >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                      <Feather name="info" size={16} color={selected.colorCode} style={{ marginRight: 6 }} />
-                      <Text style={[s.instructionLabel, { color: selected.colorCode }]}>¿Cómo desechar?</Text>
-                    </View>
+                    <Text style={[s.instructionLabel, { color: selected.colorCode }]}>
+                      ¿Cómo desechar?
+                    </Text>
                     <Text style={s.instructionText}>{selected.handlingInstructions}</Text>
                   </View>
                 ) : null}
@@ -397,72 +392,164 @@ export default function EducationScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
+  container: { flex: 1, backgroundColor: colors.bg },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
-  stickyHeader: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 12, backgroundColor: '#0F172A' },
-  loadingBox: { paddingVertical: 80, alignItems: 'center' },
-  pageTitle: { fontSize: 26, fontWeight: '900', color: '#F8FAFC', marginBottom: 4, letterSpacing: -0.5 },
-  pageSub: { fontSize: 13, color: '#94A3B8', marginBottom: 14, fontWeight: '500' },
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30,41,59,0.8)',
-    borderRadius: 16, paddingHorizontal: 14, paddingVertical: Platform.OS === 'ios' ? 12 : 4,
-    borderWidth: 1, borderColor: '#334155', marginBottom: 12,
+  scrollContent: { paddingHorizontal: spacing.xxl, paddingBottom: 40 },
+  stickyHeader: {
+    paddingHorizontal: spacing.xxl,
+    paddingTop: 60,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.bg,
   },
-  searchInput: { flex: 1, color: '#F8FAFC', fontSize: 14, paddingVertical: Platform.OS === 'ios' ? 0 : 8 },
-  chipsRow: { gap: 8, paddingRight: 8, paddingBottom: 4 },
-  chipTouch: {},
+  loadingBox: { paddingVertical: 80, alignItems: 'center' },
+
+  pageTitle: { fontSize: 26, fontWeight: '900', color: colors.textPrimary, marginBottom: 4, letterSpacing: -0.5 },
+  pageSub: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.md, fontWeight: '500' },
+
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30,41,59,0.8)',
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 14,
+    paddingVertical: Platform.OS === 'ios' ? 0 : 8,
+  },
+  searchClear: { color: colors.textMuted, fontSize: 22, fontWeight: '300', paddingHorizontal: 4 },
+
+  chipsRow: { gap: spacing.sm, paddingRight: spacing.sm, paddingBottom: 4 },
   chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 999, borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    borderWidth: 1,
   },
   chipLabel: { fontSize: 12, fontWeight: '700' },
-  groupHeader: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 10 },
-  groupDot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  groupTitle: { fontSize: 14, fontWeight: '800', color: '#F8FAFC', letterSpacing: 0.3, flex: 1 },
-  groupCount: { fontSize: 12, fontWeight: '700', color: '#64748B' },
-  sectionLabel: { fontSize: 12, color: '#94A3B8', fontWeight: '700', marginTop: 12, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  card: { borderRadius: 20, padding: 18, marginBottom: 14, borderWidth: 1 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  colorBox: {
-    width: 28, height: 28, borderRadius: 14, marginRight: 12, borderWidth: 2, borderColor: '#1E293B',
+
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
-  cardTitle: { fontSize: 17, fontWeight: '800', color: '#F8FAFC', flex: 1 },
-  descText: { fontSize: 13, color: '#CBD5E1', marginBottom: 10, lineHeight: 19 },
-  examplesRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  examplesText: { fontSize: 12, color: '#94A3B8', flex: 1 },
+  groupDot: { width: 8, height: 8, borderRadius: 4, marginRight: spacing.sm },
+  groupTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    flex: 1,
+  },
+  groupCount: { fontSize: 12, fontWeight: '700', color: colors.textFaint },
+
+  sectionLabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '700',
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  card: { borderRadius: radius.xl, padding: spacing.lg, marginBottom: spacing.md, borderWidth: 1 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
+  colorBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.bgElevated,
+  },
+  cardTitle: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, flex: 1 },
+  descText: { fontSize: 13, color: colors.textSecondary, marginBottom: spacing.sm, lineHeight: 19 },
+  examplesText: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.md, fontStyle: 'italic' },
+
   moreBtn: {
-    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 12,
-    paddingVertical: 6, borderRadius: 999, borderWidth: 1, backgroundColor: 'rgba(15,23,42,0.5)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    backgroundColor: 'rgba(15,23,42,0.5)',
   },
   moreBtnText: { fontSize: 12, fontWeight: '700' },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   tag: {
-    backgroundColor: 'rgba(30,41,59,0.8)', paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 10, borderWidth: 1, borderColor: '#334155',
+    backgroundColor: 'rgba(30,41,59,0.8)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  tagText: { color: '#CBD5E1', fontSize: 12, fontWeight: '600' },
-  instructionBox: { padding: 16, borderRadius: 16, borderWidth: 1, marginTop: 12 },
-  instructionLabel: { fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
-  instructionText: { color: '#F8FAFC', fontSize: 14, lineHeight: 20, fontWeight: '500' },
+  tagText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+
+  instructionBox: {
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    marginTop: spacing.md,
+  },
+  instructionLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+  },
+  instructionText: { color: colors.textPrimary, fontSize: 14, lineHeight: 20, fontWeight: '500' },
+
   emptyBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyTitle: { color: '#F8FAFC', fontSize: 16, fontWeight: '800', marginBottom: 6 },
-  emptyText: { color: '#94A3B8', fontSize: 13, fontWeight: '500', textAlign: 'center', marginBottom: 20, paddingHorizontal: 30 },
+  emptyTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 6 },
+  emptyText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+    paddingHorizontal: 30,
+  },
   retryBtn: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B981',
-    paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
   },
   retryBtnText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
-  modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end',
-  },
+
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
   modalCard: {
-    backgroundColor: '#0F172A', borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    padding: 24, borderTopWidth: 1, borderColor: '#334155', maxHeight: '85%',
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: spacing.xxl,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    maxHeight: '85%',
   },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: '900', color: '#F8FAFC', flex: 1 },
-  modalDesc: { fontSize: 14, color: '#CBD5E1', lineHeight: 21, marginBottom: 16 },
-  modalSection: { marginBottom: 14 },
-  modalSectionLabel: { fontSize: 12, color: '#94A3B8', fontWeight: '800', marginBottom: 8, letterSpacing: 0.5, textTransform: 'uppercase' },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
+  modalTitle: { fontSize: 20, fontWeight: '900', color: colors.textPrimary, flex: 1 },
+  modalClose: { color: colors.textMuted, fontSize: 26, fontWeight: '300', paddingHorizontal: 4 },
+  modalDesc: { fontSize: 14, color: colors.textSecondary, lineHeight: 21, marginBottom: spacing.lg },
+  modalSection: { marginBottom: spacing.md },
+  modalSectionLabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '800',
+    marginBottom: spacing.sm,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
 });

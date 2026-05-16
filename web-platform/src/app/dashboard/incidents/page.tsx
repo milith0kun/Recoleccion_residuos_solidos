@@ -1,8 +1,8 @@
 'use client';
 
 import { useApi } from '@/hooks/useApi';
-import { useEffect, useState } from 'react';
-import { Search, Filter, AlertTriangle, AlertCircle, Plus, Edit2, Trash2, MapPin, Clock } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Search, AlertTriangle, AlertCircle, Plus, Edit2, Trash2, MapPin, Clock } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'sonner';
 
@@ -54,29 +54,43 @@ export default function IncidentsPage() {
     date: new Date().toISOString().split('T')[0]
   });
 
-  const load = async () => {
+  const fetchIncidents = useCallback(async (): Promise<IncidentData[]> => {
+    const mockData: IncidentData[] = [
+      { _id: '1', title: 'Camión Averiado', description: 'El camión recolector de la ruta 3 sufrió un desperfecto mecánico.', severity: 'high', status: 'in_progress', location: 'Av. El Sol', date: '2023-10-24' },
+      { _id: '2', title: 'Vía Bloqueada', description: 'Trabajos de mantenimiento impiden el paso a la zona sur.', severity: 'medium', status: 'open', location: 'Calle Belén', date: '2023-10-25' }
+    ];
     try {
-      // Mock data
-      const mockData = [
-        { _id: '1', title: 'Camión Averiado', description: 'El camión recolector de la ruta 3 sufrió un desperfecto mecánico.', severity: 'high', status: 'in_progress', location: 'Av. El Sol', date: '2023-10-24' },
-        { _id: '2', title: 'Vía Bloqueada', description: 'Trabajos de mantenimiento impiden el paso a la zona sur.', severity: 'medium', status: 'open', location: 'Calle Belén', date: '2023-10-25' }
-      ];
-      
-      try {
-        const params = new URLSearchParams();
-        if (search) params.set('search', search);
-        const data = await apiFetch(`/api/v1/incidents?${params}`);
-        setIncidents(data.data || mockData);
-      } catch (err) {
-        setIncidents(mockData);
-      }
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      const data = await apiFetch(`/api/v1/incidents?${params}`);
+      return data.data || mockData;
+    } catch {
+      return mockData;
+    }
+  }, [apiFetch, search]);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await fetchIncidents();
+      setIncidents(data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, [fetchIncidents]);
 
   useEffect(() => {
-    load();
-  }, [apiFetch, search]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchIncidents();
+        if (!cancelled) setIncidents(data);
+      } catch (err) {
+        if (!cancelled) console.error(err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [fetchIncidents]);
 
   const handleOpenModal = (incident?: IncidentData) => {
     if (incident) {
@@ -111,12 +125,13 @@ export default function IncidentsPage() {
       }
       handleCloseModal();
       load();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al guardar incidente');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al guardar incidente';
+      toast.error(message);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (_id: string) => {
     if (confirm('¿Está seguro de que desea eliminar este reporte de incidente?')) {
       toast.success('Incidente eliminado exitosamente (Mock)');
       load();

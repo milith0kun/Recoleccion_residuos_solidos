@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/db/connection';
 import User from '@/lib/models/User';
@@ -8,7 +7,7 @@ import Vehicle from '@/lib/models/Vehicle';
 import Route from '@/lib/models/Route';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     await connectDB();
 
@@ -100,7 +99,7 @@ export async function POST(request: NextRequest) {
       { upsert: true, new: true }
     );
 
-    const zone2 = await Zone.findOneAndUpdate(
+    await Zone.findOneAndUpdate(
       { name: 'San Blas' },
       {
         name: 'San Blas',

@@ -15,12 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "pe.gob.cusco.srss",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarte las rutas de recolección cercanas",
         "NSLocationAlwaysUsageDescription": "Necesitamos tu ubicación para el tracking GPS de la ruta"
       }
     },
     "android": {
+      "package": "pe.gob.cusco.srss",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
@@ -44,7 +46,9 @@
         {
           "locationAlwaysAndWhenInUsePermission": "EcoRutas necesita acceder a tu ubicación para el seguimiento de rutas."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ]
   }
 }

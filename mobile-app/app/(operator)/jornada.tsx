@@ -19,6 +19,15 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { useGpsTracker } from '../../src/hooks/useGpsTracker';
+import { colors, radius, spacing } from '../../src/theme/tokens';
+import {
+  Badge,
+  Card,
+  EmptyState,
+  LoadingScreen,
+  PrimaryButton,
+  SectionTitle,
+} from '../../src/theme/ui';
 
 interface Waypoint {
   order: number;
@@ -74,23 +83,24 @@ export default function JornadaScreen() {
   const activeId = execution?._id ?? null;
   const tracker = useGpsTracker(execution?.status === 'in_progress' ? activeId : null);
 
-  // Pulse for "GPS activo" dot
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])
     );
     loop.start();
     return () => loop.stop();
   }, [pulse]);
 
-  const dotScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.5] });
-  const dotOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] });
+  const dotScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.4] });
+  const dotOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
+  const ringScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.2] });
+  const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0] });
 
-  const todayDow = new Date().getDay(); // 0=Sun..6=Sat
+  const todayDow = new Date().getDay();
 
   const loadData = useCallback(async () => {
     try {
@@ -107,12 +117,9 @@ export default function JornadaScreen() {
         return;
       }
 
-      // No active execution: clear local id and load assigned routes
       await setActiveExecutionId(null);
       setExecution(null);
 
-      // Fetch all routes and filter client-side by operator (operator filter on
-      // /routes is not honored server-side today)
       const routesRes = await api.get('/routes', { params: { status: 'active' } });
       const all: any[] = routesRes.data.data || [];
       const mine = all.filter((r) => {
@@ -120,20 +127,21 @@ export default function JornadaScreen() {
         return opId === user?.id;
       });
       setRoutes(mine);
-    } catch (e: any) {
-      console.error('loadData jornada:', e?.message || e);
+    } catch (e: unknown) {
+      if (__DEV__) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn('[jornada] loadData failed', msg);
+      }
     } finally {
       setLoading(false);
     }
   }, [user?.id, setActiveExecutionId]);
 
-  // Restore active execution id from SecureStore on first focus
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       (async () => {
         const stored = await getActiveExecutionId();
-        // If we have a stored id but no execution loaded, attempt to hydrate
         if (stored && !execution && !cancelled) {
           try {
             const { data } = await api.get(`/route-executions/${stored}`);
@@ -145,7 +153,6 @@ export default function JornadaScreen() {
               }
             }
           } catch (e) {
-            // execution not retrievable, clear
             await setActiveExecutionId(null);
           }
         }
@@ -157,7 +164,6 @@ export default function JornadaScreen() {
     }, [loadData])
   );
 
-  // Elapsed-time ticker
   useEffect(() => {
     if (!execution?.startedAt || execution.status !== 'in_progress') return;
     const started = new Date(execution.startedAt).getTime();
@@ -250,39 +256,41 @@ export default function JornadaScreen() {
     }
   };
 
-  // === RENDER ===
-
   if (loading) {
-    return (
-      <View style={s.loading}>
-        <Text style={s.loadingText}>Cargando jornada...</Text>
-      </View>
-    );
+    return <LoadingScreen label="Cargando jornada..." />;
   }
 
   if (execution) {
     const total = execution.route.waypoints?.length || 0;
     const visited = execution.waypointsVisited?.length || 0;
     const status = execution.status;
+    const progress = total > 0 ? Math.round((visited / total) * 100) : 0;
 
     return (
       <ScrollView
         style={s.container}
+        contentContainerStyle={s.contentPad}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <LinearGradient colors={['#065F46', '#10B981']} style={s.hero}>
+        <LinearGradient
+          colors={['#047857', colors.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={s.hero}
+        >
           <View style={s.heroTopRow}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={s.heroLabel}>JORNADA ACTIVA</Text>
               <Text style={s.heroRouteName} numberOfLines={1}>
                 {execution.route.name}
               </Text>
               {execution.vehicle?.plate ? (
-                <Text style={s.heroVehicle}>
-                  <Feather name="truck" size={13} color="#A7F3D0" /> {execution.vehicle.plate}
-                </Text>
+                <View style={s.heroVehicleRow}>
+                  <Feather name="truck" size={13} color="#A7F3D0" />
+                  <Text style={s.heroVehicle}>{execution.vehicle.plate}</Text>
+                </View>
               ) : null}
             </View>
             {status === 'delayed' ? (
@@ -305,37 +313,53 @@ export default function JornadaScreen() {
             <View style={s.divider} />
             <View style={s.progressCell}>
               <Text style={s.progressNum}>{total}</Text>
-              <Text style={s.progressLabel}>Total paradas</Text>
+              <Text style={s.progressLabel}>Total</Text>
             </View>
             <View style={s.divider} />
             <View style={s.progressCell}>
-              <Text style={s.progressNum}>
-                {total > 0 ? Math.round((visited / total) * 100) : 0}%
-              </Text>
+              <Text style={s.progressNum}>{progress}%</Text>
               <Text style={s.progressLabel}>Progreso</Text>
             </View>
           </View>
+
+          <View style={s.progressBarTrack}>
+            <View style={[s.progressBarFill, { width: `${progress}%` }]} />
+          </View>
         </LinearGradient>
 
-        <View style={s.gpsCard}>
+        <Card style={s.gpsCard}>
           <View style={s.gpsRow}>
-            <Animated.View
-              style={[
-                s.gpsDot,
-                {
-                  backgroundColor: tracker.isTracking ? '#10B981' : '#EF4444',
-                  transform: [{ scale: dotScale }],
-                  opacity: dotOpacity,
-                },
-              ]}
-            />
-            <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={s.gpsDotWrap}>
+              {tracker.isTracking ? (
+                <Animated.View
+                  style={[
+                    s.gpsRing,
+                    {
+                      backgroundColor: colors.primary,
+                      transform: [{ scale: ringScale }],
+                      opacity: ringOpacity,
+                    },
+                  ]}
+                />
+              ) : null}
+              <Animated.View
+                style={[
+                  s.gpsDot,
+                  {
+                    backgroundColor: tracker.isTracking ? colors.primary : colors.danger,
+                    transform: [{ scale: dotScale }],
+                    opacity: dotOpacity,
+                  },
+                ]}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: spacing.lg }}>
               <Text style={s.gpsTitle}>
                 {tracker.isTracking ? 'GPS activo' : 'GPS inactivo'}
               </Text>
               <Text style={s.gpsDesc}>
                 {tracker.isTracking
-                  ? `Enviando cada 10s${tracker.lastSentAt ? ` · ultimo envío hace ${Math.max(0, Math.round((Date.now() - tracker.lastSentAt) / 1000))}s` : ''}`
+                  ? `Enviando cada 10s${tracker.lastSentAt ? ` · último envío hace ${Math.max(0, Math.round((Date.now() - tracker.lastSentAt) / 1000))}s` : ''}`
                   : 'Activa los permisos de ubicación para iniciar'}
               </Text>
               {tracker.lastAccuracy ? (
@@ -350,68 +374,81 @@ export default function JornadaScreen() {
               ) : null}
             </View>
           </View>
-        </View>
+        </Card>
 
         <TouchableOpacity
           style={s.mapBtn}
           activeOpacity={0.85}
           onPress={() => router.push('/(operator)/route')}
         >
-          <Feather name="map" size={20} color="#10B981" />
+          <View style={s.mapIconWrap}>
+            <Feather name="map" size={18} color={colors.primary} />
+          </View>
           <Text style={s.mapBtnText}>Abrir mapa de la ruta</Text>
-          <Feather name="chevron-right" size={18} color="#94A3B8" />
+          <Feather name="chevron-right" size={18} color={colors.textMuted} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={s.dangerBtn}
-          activeOpacity={0.85}
+        <PrimaryButton
+          label="Finalizar jornada"
+          variant="danger"
           onPress={() => setFinishModal(true)}
-        >
-          <Feather name="flag" size={20} color="#FFF" />
-          <Text style={s.dangerBtnText}>Finalizar jornada</Text>
-        </TouchableOpacity>
+          style={s.actionSpacing}
+        />
 
         <TouchableOpacity
-          style={s.secondaryBtn}
+          style={s.warnBtn}
           activeOpacity={0.85}
           onPress={() => setDelayModal(true)}
         >
-          <Feather name="alert-triangle" size={18} color="#F59E0B" />
-          <Text style={s.secondaryBtnText}>Reportar incidencia / retraso</Text>
+          <Feather name="alert-triangle" size={16} color={colors.warn} />
+          <Text style={s.warnBtnText}>Reportar incidencia / retraso</Text>
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
-
-        {/* Finish confirm modal */}
-        <Modal visible={finishModal} transparent animationType="fade" onRequestClose={() => setFinishModal(false)}>
+        <Modal
+          visible={finishModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setFinishModal(false)}
+        >
           <View style={s.modalBackdrop}>
             <View style={s.modalCard}>
-              <Feather name="flag" size={32} color="#EF4444" style={{ alignSelf: 'center' }} />
+              <View style={[s.modalIconWrap, { backgroundColor: colors.dangerSoft }]}>
+                <Feather name="flag" size={26} color={colors.danger} />
+              </View>
               <Text style={s.modalTitle}>¿Finalizar jornada?</Text>
               <Text style={s.modalDesc}>
                 Se cerrará la jornada y se detendrá el envío de GPS. No podrás reabrirla después.
               </Text>
               <View style={s.modalRow}>
-                <TouchableOpacity style={s.modalCancel} onPress={() => setFinishModal(false)}>
-                  <Text style={s.modalCancelText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[s.modalConfirm, finishing && { opacity: 0.6 }]}
+                <PrimaryButton
+                  label="Cancelar"
+                  variant="secondary"
+                  onPress={() => setFinishModal(false)}
+                  style={{ flex: 1 }}
+                />
+                <PrimaryButton
+                  label={finishing ? 'Cerrando...' : 'Sí, finalizar'}
+                  variant="danger"
                   onPress={finalizeJornada}
-                  disabled={finishing}
-                >
-                  <Text style={s.modalConfirmText}>{finishing ? 'Cerrando...' : 'Sí, finalizar'}</Text>
-                </TouchableOpacity>
+                  loading={finishing}
+                  style={{ flex: 1 }}
+                />
               </View>
             </View>
           </View>
         </Modal>
 
-        {/* Delay modal */}
-        <Modal visible={delayModal} transparent animationType="fade" onRequestClose={() => setDelayModal(false)}>
+        <Modal
+          visible={delayModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setDelayModal(false)}
+        >
           <View style={s.modalBackdrop}>
             <View style={s.modalCard}>
-              <Feather name="alert-triangle" size={32} color="#F59E0B" style={{ alignSelf: 'center' }} />
+              <View style={[s.modalIconWrap, { backgroundColor: colors.warnSoft }]}>
+                <Feather name="alert-triangle" size={26} color={colors.warn} />
+              </View>
               <Text style={s.modalTitle}>Reportar retraso</Text>
               <Text style={s.modalDesc}>
                 Indica cuántos minutos de retraso registrará el sistema para tu jornada.
@@ -422,14 +459,21 @@ export default function JornadaScreen() {
                 onChangeText={setDelayMinutes}
                 keyboardType="numeric"
                 placeholder="Minutos"
-                placeholderTextColor="#64748B"
+                placeholderTextColor={colors.textFaint}
               />
               <View style={s.modalRow}>
-                <TouchableOpacity style={s.modalCancel} onPress={() => setDelayModal(false)}>
-                  <Text style={s.modalCancelText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[s.modalConfirm, { backgroundColor: '#F59E0B' }]} onPress={reportDelay}>
-                  <Text style={s.modalConfirmText}>Reportar</Text>
+                <PrimaryButton
+                  label="Cancelar"
+                  variant="secondary"
+                  onPress={() => setDelayModal(false)}
+                  style={{ flex: 1 }}
+                />
+                <TouchableOpacity
+                  style={s.warnConfirmBtn}
+                  activeOpacity={0.85}
+                  onPress={reportDelay}
+                >
+                  <Text style={s.warnConfirmText}>Reportar</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -439,48 +483,54 @@ export default function JornadaScreen() {
     );
   }
 
-  // === No active execution: list of assigned routes ===
   const todays = routes.filter((r) => r.schedule?.dayOfWeek?.includes(todayDow));
   const others = routes.filter((r) => !r.schedule?.dayOfWeek?.includes(todayDow));
 
   return (
     <ScrollView
       style={s.container}
+      contentContainerStyle={s.contentPad}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
-      <View style={s.startCard}>
-        <View style={s.startIcon}>
-          <Feather name="play-circle" size={32} color="#10B981" />
+      <Card style={s.startCard}>
+        <View style={s.startIconWrap}>
+          <Feather name="play-circle" size={28} color={colors.primary} />
         </View>
         <Text style={s.startTitle}>Comenzar jornada</Text>
         <Text style={s.startDesc}>
           Selecciona la ruta asignada que vas a operar hoy. Se enviará tu ubicación
           en tiempo real durante el recorrido.
         </Text>
-      </View>
+      </Card>
 
-      <Text style={s.sectionTitle}>Hoy ({todays.length})</Text>
+      <SectionTitle trailing={<Badge label={String(todays.length)} tone="primary" />}>
+        Hoy
+      </SectionTitle>
       {todays.length === 0 ? (
-        <View style={s.emptyBox}>
-          <Feather name="calendar" size={28} color="#64748B" />
-          <Text style={s.emptyText}>No tienes rutas programadas para hoy</Text>
-        </View>
+        <EmptyState
+          title="Sin rutas para hoy"
+          description="No tienes rutas programadas para hoy."
+        />
       ) : (
-        todays.map((r) => <RouteCard key={r._id} route={r} primary onStart={() => startJornada(r)} />)
+        todays.map((r) => (
+          <RouteCard key={r._id} route={r} primary onStart={() => startJornada(r)} />
+        ))
       )}
 
       {others.length > 0 ? (
         <>
-          <Text style={s.sectionTitle}>Otras rutas asignadas</Text>
+          <SectionTitle trailing={<Badge label={String(others.length)} tone="muted" />}>
+            Otras rutas asignadas
+          </SectionTitle>
           {others.map((r) => (
             <RouteCard key={r._id} route={r} onStart={() => startJornada(r)} />
           ))}
         </>
       ) : null}
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: spacing.xxxl }} />
     </ScrollView>
   );
 }
@@ -496,243 +546,426 @@ function RouteCard({
 }) {
   return (
     <View style={[s.routeCard, primary && s.routeCardPrimary]}>
-      <View style={{ flex: 1 }}>
-        <Text style={s.routeName}>{route.name}</Text>
+      <View style={[s.routeAccent, primary && s.routeAccentPrimary]} />
+      <View style={s.routeContent}>
+        <Text style={s.routeName} numberOfLines={1}>
+          {route.name}
+        </Text>
+        {route.zone?.district ? (
+          <Text style={s.routeZone} numberOfLines={1}>
+            {route.zone.district}
+          </Text>
+        ) : null}
         <View style={s.routeMetaRow}>
           {route.schedule?.startTime ? (
             <View style={s.metaPill}>
-              <Feather name="clock" size={12} color="#94A3B8" />
-              <Text style={s.metaText}> {route.schedule.startTime}</Text>
+              <Feather name="clock" size={11} color={colors.textMuted} />
+              <Text style={s.metaText}>{route.schedule.startTime}</Text>
             </View>
           ) : null}
           {route.waypoints?.length ? (
             <View style={s.metaPill}>
-              <Feather name="map-pin" size={12} color="#94A3B8" />
-              <Text style={s.metaText}> {route.waypoints.length} paradas</Text>
+              <Feather name="map-pin" size={11} color={colors.textMuted} />
+              <Text style={s.metaText}>{route.waypoints.length} paradas</Text>
             </View>
           ) : null}
           {route.vehicle?.plate ? (
             <View style={s.metaPill}>
-              <Feather name="truck" size={12} color="#94A3B8" />
-              <Text style={s.metaText}> {route.vehicle.plate}</Text>
+              <Feather name="truck" size={11} color={colors.textMuted} />
+              <Text style={s.metaText}>{route.vehicle.plate}</Text>
             </View>
           ) : null}
         </View>
       </View>
       <TouchableOpacity style={s.startBtn} activeOpacity={0.85} onPress={onStart}>
         <Text style={s.startBtnText}>Iniciar</Text>
-        <Feather name="arrow-right" size={16} color="#FFF" />
+        <Feather name="arrow-right" size={14} color="#FFF" />
       </TouchableOpacity>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A', padding: 20 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F172A' },
-  loadingText: { color: '#94A3B8' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  contentPad: { padding: spacing.xl, paddingTop: spacing.xxl },
 
   hero: {
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 16,
-    shadowColor: '#10B981',
-    shadowOpacity: 0.3,
+    borderRadius: radius.xxl,
+    padding: spacing.xxl,
+    marginBottom: spacing.lg,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.25,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
-  heroTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  heroLabel: { color: '#A7F3D0', fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
-  heroRouteName: { color: '#FFFFFF', fontSize: 22, fontWeight: '900', marginTop: 4, marginBottom: 4 },
-  heroVehicle: { color: '#A7F3D0', fontSize: 13, fontWeight: '600' },
-  statusPill: { backgroundColor: 'rgba(245,158,11,0.95)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  statusPillText: { color: '#1F2937', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  heroLabel: {
+    color: '#A7F3D0',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  heroRouteName: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+    letterSpacing: -0.4,
+  },
+  heroVehicleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  heroVehicle: {
+    color: '#A7F3D0',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  statusPill: {
+    backgroundColor: 'rgba(245,158,11,0.95)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+  },
+  statusPillText: {
+    color: '#1F2937',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
 
   timerBox: {
-    marginTop: 20,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    borderRadius: 16,
-    padding: 16,
+    marginTop: spacing.xl,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderRadius: radius.lg,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
   },
-  timerLabel: { color: '#A7F3D0', fontSize: 11, fontWeight: '800', letterSpacing: 2 },
+  timerLabel: {
+    color: '#A7F3D0',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 2,
+  },
   timerText: {
     color: '#FFFFFF',
-    fontSize: 42,
+    fontSize: 44,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     fontVariant: ['tabular-nums'],
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
 
   progressRow: {
     flexDirection: 'row',
-    marginTop: 16,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    borderRadius: 16,
-    padding: 12,
+    marginTop: spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.22)',
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
   },
   progressCell: { flex: 1, alignItems: 'center' },
-  progressNum: { color: '#FFFFFF', fontSize: 20, fontWeight: '900' },
-  progressLabel: { color: '#A7F3D0', fontSize: 11, fontWeight: '600' },
-  divider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.2)' },
+  progressNum: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+  },
+  progressLabel: {
+    color: '#A7F3D0',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  divider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+
+  progressBarTrack: {
+    marginTop: spacing.md,
+    height: 6,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.pill,
+  },
 
   gpsCard: {
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  gpsRow: { flexDirection: 'row', alignItems: 'center' },
-  gpsDot: { width: 12, height: 12, borderRadius: 6 },
-  gpsTitle: { color: '#F8FAFC', fontSize: 15, fontWeight: '700' },
-  gpsDesc: { color: '#94A3B8', fontSize: 12, marginTop: 2 },
-  gpsAccuracy: { color: '#10B981', fontSize: 11, marginTop: 4, fontWeight: '600' },
-  gpsError: { color: '#EF4444', fontSize: 11, marginTop: 4 },
+  gpsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  gpsDotWrap: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gpsRing: {
+    position: 'absolute',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+  },
+  gpsDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  gpsTitle: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  gpsDesc: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  gpsAccuracy: {
+    color: colors.primary,
+    fontSize: 11,
+    marginTop: spacing.xs,
+    fontWeight: '600',
+  },
+  gpsError: {
+    color: colors.danger,
+    fontSize: 11,
+    marginTop: spacing.xs,
+  },
 
   mapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
   },
-  mapBtnText: { flex: 1, marginLeft: 12, color: '#F8FAFC', fontSize: 15, fontWeight: '600' },
+  mapIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapBtnText: {
+    flex: 1,
+    marginLeft: spacing.md,
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+  },
 
-  dangerBtn: {
+  actionSpacing: { marginTop: spacing.md },
+
+  warnBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EF4444',
-    borderRadius: 18,
-    paddingVertical: 18,
-    marginTop: 12,
-    shadowColor: '#EF4444',
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  dangerBtnText: { color: '#FFFFFF', fontSize: 17, fontWeight: '800', marginLeft: 10 },
-
-  secondaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(245,158,11,0.12)',
+    backgroundColor: colors.warnSoft,
     borderColor: 'rgba(245,158,11,0.35)',
     borderWidth: 1,
-    borderRadius: 16,
-    paddingVertical: 14,
-    marginTop: 12,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md + 2,
+    marginTop: spacing.md,
+    gap: spacing.sm,
   },
-  secondaryBtnText: { color: '#F59E0B', fontSize: 14, fontWeight: '700', marginLeft: 8 },
-
-  // No-execution screen
-  startCard: {
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-  },
-  startIcon: { marginBottom: 12 },
-  startTitle: { color: '#F8FAFC', fontSize: 20, fontWeight: '800', marginBottom: 6 },
-  startDesc: { color: '#94A3B8', fontSize: 13, lineHeight: 19 },
-  sectionTitle: {
-    color: '#F8FAFC',
+  warnBtnText: {
+    color: colors.warn,
     fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginTop: 12,
-    marginBottom: 12,
+    fontWeight: '700',
   },
-  emptyBox: {
-    backgroundColor: 'rgba(30,41,59,0.4)',
-    borderColor: '#1E293B',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 20,
+
+  warnConfirmBtn: {
+    flex: 1,
+    backgroundColor: colors.warn,
+    paddingVertical: 16,
+    borderRadius: radius.lg,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  emptyText: { color: '#94A3B8', fontSize: 13, marginTop: 8 },
+  warnConfirmText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+
+  startCard: {
+    marginBottom: spacing.lg,
+  },
+  startIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  startTitle: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: spacing.xs + 2,
+    letterSpacing: -0.3,
+  },
+  startDesc: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+  },
 
   routeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: radius.lg,
+    marginBottom: spacing.md,
+    overflow: 'hidden',
   },
-  routeCardPrimary: { borderColor: 'rgba(16,185,129,0.5)', backgroundColor: 'rgba(16,185,129,0.08)' },
-  routeName: { color: '#F8FAFC', fontSize: 16, fontWeight: '700', marginBottom: 8 },
-  routeMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  routeCardPrimary: {
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primarySoft,
+  },
+  routeAccent: {
+    width: 4,
+    alignSelf: 'stretch',
+    backgroundColor: colors.borderSoft,
+  },
+  routeAccentPrimary: {
+    backgroundColor: colors.primary,
+  },
+  routeContent: {
+    flex: 1,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  routeName: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  routeZone: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: spacing.sm,
+  },
+  routeMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs + 2,
+  },
   metaPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15,23,42,0.7)',
-    borderColor: '#334155',
+    backgroundColor: colors.bgOverlay,
+    borderColor: colors.borderSoft,
     borderWidth: 1,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 999,
+    borderRadius: radius.pill,
+    gap: spacing.xs,
   },
-  metaText: { color: '#94A3B8', fontSize: 11, fontWeight: '600' },
+  metaText: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+  },
   startBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    gap: 6,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md + 2,
+    borderRadius: radius.md,
+    gap: spacing.xs + 2,
+    marginRight: spacing.md,
   },
-  startBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
+  startBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
 
-  // Modal
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
-  modalCard: { backgroundColor: '#1E293B', borderRadius: 20, padding: 24, borderColor: '#334155', borderWidth: 1 },
-  modalTitle: { color: '#F8FAFC', fontSize: 19, fontWeight: '800', textAlign: 'center', marginTop: 12 },
-  modalDesc: { color: '#94A3B8', fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
-  modalRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  modalCancel: {
+  modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.6)',
-    borderColor: '#334155',
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    padding: spacing.xxl,
+  },
+  modalCard: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
+    borderColor: colors.border,
     borderWidth: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
   },
-  modalCancelText: { color: '#F8FAFC', fontWeight: '700' },
-  modalConfirm: {
-    flex: 1,
-    backgroundColor: '#EF4444',
-    paddingVertical: 14,
-    borderRadius: 14,
+  modalIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.pill,
+    alignSelf: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
-  modalConfirmText: { color: '#FFFFFF', fontWeight: '800' },
+  modalTitle: {
+    color: colors.textPrimary,
+    fontSize: 19,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginTop: spacing.md,
+    letterSpacing: -0.3,
+  },
+  modalDesc: {
+    color: colors.textMuted,
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    lineHeight: 20,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.xl,
+  },
   input: {
-    backgroundColor: '#0F172A',
-    borderColor: '#334155',
+    backgroundColor: colors.bg,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    color: '#F8FAFC',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    color: colors.textPrimary,
     fontSize: 16,
-    marginTop: 16,
+    marginTop: spacing.lg,
+    fontVariant: ['tabular-nums'],
   },
 });

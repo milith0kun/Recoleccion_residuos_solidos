@@ -52,6 +52,87 @@ const pageTitles: Record<string, string> = {
   '/dashboard/tracking': 'Seguimiento GPS',
 };
 
+interface SidebarContentProps {
+  isMobile?: boolean;
+  collapsed: boolean;
+  filteredMenu: typeof menuItems;
+  pathname: string;
+  user: { firstName: string; lastName: string; role: string };
+  onNavigate: () => void;
+  onLogout: () => void;
+}
+
+function SidebarContent({
+  isMobile = false,
+  collapsed,
+  filteredMenu,
+  pathname,
+  user,
+  onNavigate,
+  onLogout,
+}: SidebarContentProps) {
+  const expanded = !collapsed || isMobile;
+  return (
+    <>
+      <div className="sb-brand">
+        <div className="sb-brand-mark" aria-hidden>
+          <span className="sb-brand-mark-dot" />
+        </div>
+        {expanded && (
+          <div className="sb-brand-text">
+            <span className="sb-brand-name">SRSS</span>
+            <span className="sb-brand-sub">Cusco</span>
+          </div>
+        )}
+      </div>
+
+      <nav className="sb-nav">
+        {expanded && <span className="sb-nav-label">Navegación</span>}
+        {filteredMenu.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              className={`sb-link ${isActive ? 'sb-link--active' : ''}`}
+            >
+              <Icon style={{ width: 18, height: 18, flexShrink: 0 }} />
+              {expanded && <span>{item.label}</span>}
+              {isActive && expanded && <span className="sb-link-pill" />}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="sb-footer">
+        {expanded && (
+          <div className="sb-user">
+            <div className="sb-user-top">
+              <div className="sb-user-avatar">
+                {user.firstName[0]}{user.lastName[0]}
+              </div>
+              <div className="sb-user-meta">
+                <div className="sb-user-name">{user.firstName} {user.lastName}</div>
+                <div className="sb-user-role">{roleLabels[user.role]}</div>
+              </div>
+            </div>
+            <div className="sb-user-status">
+              <span className="sb-user-dot" />
+              <span>En línea</span>
+            </div>
+          </div>
+        )}
+        <button onClick={onLogout} className="sb-logout" title="Cerrar sesión">
+          <LogOut style={{ width: 16, height: 16 }} />
+          {expanded && <span>Cerrar sesión</span>}
+        </button>
+      </div>
+    </>
+  );
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
@@ -75,60 +156,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     (item) => !item.roles || item.roles.includes(user.role)
   );
 
-  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <>
-      {/* Brand */}
-      <div className="sb-brand">
-        <span className="sb-brand-name">{collapsed && !isMobile ? 'S' : 'SRSS'}</span>
-        {(!collapsed || isMobile) && <span className="sb-brand-sub">Cusco</span>}
-      </div>
-
-      {/* Nav */}
-      <nav className="sb-nav">
-        {filteredMenu.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`sb-link ${isActive ? 'sb-link--active' : ''}`}
-            >
-              <Icon style={{ width: 18, height: 18, flexShrink: 0 }} />
-              {(!collapsed || isMobile) && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* User */}
-      <div className="sb-footer">
-        {(!collapsed || isMobile) && (
-          <div className="sb-user">
-            <div className="sb-user-status">
-              <div className="sb-user-dot" />
-              <span>En línea</span>
-            </div>
-            <div className="sb-user-name">{user.firstName} {user.lastName}</div>
-            <div className="sb-user-role">{roleLabels[user.role]}</div>
-          </div>
-        )}
-        <button onClick={logout} className="sb-logout">
-          <LogOut style={{ width: 18, height: 18 }} />
-          {(!collapsed || isMobile) && <span>Cerrar Sesión</span>}
-        </button>
-      </div>
-    </>
-  );
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <div className="dash-root">
       <style>{dashStyles}</style>
 
-      {/* Sidebar Desktop */}
       <aside className={`sb ${collapsed ? 'sb--collapsed' : ''}`}>
-        <SidebarContent />
+        <SidebarContent
+          collapsed={collapsed}
+          filteredMenu={filteredMenu}
+          pathname={pathname}
+          user={user}
+          onNavigate={closeMobileMenu}
+          onLogout={logout}
+        />
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="sb-toggle"
@@ -137,14 +179,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
       </aside>
 
-      {/* Mobile overlay */}
       {mobileMenuOpen && (
         <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)} />
       )}
 
-      {/* Sidebar Mobile */}
       <aside className={`sb-mobile ${mobileMenuOpen ? 'sb-mobile--open' : ''}`}>
-        <SidebarContent isMobile />
+        <SidebarContent
+          isMobile
+          collapsed={collapsed}
+          filteredMenu={filteredMenu}
+          pathname={pathname}
+          user={user}
+          onNavigate={closeMobileMenu}
+          onLogout={logout}
+        />
       </aside>
 
       {/* Main area */}
@@ -223,98 +271,171 @@ const dashStyles = `
   }
 
   .sb-brand {
-    padding: 1.5rem 1.25rem;
+    padding: 1.4rem 1.25rem;
     display: flex;
-    align-items: baseline;
-    gap: 0.4rem;
+    align-items: center;
+    gap: 0.6rem;
     border-bottom: 1px solid #F7F6F4;
   }
+  .sb-brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #059669, #047857);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(5,150,105,0.22);
+  }
+  .sb-brand-mark-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #FFFFFF;
+  }
+  .sb-brand-text {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    min-width: 0;
+  }
   .sb-brand-name {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 800;
     color: #1A1A1A;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
   .sb-brand-sub {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 500;
     color: #B0ADA8;
   }
 
   .sb-nav {
     flex: 1;
-    padding: 1rem 0.75rem;
+    padding: 1rem 0.75rem 0.5rem;
     display: flex;
     flex-direction: column;
     gap: 2px;
     overflow-y: auto;
   }
+  .sb-nav-label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: #C5C2BD;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    padding: 0 0.85rem 0.5rem;
+  }
 
   .sb-link {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 0.6rem 0.85rem;
-    border-radius: 8px;
+    gap: 0.7rem;
+    padding: 0.62rem 0.85rem;
+    border-radius: 9px;
     font-size: 0.8rem;
     font-weight: 600;
     color: #8A8780;
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
   }
   .sb-link:hover {
     background: #FAFAF8;
     color: #3A3A38;
   }
+  .sb-link:hover:not(.sb-link--active) {
+    transform: translateX(2px);
+  }
   .sb-link--active {
-    background: #059669;
+    background: linear-gradient(135deg, #059669, #047857);
     color: #FFFFFF !important;
+    box-shadow: 0 4px 12px rgba(5,150,105,0.22);
   }
   .sb-link--active:hover {
-    background: #047857;
+    transform: none;
+  }
+  .sb-link-pill {
+    margin-left: auto;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
   }
 
   .sb-footer {
-    padding: 1rem 0.75rem;
+    padding: 0.85rem 0.75rem 1rem;
     margin-top: auto;
+    border-top: 1px solid #F7F6F4;
   }
   .sb-user {
-    padding: 0.875rem;
-    border-radius: 10px;
+    padding: 0.85rem;
+    border-radius: 11px;
     background: #FAFAF8;
     border: 1px solid #F0EEEB;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.55rem;
   }
-  .sb-user-status {
+  .sb-user-top {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    margin-bottom: 0.25rem;
+    gap: 0.6rem;
+    margin-bottom: 0.55rem;
   }
-  .sb-user-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #059669;
+  .sb-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #1A1A1A;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
   }
-  .sb-user-status span {
-    font-size: 0.6rem;
-    font-weight: 700;
-    color: #059669;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+  .sb-user-meta {
+    min-width: 0;
+    flex: 1;
   }
   .sb-user-name {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: #1A1A1A;
     line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .sb-user-role {
     font-size: 0.65rem;
     font-weight: 500;
     color: #B0ADA8;
     margin-top: 1px;
+  }
+  .sb-user-status {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #F0EEEB;
+  }
+  .sb-user-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+  }
+  .sb-user-status span:last-child {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #059669;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
   }
 
   .sb-logout {
@@ -324,7 +445,7 @@ const dashStyles = `
     justify-content: center;
     gap: 0.5rem;
     padding: 0.65rem;
-    border-radius: 8px;
+    border-radius: 9px;
     border: 1px solid #F0EEEB;
     background: #FFFFFF;
     color: #8A8780;
@@ -332,7 +453,7 @@ const dashStyles = `
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
   .sb-logout:hover {
     background: #FEF2F2;
@@ -416,17 +537,19 @@ const dashStyles = `
   .dash-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.45rem;
   }
   .bc-system {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: #B0ADA8;
+    letter-spacing: 0.01em;
   }
   .bc-page {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 700;
     color: #1A1A1A;
+    letter-spacing: -0.01em;
   }
 
   .dash-header-right {
@@ -436,50 +559,65 @@ const dashStyles = `
   }
   .header-bell {
     position: relative;
-    padding: 0.5rem;
-    border-radius: 8px;
-    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    border: 1px solid transparent;
     background: transparent;
     color: #8A8780;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .header-bell:hover { background: #FAFAF8; color: #3A3A38; }
+  .header-bell:hover {
+    background: #FAFAF8;
+    color: #1A1A1A;
+    border-color: #F0EEEB;
+  }
   .bell-dot {
     position: absolute;
     top: 8px; right: 8px;
-    width: 5px; height: 5px;
+    width: 7px; height: 7px;
     border-radius: 50%;
-    background: #059669;
-    border: 1.5px solid #FFFFFF;
+    background: #DC2626;
+    border: 2px solid #FFFFFF;
+    box-shadow: 0 0 0 1px rgba(220,38,38,0.25);
   }
   .header-sep {
     width: 1px;
-    height: 20px;
+    height: 22px;
     background: #F0EEEB;
-    margin: 0 0.25rem;
+    margin: 0 0.35rem;
   }
   .header-avatar {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.25rem 0.75rem 0.25rem 0.25rem;
-    border-radius: 8px;
+    gap: 0.65rem;
+    padding: 0.3rem 0.85rem 0.3rem 0.35rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s ease, border-color 0.2s ease;
   }
-  .header-avatar:hover { background: #FAFAF8; }
+  .header-avatar:hover {
+    background: #FAFAF8;
+    border-color: #F0EEEB;
+  }
   .avatar-circle {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 8px;
-    background: #059669;
+    background: linear-gradient(135deg, #059669, #047857);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #FFFFFF;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 800;
+    letter-spacing: 0.02em;
+    box-shadow: 0 2px 6px rgba(5,150,105,0.25);
   }
   .avatar-info { display: none; }
   @media (min-width: 1280px) {
@@ -490,11 +628,13 @@ const dashStyles = `
     font-weight: 700;
     color: #1A1A1A;
     line-height: 1.2;
+    letter-spacing: -0.01em;
   }
   .avatar-role {
     font-size: 0.65rem;
     font-weight: 500;
     color: #B0ADA8;
+    margin-top: 1px;
   }
 
   /* Mobile header */

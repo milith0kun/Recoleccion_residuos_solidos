@@ -16,6 +16,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (data: Record<string, string>) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -62,6 +63,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.data.user);
   }, []);
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    const res = await fetch('/api/v1/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error?.message || 'Error de autenticación con Google');
+
+    localStorage.setItem('accessToken', data.data.accessToken);
+    localStorage.setItem('refreshToken', data.data.refreshToken);
+    localStorage.setItem('user', JSON.stringify(data.data.user));
+    setToken(data.data.accessToken);
+    setUser(data.data.user);
+  }, []);
+
   const register = useCallback(async (formData: Record<string, string>) => {
     const res = await fetch('/api/v1/auth/register', {
       method: 'POST',
@@ -87,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, loginWithGoogle, register, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

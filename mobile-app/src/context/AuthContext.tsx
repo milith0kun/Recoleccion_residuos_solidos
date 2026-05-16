@@ -20,6 +20,7 @@ interface AuthContextType {
   isLoading: boolean;
   isOperator: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (data: Record<string, string>) => Promise<void>;
   logout: () => Promise<void>;
   getActiveExecutionId: () => Promise<string | null>;
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(JSON.parse(savedUser) as User);
         }
       } catch (e) {
-        console.error('Error loading session:', e);
+        if (__DEV__) console.warn('[auth] error loading session', e);
       } finally {
         setIsLoading(false);
       }
@@ -56,6 +57,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
     if (!data.success) throw new Error(data.error?.message || 'Error de login');
+
+    await SecureStore.setItemAsync('accessToken', data.data.accessToken);
+    await SecureStore.setItemAsync('refreshToken', data.data.refreshToken);
+    await SecureStore.setItemAsync('user', JSON.stringify(data.data.user));
+    setToken(data.data.accessToken);
+    setUser(data.data.user as User);
+  }, []);
+
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    const { data } = await api.post('/auth/google', { idToken });
+    if (!data.success) throw new Error(data.error?.message || 'Error de login con Google');
 
     await SecureStore.setItemAsync('accessToken', data.data.accessToken);
     await SecureStore.setItemAsync('refreshToken', data.data.refreshToken);
@@ -88,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       return await SecureStore.getItemAsync(ACTIVE_EXECUTION_KEY);
     } catch (e) {
-      console.error('Error reading active execution:', e);
+      if (__DEV__) console.warn('[auth] error reading active execution', e);
       return null;
     }
   }, []);
@@ -101,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await SecureStore.deleteItemAsync(ACTIVE_EXECUTION_KEY);
       }
     } catch (e) {
-      console.error('Error writing active execution:', e);
+      if (__DEV__) console.warn('[auth] error writing active execution', e);
     }
   }, []);
 
@@ -118,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isOperator,
         login,
+        loginWithGoogle,
         register,
         logout,
         getActiveExecutionId,
