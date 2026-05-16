@@ -3,6 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
 
 export default function HomePage() {
@@ -160,6 +161,10 @@ export default function HomePage() {
                 </>
               )}
             </button>
+
+            <div className="forgot-row">
+              <Link href="/forgot-password" className="forgot-link">¿Olvidaste tu contraseña?</Link>
+            </div>
           </form>
 
           {/* Credenciales */}
@@ -418,6 +423,23 @@ const styles = `
     opacity: 0.5;
     cursor: not-allowed;
     box-shadow: none;
+  }
+
+  /* Forgot password link */
+  .forgot-row {
+    margin-top: 0.75rem;
+    text-align: center;
+  }
+  .forgot-link {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #8A8780;
+    text-decoration: none;
+    letter-spacing: 0.01em;
+    transition: color 0.2s ease;
+  }
+  .forgot-link:hover {
+    color: #059669;
   }
 
   /* Creds */

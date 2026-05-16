@@ -6,10 +6,19 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+const sizeMap: Record<NonNullable<ModalProps['size']>, string> = {
+  sm: '420px',
+  md: '480px',
+  lg: '780px',
+  xl: '960px',
+};
+
+export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
   if (!isOpen) return null;
+  const maxWidth = sizeMap[size];
 
   return (
     <>
@@ -31,7 +40,6 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           border-radius: 16px;
           box-shadow: 0 25px 50px rgba(0,0,0,0.15);
           width: 100%;
-          max-width: 480px;
           max-height: 90vh;
           display: flex;
           flex-direction: column;
@@ -112,7 +120,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         }
       `}</style>
       <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-box" style={{ maxWidth }} onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h2>{title}</h2>
             <button onClick={onClose} className="modal-close">

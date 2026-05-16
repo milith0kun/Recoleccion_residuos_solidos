@@ -20,7 +20,8 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email, password);
-      router.replace('/(tabs)/home');
+      // After login, route by role via index router
+      router.replace('/');
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.error?.message || err.message || 'Error de autenticación');
     } finally {

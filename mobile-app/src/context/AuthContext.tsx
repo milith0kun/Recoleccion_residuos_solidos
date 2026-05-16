@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import api from '../api/client';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   firstName: string;
@@ -10,16 +10,23 @@ interface User {
   role: string;
   dni: string;
   zone?: string;
+  phone?: string;
+  address?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  isOperator: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: Record<string, string>) => Promise<void>;
   logout: () => Promise<void>;
+  getActiveExecutionId: () => Promise<string | null>;
+  setActiveExecutionId: (id: string | null) => Promise<void>;
 }
+
+const ACTIVE_EXECUTION_KEY = 'activeExecutionId';
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -35,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const savedUser = await SecureStore.getItemAsync('user');
         if (savedToken && savedUser) {
           setToken(savedToken);
-          setUser(JSON.parse(savedUser));
+          setUser(JSON.parse(savedUser) as User);
         }
       } catch (e) {
         console.error('Error loading session:', e);
@@ -49,12 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
     if (!data.success) throw new Error(data.error?.message || 'Error de login');
-    
+
     await SecureStore.setItemAsync('accessToken', data.data.accessToken);
     await SecureStore.setItemAsync('refreshToken', data.data.refreshToken);
     await SecureStore.setItemAsync('user', JSON.stringify(data.data.user));
     setToken(data.data.accessToken);
-    setUser(data.data.user);
+    setUser(data.data.user as User);
   }, []);
 
   const register = useCallback(async (formData: Record<string, string>) => {
@@ -65,19 +72,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await SecureStore.setItemAsync('refreshToken', data.data.refreshToken);
     await SecureStore.setItemAsync('user', JSON.stringify(data.data.user));
     setToken(data.data.accessToken);
-    setUser(data.data.user);
+    setUser(data.data.user as User);
   }, []);
 
   const logout = useCallback(async () => {
     await SecureStore.deleteItemAsync('accessToken');
     await SecureStore.deleteItemAsync('refreshToken');
     await SecureStore.deleteItemAsync('user');
+    await SecureStore.deleteItemAsync(ACTIVE_EXECUTION_KEY);
     setToken(null);
     setUser(null);
   }, []);
 
+  const getActiveExecutionId = useCallback(async (): Promise<string | null> => {
+    try {
+      return await SecureStore.getItemAsync(ACTIVE_EXECUTION_KEY);
+    } catch (e) {
+      console.error('Error reading active execution:', e);
+      return null;
+    }
+  }, []);
+
+  const setActiveExecutionId = useCallback(async (id: string | null): Promise<void> => {
+    try {
+      if (id) {
+        await SecureStore.setItemAsync(ACTIVE_EXECUTION_KEY, id);
+      } else {
+        await SecureStore.deleteItemAsync(ACTIVE_EXECUTION_KEY);
+      }
+    } catch (e) {
+      console.error('Error writing active execution:', e);
+    }
+  }, []);
+
+  const isOperator = useMemo(
+    () => user?.role === 'operator' || user?.role === 'admin',
+    [user?.role]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isLoading,
+        isOperator,
+        login,
+        register,
+        logout,
+        getActiveExecutionId,
+        setActiveExecutionId,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

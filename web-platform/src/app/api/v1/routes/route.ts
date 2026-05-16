@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db/connection';
 import Route from '@/lib/models/Route';
 import { requireAuth, requireRole } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
+import { VALID_STATUSES, validateActiveTransition, RouteStatus } from '@/lib/utils/routeValidation';
 
 export async function GET(request: NextRequest) {
   const { error } = requireAuth(request);
@@ -16,10 +17,15 @@ export async function GET(request: NextRequest) {
 
     const filter: Record<string, unknown> = {};
     if (zoneId) filter.zone = zoneId;
-    if (status) filter.status = status;
+    if (status) {
+      if (!VALID_STATUSES.includes(status as RouteStatus)) {
+        return errorResponse(`Estado inválido. Permitidos: ${VALID_STATUSES.join(', ')}`, 400);
+      }
+      filter.status = status;
+    }
 
     const routes = await Route.find(filter)
-      .populate('zone', 'name district color')
+      .populate('zone', 'name district color geometry')
       .populate('vehicle', 'plate type')
       .populate('operator', 'firstName lastName email')
       .populate('wasteTypes', 'name category colorCode')
@@ -45,6 +51,15 @@ export async function POST(request: NextRequest) {
       return errorResponse('Nombre, zona, vehículo, operador y horario son obligatorios', 400);
     }
 
+    if (status && !VALID_STATUSES.includes(status as RouteStatus)) {
+      return errorResponse(`Estado inválido. Permitidos: ${VALID_STATUSES.join(', ')}`, 400);
+    }
+
+    if (status === 'active') {
+      const err = validateActiveTransition(waypoints, path);
+      if (err) return errorResponse(err, 400);
+    }
+
     const route = await Route.create({
       name, zone, vehicle, operator,
       wasteTypes: wasteTypes || [],
@@ -56,7 +71,7 @@ export async function POST(request: NextRequest) {
     });
 
     const populated = await Route.findById(route._id)
-      .populate('zone', 'name district color')
+      .populate('zone', 'name district color geometry')
       .populate('vehicle', 'plate type')
       .populate('operator', 'firstName lastName email')
       .populate('wasteTypes', 'name category colorCode');
@@ -67,3 +82,4 @@ export async function POST(request: NextRequest) {
     return errorResponse('Error al crear ruta', 500);
   }
 }
+

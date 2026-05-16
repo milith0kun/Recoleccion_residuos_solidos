@@ -94,6 +94,32 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity onPress={() => router.push('/(tabs)/education')} activeOpacity={0.85} style={{ marginBottom: 32 }}>
+        <LinearGradient colors={['#1E293B', '#0F172A']} style={s.eduCard}>
+          <View style={s.eduHeader}>
+            <View style={[s.statusIconBox, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+              <Feather name="book-open" size={22} color="#10B981" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.statusTitle}>Guía de Reciclaje</Text>
+              <Text style={s.eduSubtitle}>Aprende a separar tus residuos · NTP 900.058</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color="#64748B" />
+          </View>
+          <View style={s.eduChips}>
+            <View style={[s.eduChip, { borderColor: 'rgba(146,64,14,0.5)', backgroundColor: 'rgba(146,64,14,0.15)' }]}>
+              <Text style={[s.eduChipText, { color: '#D97706' }]}>Orgánico</Text>
+            </View>
+            <View style={[s.eduChip, { borderColor: 'rgba(59,130,246,0.5)', backgroundColor: 'rgba(59,130,246,0.15)' }]}>
+              <Text style={[s.eduChipText, { color: '#3B82F6' }]}>Reciclable</Text>
+            </View>
+            <View style={[s.eduChip, { borderColor: 'rgba(239,68,68,0.5)', backgroundColor: 'rgba(239,68,68,0.15)' }]}>
+              <Text style={[s.eduChipText, { color: '#EF4444' }]}>Peligroso</Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+
       <Text style={s.sectionTitle}>Resumen de la ciudad</Text>
       <View style={s.statsRow}>
         <View style={s.statBox}>
@@ -135,4 +161,10 @@ const s = StyleSheet.create({
   statBox: { flex: 1, backgroundColor: 'rgba(59,130,246,0.05)', borderRadius: 20, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(59,130,246,0.15)' },
   statNum: { fontSize: 36, fontWeight: '900', color: '#3B82F6', marginBottom: 4, letterSpacing: -1 },
   statLabel: { fontSize: 13, color: '#94A3B8', fontWeight: '600' },
+  eduCard: { borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#334155' },
+  eduHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  eduSubtitle: { fontSize: 12, color: '#94A3B8', marginTop: 2, fontWeight: '500' },
+  eduChips: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  eduChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1 },
+  eduChipText: { fontSize: 11, fontWeight: '700' },
 });

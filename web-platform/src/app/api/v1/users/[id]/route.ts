@@ -4,14 +4,30 @@ import User from '@/lib/models/User';
 import { requireRole } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+const ALLOWED_PATCH_FIELDS = [
+  'firstName',
+  'lastName',
+  'phone',
+  'address',
+  'role',
+  'isActive',
+] as const;
+
+type PatchField = (typeof ALLOWED_PATCH_FIELDS)[number];
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { error } = requireRole(request, 'admin');
   if (error) return error;
 
   try {
     await connectDB();
     const { id } = await params;
-    const user = await User.findById(id).populate('zone', 'name district');
+    const user = await User.findById(id)
+      .select('-password')
+      .populate('zone', 'name color district');
     if (!user) return errorResponse('Usuario no encontrado', 404);
     return successResponse(user);
   } catch (err) {
@@ -20,7 +36,50 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function updateUser(
+  id: string,
+  body: Record<string, unknown>,
+  { strict }: { strict: boolean }
+) {
+  const update: Partial<Record<PatchField, unknown>> = {};
+
+  if (strict) {
+    for (const key of ALLOWED_PATCH_FIELDS) {
+      if (key in body) update[key] = body[key];
+    }
+  } else {
+    const clone = { ...body };
+    delete clone.password;
+    delete clone.email;
+    if (clone.dni) {
+      const dup = await User.findOne({ dni: clone.dni, _id: { $ne: id } });
+      if (dup) {
+        return { error: errorResponse('Ya existe otro usuario con ese DNI', 409) };
+      }
+    }
+    Object.assign(update, clone);
+  }
+
+  if (update.role && !['citizen', 'operator', 'admin'].includes(update.role as string)) {
+    return { error: errorResponse('Rol inválido', 400) };
+  }
+
+  const user = await User.findByIdAndUpdate(
+    id,
+    { $set: update },
+    { new: true, runValidators: true }
+  )
+    .select('-password')
+    .populate('zone', 'name color district');
+
+  if (!user) return { error: errorResponse('Usuario no encontrado', 404) };
+  return { user };
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { error } = requireRole(request, 'admin');
   if (error) return error;
 
@@ -28,35 +87,39 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await connectDB();
     const { id } = await params;
     const body = await request.json();
-    delete body.password; // do not update password via this generic route
-    delete body.email;    // do not update email directly if logic requires complex check, or we can check below
-
-    // Check if updating DNI to an existing one
-    if (body.dni) {
-      const existing = await User.findOne({ dni: body.dni, _id: { $ne: id } });
-      if (existing) {
-        return errorResponse('Ya existe otro usuario con ese DNI', 409);
-      }
-    }
-
-    const user = await User.findByIdAndUpdate(
-      id,
-      { $set: body },
-      { new: true, runValidators: true }
-    ).populate('zone', 'name district');
-
-    if (!user) {
-      return errorResponse('Usuario no encontrado', 404);
-    }
-
-    return successResponse(user, 'Usuario actualizado correctamente');
+    const result = await updateUser(id, body, { strict: true });
+    if (result.error) return result.error;
+    return successResponse(result.user, 'Usuario actualizado correctamente');
   } catch (err) {
     console.error(err);
     return errorResponse('Error al actualizar usuario', 500);
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { error } = requireRole(request, 'admin');
+  if (error) return error;
+
+  try {
+    await connectDB();
+    const { id } = await params;
+    const body = await request.json();
+    const result = await updateUser(id, body, { strict: false });
+    if (result.error) return result.error;
+    return successResponse(result.user, 'Usuario actualizado correctamente');
+  } catch (err) {
+    console.error(err);
+    return errorResponse('Error al actualizar usuario', 500);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { error } = requireRole(request, 'admin');
   if (error) return error;
 
@@ -64,7 +127,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await connectDB();
     const { id } = await params;
     const user = await User.findById(id);
-    
+
     if (!user) {
       return errorResponse('Usuario no encontrado', 404);
     }

@@ -18,6 +18,10 @@ export interface IUser extends Document {
   isVerified: boolean;
   failedLoginAttempts: number;
   lockedUntil?: Date;
+  emailVerificationCode?: string;
+  emailVerificationExpires?: Date;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +45,10 @@ const UserSchema = new Schema<IUser>(
     isVerified: { type: Boolean, default: true },
     failedLoginAttempts: { type: Number, default: 0 },
     lockedUntil: { type: Date },
+    emailVerificationCode: { type: String, select: false },
+    emailVerificationExpires: { type: Date, select: false },
+    passwordResetToken: { type: String, select: false },
+    passwordResetExpires: { type: Date, select: false },
   },
   { timestamps: true }
 );

@@ -4,12 +4,14 @@ import { connectDB } from '@/lib/db/connection';
 import User from '@/lib/models/User';
 import { signAccessToken, signRefreshToken } from '@/lib/utils/jwt';
 import { successResponse, errorResponse } from '@/lib/utils/response';
+import { sendVerificationEmail } from '@/lib/utils/email';
+import { assignZoneByAddress } from '@/lib/utils/geolocation';
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const body = await request.json();
-    const { email, password, dni, firstName, lastName, phone, address, district } = body;
+    const { email, password, dni, firstName, lastName, phone, address } = body;
 
     if (!email || !password || !dni || !firstName || !lastName || !address) {
       return errorResponse('Todos los campos obligatorios deben ser completados', 400);
@@ -33,6 +35,11 @@ export async function POST(request: NextRequest) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const { location, zone } = await assignZoneByAddress(address);
+    const zonePending = !zone;
 
     const user = await User.create({
       email,
@@ -43,9 +50,20 @@ export async function POST(request: NextRequest) {
       phone,
       address,
       role: 'citizen',
+      location: location ?? undefined,
+      zone: zone ?? undefined,
+      emailVerificationCode: verificationCode,
+      emailVerificationExpires: verificationExpires,
     });
 
-    const payload = { sub: user._id.toString(), email: user.email, role: user.role };
+    await sendVerificationEmail(email, verificationCode);
+
+    const payload = {
+      sub: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      zone: user.zone?.toString(),
+    };
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
 
@@ -53,6 +71,8 @@ export async function POST(request: NextRequest) {
       {
         accessToken,
         refreshToken,
+        emailVerificationRequired: true,
+        zonePending,
         user: {
           id: user._id,
           email: user.email,
@@ -60,9 +80,12 @@ export async function POST(request: NextRequest) {
           lastName: user.lastName,
           role: user.role,
           dni: user.dni,
+          zone: user.zone,
         },
       },
-      'Registro exitoso',
+      zonePending
+        ? 'Registro exitoso. No se pudo asignar zona automáticamente; queda pendiente.'
+        : 'Registro exitoso',
       201
     );
   } catch (error: unknown) {

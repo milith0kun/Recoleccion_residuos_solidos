@@ -1,5 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export type RouteStatus = 'draft' | 'pending' | 'active' | 'completed' | 'inactive';
+
 export interface IRoute extends Document {
   name: string;
   zone: mongoose.Types.ObjectId;
@@ -24,7 +26,8 @@ export interface IRoute extends Document {
     type: 'LineString';
     coordinates: number[][];
   };
-  status: 'active' | 'inactive' | 'draft';
+  status: RouteStatus;
+  currentExecution?: mongoose.Types.ObjectId | null;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -57,7 +60,16 @@ const RouteSchema = new Schema<IRoute>(
       type: { type: String, enum: ['LineString'], default: 'LineString' },
       coordinates: { type: [[Number]] },
     },
-    status: { type: String, enum: ['active', 'inactive', 'draft'], default: 'draft' },
+    status: {
+      type: String,
+      enum: ['draft', 'pending', 'active', 'completed', 'inactive'],
+      default: 'draft',
+    },
+    currentExecution: {
+      type: Schema.Types.ObjectId,
+      ref: 'RouteExecution',
+      default: null,
+    },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

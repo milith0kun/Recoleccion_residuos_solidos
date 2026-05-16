@@ -1,8 +1,19 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { View } from 'react-native';
+import { useEffect } from 'react';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function TabsLayout() {
+  const { isOperator, isLoading, user } = useAuth();
+  const router = useRouter();
+
+  // Operators should never see citizen tabs; bounce them to operator group.
+  useEffect(() => {
+    if (!isLoading && user && isOperator) {
+      router.replace('/(operator)/jornada');
+    }
+  }, [isOperator, isLoading, user]);
+
   return (
     <Tabs
       screenOptions={{
@@ -26,35 +37,35 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: 'Inicio',
-          tabBarIcon: ({ color, size }) => <Feather name="home" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
           title: 'Mapa',
-          tabBarIcon: ({ color, size }) => <Feather name="map" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="map" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="schedule"
         options={{
           title: 'Horarios',
-          tabBarIcon: ({ color, size }) => <Feather name="calendar" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="calendar" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="education"
         options={{
           title: 'Residuos',
-          tabBarIcon: ({ color, size }) => <Feather name="trash-2" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="trash-2" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color, size }) => <Feather name="user" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
         }}
       />
     </Tabs>
