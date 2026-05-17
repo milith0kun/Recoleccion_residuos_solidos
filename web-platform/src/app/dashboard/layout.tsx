@@ -21,6 +21,8 @@ import {
   AlertTriangle,
   BarChart3,
   User as UserIcon,
+  HelpCircle,
+  Settings,
 } from 'lucide-react';
 import AccessRestricted from '@/components/AccessRestricted';
 
@@ -103,26 +105,26 @@ function BrandMark() {
       <svg viewBox="0 0 32 32" width="32" height="32" fill="none">
         <defs>
           <linearGradient id="sbBrandBg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#10B981" />
-            <stop offset="1" stopColor="#047857" />
+            <stop offset="0" stopColor="#00A35C" />
+            <stop offset="1" stopColor="#00684A" />
           </linearGradient>
         </defs>
         <rect width="32" height="32" rx="8" fill="url(#sbBrandBg)" />
 
         <rect x="4.8" y="9.5" width="6.4" height="1.6" rx="0.8" fill="#FFFFFF" />
         <rect x="5.5" y="11.5" width="5" height="12" rx="1" fill="#FFFFFF" />
-        <rect x="6.6" y="14.2" width="2.8" height="0.7" rx="0.35" fill="#059669" />
-        <rect x="6.6" y="16" width="2.8" height="0.7" rx="0.35" fill="#059669" />
-        <rect x="6.6" y="17.8" width="2.8" height="0.7" rx="0.35" fill="#059669" />
+        <rect x="6.6" y="14.2" width="2.8" height="0.7" rx="0.35" fill="#00684A" />
+        <rect x="6.6" y="16" width="2.8" height="0.7" rx="0.35" fill="#00684A" />
+        <rect x="6.6" y="17.8" width="2.8" height="0.7" rx="0.35" fill="#00684A" />
 
-        <rect x="12.3" y="9.5" width="6.4" height="1.6" rx="0.8" fill="#ECFDF5" />
-        <rect x="13" y="11.5" width="5" height="12" rx="1" fill="#ECFDF5" />
-        <path d="M15.5 14.4 C13.9 15.8 13.9 17.3 15.5 18.6 C17.1 17.3 17.1 15.8 15.5 14.4 Z" fill="#059669" />
+        <rect x="12.3" y="9.5" width="6.4" height="1.6" rx="0.8" fill="#E3FCEF" />
+        <rect x="13" y="11.5" width="5" height="12" rx="1" fill="#E3FCEF" />
+        <path d="M15.5 14.4 C13.9 15.8 13.9 17.3 15.5 18.6 C17.1 17.3 17.1 15.8 15.5 14.4 Z" fill="#00684A" />
 
-        <rect x="19.8" y="9.5" width="6.4" height="1.6" rx="0.8" fill="#D1FAE5" />
-        <rect x="20.5" y="11.5" width="5" height="12" rx="1" fill="#D1FAE5" />
-        <circle cx="23" cy="16.5" r="1.7" fill="none" stroke="#059669" strokeWidth="0.7" />
-        <circle cx="23" cy="16.5" r="0.6" fill="#059669" />
+        <rect x="19.8" y="9.5" width="6.4" height="1.6" rx="0.8" fill="#C1F1D6" />
+        <rect x="20.5" y="11.5" width="5" height="12" rx="1" fill="#C1F1D6" />
+        <circle cx="23" cy="16.5" r="1.7" fill="none" stroke="#00684A" strokeWidth="0.7" />
+        <circle cx="23" cy="16.5" r="0.6" fill="#00684A" />
       </svg>
     </span>
   );
@@ -278,14 +280,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Desktop Header */}
         <header className="dash-header">
           <div className="dash-breadcrumb">
-            <span className="bc-system">SRSS</span>
-            <ChevronRight style={{ width: 14, height: 14, color: '#D1D0CC' }} />
-            <span className="bc-page">{pageTitles[pathname] ?? 'Panel'}</span>
+            <div className="bc-segment">
+              <span className="bc-label">ORGANIZACIÓN</span>
+              <span className="bc-value">Municipalidad Cusco</span>
+            </div>
+            <ChevronRight style={{ width: 14, height: 14, color: '#D1D0CC', flexShrink: 0 }} />
+            <div className="bc-segment">
+              <span className="bc-label">SECCIÓN</span>
+              <span className="bc-value bc-page">{pageTitles[pathname] ?? 'Panel'}</span>
+            </div>
           </div>
           <div className="dash-header-right">
-            <button className="header-bell">
+            <button className="header-icon-btn" aria-label="Ayuda" title="Ayuda">
+              <HelpCircle style={{ width: 17, height: 17 }} />
+            </button>
+            <button className="header-icon-btn" aria-label="Notificaciones" title="Notificaciones">
               <Bell style={{ width: 17, height: 17 }} />
               <span className="bell-dot" />
+            </button>
+            <button className="header-icon-btn" aria-label="Configuración" title="Configuración">
+              <Settings style={{ width: 17, height: 17 }} />
             </button>
             <div className="header-sep" />
             <div className="header-avatar">
@@ -363,7 +377,7 @@ const dashStyles = `
     justify-content: center;
     flex-shrink: 0;
     border-radius: 9px;
-    box-shadow: 0 4px 12px rgba(5,150,105,0.22);
+    box-shadow: 0 4px 12px rgba(0,104,74,0.22);
     overflow: hidden;
   }
   .sb-brand-mark svg {
@@ -378,15 +392,19 @@ const dashStyles = `
     min-width: 0;
   }
   .sb-brand-name {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #1A1A1A;
-    letter-spacing: -0.025em;
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #001E2B;
+    letter-spacing: -0.015em;
+    font-variation-settings: "opsz" 36;
   }
   .sb-brand-sub {
-    font-size: 0.68rem;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.7rem;
     font-weight: 500;
-    color: #B0ADA8;
+    color: #5C6C75;
+    letter-spacing: 0.02em;
   }
 
   .sb-nav {
@@ -417,9 +435,10 @@ const dashStyles = `
     border-top: 1px solid #F4F2EF;
   }
   .sb-group-label {
-    font-size: 0.6rem;
-    font-weight: 700;
-    color: #B0ADA8;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: #889397;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     padding: 6px 0.95rem 6px;
@@ -429,36 +448,41 @@ const dashStyles = `
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.62rem 0.85rem;
-    border-radius: 9px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #8A8780;
+    gap: 0.65rem;
+    padding: 0.55rem 0.85rem 0.55rem 0.95rem;
+    border-radius: 6px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #5C6C75;
     text-decoration: none;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
-  }
-  .sb-link:hover {
-    background: #FAFAF8;
-    color: #3A3A38;
+    transition: background 0.15s ease, color 0.15s ease;
   }
   .sb-link:hover:not(.sb-link--active) {
-    transform: translateX(2px);
+    background: #F4F6F4;
+    color: #001E2B;
   }
   .sb-link--active {
-    background: linear-gradient(135deg, #059669, #047857);
-    color: #FFFFFF !important;
-    box-shadow: 0 4px 12px rgba(5,150,105,0.22);
+    background: #E3FCEF;
+    color: #00513A !important;
+    font-weight: 600;
   }
-  .sb-link--active:hover {
-    transform: none;
+  .sb-link--active::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    background: #00684A;
+    border-radius: 0 3px 3px 0;
   }
   .sb-link-pill {
     margin-left: auto;
-    width: 4px;
-    height: 4px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.85);
+    background: #00684A;
   }
 
   .sb-footer {
@@ -633,44 +657,59 @@ const dashStyles = `
   .dash-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.85rem;
+    min-width: 0;
   }
-  .bc-system {
-    font-size: 0.78rem;
+  .bc-segment {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .bc-label {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: #889397;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .bc-value {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.82rem;
     font-weight: 600;
-    color: #B0ADA8;
-    letter-spacing: 0.01em;
+    color: #001E2B;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .bc-page {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #1A1A1A;
-    letter-spacing: -0.01em;
+    color: #00513A;
   }
 
   .dash-header-right {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
   }
-  .header-bell {
+  .header-icon-btn {
     position: relative;
     width: 36px;
     height: 36px;
-    border-radius: 9px;
+    border-radius: 8px;
     border: 1px solid transparent;
     background: transparent;
-    color: #8A8780;
+    color: #5C6C75;
     cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    transition: background 0.15s ease, color 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  .header-bell:hover {
-    background: #FAFAF8;
-    color: #1A1A1A;
-    border-color: #F0EEEB;
+  .header-icon-btn:hover {
+    background: #F4F6F4;
+    color: #001E2B;
   }
   .bell-dot {
     position: absolute;
@@ -705,15 +744,16 @@ const dashStyles = `
     width: 30px;
     height: 30px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #059669, #047857);
+    background: linear-gradient(135deg, #00A35C, #00684A);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #FFFFFF;
     font-size: 0.68rem;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.02em;
-    box-shadow: 0 2px 6px rgba(5,150,105,0.25);
+    box-shadow: 0 2px 6px rgba(0,104,74,0.25);
+    font-family: 'Geist', 'Outfit', sans-serif;
   }
   .avatar-info { display: none; }
   @media (min-width: 1280px) {
