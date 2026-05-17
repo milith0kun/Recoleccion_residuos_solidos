@@ -101,7 +101,11 @@ interface SidebarContentProps {
   user: { firstName: string; lastName: string; role: string };
   onNavigate: () => void;
   onLogout: () => void;
+  collapsedGroups: Set<string>;
+  onToggleGroup: (label: string) => void;
 }
+
+const COLLAPSED_STORAGE_KEY = 'srss-sidebar-collapsed-groups';
 
 function BrandMark() {
   return (
@@ -139,6 +143,8 @@ function SidebarContent({
   user,
   onNavigate,
   onLogout,
+  collapsedGroups,
+  onToggleGroup,
 }: SidebarContentProps) {
   return (
     <>
@@ -154,16 +160,34 @@ function SidebarContent({
           if (group.items.length === 0) return null;
           const GroupIcon = group.icon;
           const indented = group.label !== null;
+          const isCollapsed = group.label ? collapsedGroups.has(group.label) : false;
+          const groupContainsActive = group.items.some((it) => it.href === pathname);
           return (
-            <div key={gi} className="sb-group">
+            <div key={gi} className={`sb-group ${isCollapsed ? 'sb-group--collapsed' : ''}`}>
               {group.label && GroupIcon ? (
-                <div className="sb-group-header">
+                <button
+                  type="button"
+                  className={`sb-group-header ${groupContainsActive ? 'sb-group-header--has-active' : ''}`}
+                  onClick={() => onToggleGroup(group.label!)}
+                  aria-expanded={!isCollapsed}
+                  aria-controls={`sb-group-items-${gi}`}
+                >
                   <GroupIcon style={{ width: 16, height: 16, flexShrink: 0 }} />
                   <span className="sb-group-label">{group.label}</span>
-                  <ChevronDown style={{ width: 12, height: 12, flexShrink: 0, opacity: 0.5 }} />
-                </div>
+                  {groupContainsActive && isCollapsed && (
+                    <span className="sb-group-active-dot" aria-hidden />
+                  )}
+                  <ChevronDown
+                    className="sb-group-chevron"
+                    style={{ width: 13, height: 13, flexShrink: 0 }}
+                  />
+                </button>
               ) : null}
-              <div className="sb-group-items">
+              <div
+                id={`sb-group-items-${gi}`}
+                className="sb-group-items"
+                hidden={isCollapsed}
+              >
                 {group.items.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
@@ -215,6 +239,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+      if (stored) {
+        const arr = JSON.parse(stored);
+        if (Array.isArray(arr)) setCollapsedGroups(new Set(arr));
+      }
+    } catch {}
+  }, []);
+
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      try {
+        window.localStorage.setItem(
+          COLLAPSED_STORAGE_KEY,
+          JSON.stringify(Array.from(next)),
+        );
+      } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!isLoading && !user) router.push('/');
@@ -250,6 +301,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           user={user}
           onNavigate={closeMobileMenu}
           onLogout={logout}
+          collapsedGroups={collapsedGroups}
+          onToggleGroup={toggleGroup}
         />
       </aside>
 
@@ -264,6 +317,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           user={user}
           onNavigate={closeMobileMenu}
           onLogout={logout}
+          collapsedGroups={collapsedGroups}
+          onToggleGroup={toggleGroup}
         />
       </aside>
 
@@ -339,11 +394,11 @@ const dashStyles = `
 
   /* ═══ SIDEBAR ═══ */
   .sb {
-    width: 260px;
+    width: 248px;
     display: none;
     flex-direction: column;
     background: #FFFFFF;
-    border-right: 1px solid #F0EEEB;
+    border-right: 1px solid #E8EDEB;
     position: relative;
     z-index: 30;
   }
@@ -353,11 +408,13 @@ const dashStyles = `
   }
 
   .sb-brand {
-    padding: 1.4rem 1.25rem;
+    height: 56px;
+    padding: 0 1.25rem;
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    border-bottom: 1px solid #F7F6F4;
+    border-bottom: 1px solid #E8EDEB;
+    flex-shrink: 0;
   }
   .sb-brand-mark {
     width: 36px;
@@ -389,62 +446,97 @@ const dashStyles = `
 
   .sb-nav {
     flex: 1;
-    padding: 1rem 0.75rem 0.5rem;
+    padding: 8px 0 12px;
     display: flex;
     flex-direction: column;
-    gap: 2px;
     overflow-y: auto;
   }
   .sb-group {
     display: flex;
     flex-direction: column;
-    gap: 1px;
-    padding: 4px 0 6px;
   }
   .sb-group:not(:first-child) {
+    border-top: 1px solid #F0F2F0;
     margin-top: 4px;
-    padding-top: 8px;
+    padding-top: 4px;
+  }
+  .sb-group--collapsed {
+    padding-bottom: 2px;
   }
   .sb-group-header {
     display: flex;
     align-items: center;
-    gap: 0.55rem;
-    padding: 0.45rem 0.6rem 0.45rem 0.95rem;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.7rem 0.9rem 0.7rem 1.1rem;
+    border: 0;
+    background: transparent;
     color: #00513A;
     font-family: 'Geist', 'Outfit', sans-serif;
+    cursor: pointer;
     user-select: none;
+    text-align: left;
+    transition: background 0.15s ease;
+  }
+  .sb-group-header:hover {
+    background: #F4F6F4;
+  }
+  .sb-group-header:focus-visible {
+    outline: 2px solid #00A35C;
+    outline-offset: -2px;
   }
   .sb-group-label {
     flex: 1;
-    font-size: 0.65rem;
+    font-size: 0.66rem;
     font-weight: 700;
     color: #00513A;
     text-transform: uppercase;
     letter-spacing: 0.12em;
   }
+  .sb-group-active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #00A35C;
+    box-shadow: 0 0 0 3px rgba(0,163,92,0.18);
+    flex-shrink: 0;
+  }
+  .sb-group-chevron {
+    opacity: 0.5;
+    transition: transform 0.2s ease, opacity 0.15s ease;
+  }
+  .sb-group-header:hover .sb-group-chevron {
+    opacity: 0.9;
+  }
+  .sb-group--collapsed .sb-group-chevron {
+    transform: rotate(-90deg);
+  }
   .sb-group-items {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    overflow: hidden;
+  }
+  .sb-group-items[hidden] {
+    display: none;
   }
 
   .sb-link {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0.85rem 0.5rem 0.95rem;
-    border-radius: 6px;
+    gap: 0.65rem;
+    padding: 0.55rem 1.1rem 0.55rem 1.1rem;
+    border-radius: 0;
     font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 0.82rem;
+    font-size: 0.84rem;
     font-weight: 500;
     color: #5C6C75;
     text-decoration: none;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.12s ease, color 0.12s ease;
   }
   .sb-link--indented {
-    padding-left: 2.4rem;
-    font-size: 0.81rem;
+    padding-left: 2.6rem;
+    font-size: 0.82rem;
   }
   .sb-link:hover:not(.sb-link--active) {
     background: #F4F6F4;
@@ -459,14 +551,10 @@ const dashStyles = `
     content: '';
     position: absolute;
     left: 0;
-    top: 6px;
-    bottom: 6px;
+    top: 0;
+    bottom: 0;
     width: 3px;
     background: #00684A;
-    border-radius: 0 3px 3px 0;
-  }
-  .sb-link--indented.sb-link--active::before {
-    left: 0;
   }
 
   .sb-footer {
@@ -604,10 +692,10 @@ const dashStyles = `
     display: none;
     height: 56px;
     background: #FFFFFF;
-    border-bottom: 1px solid #F0EEEB;
+    border-bottom: 1px solid #E8EDEB;
     align-items: center;
     justify-content: space-between;
-    padding: 0 2rem;
+    padding: 0 1.5rem;
     flex-shrink: 0;
     z-index: 20;
   }
