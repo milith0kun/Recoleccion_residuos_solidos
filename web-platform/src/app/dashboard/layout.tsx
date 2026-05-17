@@ -27,6 +27,8 @@ import {
   Grid3x3,
   PanelLeftClose,
   PanelLeftOpen,
+  ClipboardList,
+  Route as RouteHistoryIcon,
 } from 'lucide-react';
 import AccessRestricted from '@/components/AccessRestricted';
 import { DashboardFooter } from '@/components/dashboard/Footer';
@@ -70,8 +72,10 @@ const menuGroups: MenuGroup[] = [
     label: 'Operaciones',
     icon: Radio,
     items: [
+      { href: '/dashboard/dispatches', label: 'Asignaciones', icon: ClipboardList },
       { href: '/dashboard/incidents', label: 'Incidentes', icon: AlertTriangle },
       { href: '/dashboard/tracking', label: 'Seguimiento GPS', icon: Radio },
+      { href: '/dashboard/historic-traces', label: 'Trazas históricas', icon: RouteHistoryIcon },
       { href: '/dashboard/reports', label: 'Reportes', icon: BarChart3 },
     ],
   },
@@ -85,6 +89,7 @@ const menuGroups: MenuGroup[] = [
 const roleLabels: Record<string, string> = {
   admin: 'Administrador',
   operator: 'Operador',
+  driver: 'Conductor',
   citizen: 'Ciudadano',
 };
 
@@ -95,9 +100,11 @@ const pageTitles: Record<string, string> = {
   '/dashboard/waste-types': 'Tipos de Residuos',
   '/dashboard/routes': 'Rutas de Recolección',
   '/dashboard/vehicles': 'Vehículos',
+  '/dashboard/dispatches': 'Asignaciones',
   '/dashboard/incidents': 'Incidentes',
   '/dashboard/reports': 'Reportes',
   '/dashboard/tracking': 'Seguimiento GPS',
+  '/dashboard/historic-traces': 'Trazas Históricas',
   '/dashboard/notifications': 'Notificaciones',
   '/dashboard/profile': 'Mi Perfil',
 };
@@ -351,7 +358,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (user.role !== 'admin') {
+  if (user.role !== 'admin' && user.role !== 'operator') {
     return <AccessRestricted />;
   }
 
