@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 import { getZoneId } from '../../src/utils/zone';
+import { AppHeader } from '../../src/components/layout/AppShell';
 
 interface Stats {
   routes: number;
@@ -75,8 +76,9 @@ export default function HomeScreen() {
   const needsZone = !getZoneId(user?.zone);
 
   return (
+    <View style={s.container}>
+    <AppHeader title="Inicio" section="Ciudadano" />
     <ScrollView
-      style={s.container}
       contentContainerStyle={s.content}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -175,6 +177,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </Animated.View>
     </ScrollView>
+    </View>
   );
 }
 
@@ -224,7 +227,7 @@ function StatBox({ value, label, icon, tone }: StatBoxProps) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.xxl, paddingTop: 60, paddingBottom: 40 },
+  content: { padding: spacing.xxl, paddingTop: spacing.lg, paddingBottom: 40 },
 
   headerRow: {
     flexDirection: 'row',

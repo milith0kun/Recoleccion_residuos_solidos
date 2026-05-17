@@ -17,6 +17,7 @@ import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { useGpsTracker } from '../../src/hooks/useGpsTracker';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
+import { AppHeader } from '../../src/components/layout/AppShell';
 
 interface Waypoint {
   order: number;
@@ -238,14 +239,17 @@ export default function RouteMapScreen() {
 
   if (!execution) {
     return (
+      <View style={s.container}>
+      <AppHeader title="Mi ruta" section="Operador" />
       <View style={s.empty}>
         <View style={s.emptyIcon}>
           <Feather name="map" size={28} color={colors.primary} />
         </View>
         <Text style={s.emptyTitle}>Sin jornada activa</Text>
         <Text style={s.emptyDesc}>
-          Iniciá una jornada desde la pestaña "Jornada" para ver tu ruta.
+          Iniciá una jornada desde "Inicio" para ver tu ruta.
         </Text>
+      </View>
       </View>
     );
   }
@@ -255,6 +259,7 @@ export default function RouteMapScreen() {
 
   return (
     <View style={s.container}>
+      <AppHeader title="Mi ruta" section="Operador" />
       <MapView
         ref={mapRef}
         style={s.map}

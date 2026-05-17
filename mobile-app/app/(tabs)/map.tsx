@@ -16,6 +16,7 @@ import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 import { getZoneId } from '../../src/utils/zone';
+import { AppHeader } from '../../src/components/layout/AppShell';
 
 type RouteStatus = 'active' | 'completed' | 'pending' | 'planned' | 'cancelled' | 'inactive';
 
@@ -287,6 +288,7 @@ export default function MapScreen() {
 
   return (
     <View style={s.container}>
+      <AppHeader title="Mapa en vivo" section="Ciudadano" />
       <MapView
         ref={mapRef}
         style={s.map}
@@ -448,7 +450,7 @@ export default function MapScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  map: { width: '100%', height: '100%' },
+  map: { flex: 1 },
   loadingBox: {
     flex: 1,
     justifyContent: 'center',
@@ -483,7 +485,7 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
 
-  overlay: { position: 'absolute', top: 56, left: 16, right: 16 },
+  overlay: { position: 'absolute', top: 110, left: 16, right: 16 },
   card: {
     backgroundColor: '#FFFFFF',
     padding: spacing.lg,

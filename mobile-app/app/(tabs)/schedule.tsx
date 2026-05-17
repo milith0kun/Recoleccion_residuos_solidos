@@ -17,6 +17,7 @@ import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { getZoneId } from '../../src/utils/zone';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
+import { AppHeader } from '../../src/components/layout/AppShell';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -141,7 +142,9 @@ export default function ScheduleScreen() {
 
   if (!userZoneId) {
     return (
-      <ScrollView style={s.container} contentContainerStyle={s.content}>
+      <View style={s.container}>
+      <AppHeader title="Horarios" section="Ciudadano" />
+      <ScrollView contentContainerStyle={s.content}>
         <Text style={s.eyebrow}>Recolección por zona</Text>
         <Text style={s.pageTitle}>Horarios</Text>
         <Text style={s.pageSub}>Programación semanal de recolección en tu zona.</Text>
@@ -164,12 +167,14 @@ export default function ScheduleScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </View>
     );
   }
 
   return (
+    <View style={s.container}>
+    <AppHeader title="Horarios" section="Ciudadano" />
     <ScrollView
-      style={s.container}
       contentContainerStyle={s.content}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -330,12 +335,13 @@ export default function ScheduleScreen() {
         </View>
       )}
     </ScrollView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.xxl, paddingTop: 60, paddingBottom: 40 },
+  content: { padding: spacing.xxl, paddingTop: spacing.md, paddingBottom: 40 },
   loadingBox: {
     flex: 1,
     justifyContent: 'center',

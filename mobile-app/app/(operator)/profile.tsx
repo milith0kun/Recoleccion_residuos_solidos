@@ -13,6 +13,7 @@ import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { getZoneName } from '../../src/utils/zone';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
+import { AppHeader } from '../../src/components/layout/AppShell';
 
 export default function OperatorProfileScreen() {
   const { user, logout } = useAuth();
@@ -61,7 +62,9 @@ export default function OperatorProfileScreen() {
   const roleLabel = user?.role === 'admin' ? 'Administrador' : 'Operador';
 
   return (
-    <ScrollView style={s.container} contentContainerStyle={s.content}>
+    <View style={s.container}>
+    <AppHeader title="Mi perfil" section="Operador" />
+    <ScrollView contentContainerStyle={s.content}>
       <View style={s.profileCard}>
         <View style={s.avatarBox}>
           <Text style={s.avatarText}>{initials || 'O'}</Text>
@@ -131,6 +134,7 @@ export default function OperatorProfileScreen() {
 
       <View style={{ height: 40 }} />
     </ScrollView>
+    </View>
   );
 }
 

@@ -14,6 +14,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 import { getZoneName } from '../../src/utils/zone';
+import { AppHeader } from '../../src/components/layout/AppShell';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -68,7 +69,9 @@ export default function ProfileScreen() {
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
 
   return (
-    <ScrollView style={s.container} contentContainerStyle={s.content}>
+    <View style={s.container}>
+    <AppHeader title="Mi perfil" section="Ciudadano" />
+    <ScrollView contentContainerStyle={s.content}>
       <Text style={s.eyebrow}>Tu cuenta · SRSS</Text>
       <Text style={s.pageTitle}>Mi perfil</Text>
       <Text style={s.pageSub}>Cuenta, datos y preferencias.</Text>
@@ -156,6 +159,7 @@ export default function ProfileScreen() {
         <Text style={s.logoutBtnText}>Cerrar sesión</Text>
       </TouchableOpacity>
     </ScrollView>
+    </View>
   );
 }
 
@@ -172,7 +176,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.xxl, paddingTop: 60, paddingBottom: 40 },
+  content: { padding: spacing.xxl, paddingTop: spacing.md, paddingBottom: 40 },
 
   eyebrow: {
     fontFamily: fontFamily.sansBold,

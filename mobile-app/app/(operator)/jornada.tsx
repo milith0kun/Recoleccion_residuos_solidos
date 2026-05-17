@@ -27,6 +27,7 @@ import {
   PrimaryButton,
   SectionTitle,
 } from '../../src/theme/ui';
+import { AppHeader } from '../../src/components/layout/AppShell';
 
 interface Waypoint {
   order: number;
@@ -276,8 +277,9 @@ export default function JornadaScreen() {
     const progress = total > 0 ? Math.round((visited / total) * 100) : 0;
 
     return (
+      <View style={s.container}>
+      <AppHeader title="Jornada activa" section="Operador" />
       <ScrollView
-        style={s.container}
         contentContainerStyle={s.contentPad}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -490,6 +492,7 @@ export default function JornadaScreen() {
           </View>
         </Modal>
       </ScrollView>
+      </View>
     );
   }
 
@@ -497,8 +500,9 @@ export default function JornadaScreen() {
   const others = routes.filter((r) => !r.schedule?.dayOfWeek?.includes(todayDow));
 
   return (
+    <View style={s.container}>
+    <AppHeader title="Inicio" section="Operador" />
     <ScrollView
-      style={s.container}
       contentContainerStyle={s.contentPad}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -542,6 +546,7 @@ export default function JornadaScreen() {
 
       <View style={{ height: spacing.xxxl }} />
     </ScrollView>
+    </View>
   );
 }
 

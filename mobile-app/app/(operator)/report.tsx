@@ -14,6 +14,7 @@ import { useFocusEffect } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
+import { AppHeader } from '../../src/components/layout/AppShell';
 
 interface Waypoint {
   order: number;
@@ -130,14 +131,19 @@ export default function ReportScreen() {
 
   if (loading) {
     return (
-      <View style={s.empty}>
-        <Text style={s.emptyDesc}>Cargando...</Text>
+      <View style={s.container}>
+        <AppHeader title="Reportar" section="Operador" />
+        <View style={s.empty}>
+          <Text style={s.emptyDesc}>Cargando...</Text>
+        </View>
       </View>
     );
   }
 
   if (!execution) {
     return (
+      <View style={s.container}>
+      <AppHeader title="Reportar" section="Operador" />
       <View style={s.empty}>
         <View style={s.emptyIcon}>
           <Feather name="clipboard" size={26} color={colors.primary} />
@@ -146,6 +152,7 @@ export default function ReportScreen() {
         <Text style={s.emptyDesc}>
           Iniciá una jornada para registrar paradas y recolección.
         </Text>
+      </View>
       </View>
     );
   }
@@ -157,8 +164,9 @@ export default function ReportScreen() {
   const isActive = execution.status === 'in_progress';
 
   return (
+    <View style={s.container}>
+    <AppHeader title="Reportar" section="Operador" />
     <ScrollView
-      style={s.container}
       contentContainerStyle={s.content}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -263,6 +271,7 @@ export default function ReportScreen() {
 
       <View style={{ height: 40 }} />
     </ScrollView>
+    </View>
   );
 }
 

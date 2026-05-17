@@ -19,6 +19,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import api from '../../src/api/client';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
+import { AppHeader } from '../../src/components/layout/AppShell';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -256,6 +257,7 @@ export default function EducationScreen() {
 
   return (
     <View style={s.container}>
+      <AppHeader title="Guía de reciclaje" section="Ciudadano" />
       <View style={s.stickyHeader}>
         <Text style={s.eyebrow}>NTP 900.058</Text>
         <Text style={s.pageTitle}>Guía de reciclaje</Text>
@@ -393,7 +395,7 @@ const s = StyleSheet.create({
   scrollContent: { paddingHorizontal: spacing.xxl, paddingBottom: 40 },
   stickyHeader: {
     paddingHorizontal: spacing.xxl,
-    paddingTop: 60,
+    paddingTop: spacing.md,
     paddingBottom: spacing.md,
     backgroundColor: colors.bg,
     borderBottomWidth: 1,
