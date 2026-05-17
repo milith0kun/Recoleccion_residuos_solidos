@@ -41,3 +41,8 @@ user_story_mapping_*.html
 .kiro/
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
+
+# capturas locales del usuario, no van al repo
+image.png
+image copy.png
+image*.png
