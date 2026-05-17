@@ -101,7 +101,15 @@ export default function MapScreen() {
   const loadActive = async () => {
     try {
       const { data } = await api.get('/gps/active');
-      setExecutions((data?.data || []) as ActiveExecution[]);
+      // El backend puede devolver el array directo o envuelto en { data: [...] }
+      // (versión vieja). Aceptamos ambas para no romper si el redeploy tarda.
+      const payload = data?.data;
+      const list: ActiveExecution[] = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+      setExecutions(list);
     } catch (e) {
       if (__DEV__) console.warn('[map] /gps/active failed', e);
       setExecutions([]);
@@ -208,7 +216,13 @@ export default function MapScreen() {
       const { data } = await api.get('/gps/track', {
         params: { routeExecution: exec.executionId },
       });
-      const raw = (data?.data || []) as Array<{
+      // /gps/track devuelve { data: { points: [...] } } — leemos points.
+      const payload = data?.data;
+      const raw = (Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.points)
+          ? payload.points
+          : []) as Array<{
         location?: { coordinates?: [number, number] };
         lat?: number;
         lng?: number;

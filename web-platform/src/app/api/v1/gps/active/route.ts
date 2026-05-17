@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         .select('zone')
         .lean()) as CitizenUser | null;
       if (!citizen?.zone) {
-        return successResponse({ data: [] });
+        return successResponse([]);
       }
       // Routes inside the citizen's zone
       const routesInZone = await Route.find({ zone: citizen.zone })
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
         .lean();
       const routeIds = routesInZone.map((r) => (r as { _id: mongoose.Types.ObjectId })._id);
       if (routeIds.length === 0) {
-        return successResponse({ data: [] });
+        return successResponse([]);
       }
       filter.route = { $in: routeIds };
     }
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
     const executions = executionsRaw as unknown as PopulatedExecution[];
 
     if (executions.length === 0) {
-      return successResponse({ data: [] });
+      return successResponse([] as ActiveItem[]);
     }
 
     const executionIds = executions.map((e) => e._id);
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return successResponse({ data });
+    return successResponse(data);
   } catch (err) {
     console.error(err);
     return errorResponse('Error al obtener ejecuciones activas', 500);
