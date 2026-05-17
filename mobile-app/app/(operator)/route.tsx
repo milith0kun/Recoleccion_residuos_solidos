@@ -18,6 +18,7 @@ import { useGpsTracker } from '../../src/hooks/useGpsTracker';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 import { AppHeader } from '../../src/components/layout/AppShell';
 import { OSMMap, type MapMarker, type MapPolyline, type OSMMapRef } from '../../src/components/OSMMap';
+import { ErrorBoundary } from '../../src/components/ErrorBoundary';
 
 interface Waypoint {
   order: number;
@@ -292,16 +293,18 @@ export default function RouteMapScreen() {
     <View style={s.container}>
       <AppHeader title="Mi ruta" section="Operador" />
 
-      <OSMMap
-        ref={mapRef}
-        center={initialCenter}
-        zoom={15}
-        markers={markers}
-        polylines={polylines}
-        showUserLocation
-        userLocation={userLoc}
-        style={s.map}
-      />
+      <ErrorBoundary label="El mapa no pudo cargar">
+        <OSMMap
+          ref={mapRef}
+          center={initialCenter}
+          zoom={15}
+          markers={markers}
+          polylines={polylines}
+          showUserLocation
+          userLocation={userLoc}
+          style={s.map}
+        />
+      </ErrorBoundary>
 
       <View style={s.bottomCard}>
         {nextWaypoint ? (

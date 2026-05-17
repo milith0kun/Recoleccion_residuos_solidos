@@ -5,7 +5,6 @@ import React, {
   useImperativeHandle,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import WebView, { WebViewMessageEvent } from 'react-native-webview';
@@ -87,13 +86,12 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
 ) {
   const webRef = useRef<WebView>(null);
   const isReadyRef = useRef(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   const sendCommand = useCallback((cmd: object) => {
     if (!webRef.current || !isReadyRef.current) return;
     try {
       const payload = JSON.stringify(cmd).replace(/</g, '\\u003c');
-      webRef.current.injectJavaScript(`window.osmHandle(${payload}); true;`);
+      webRef.current.injectJavaScript(`try { window.osmHandle(${payload}); } catch(e){} true;`);
     } catch (err) {
       if (__DEV__) console.warn('[OSMMap] injectJavaScript failed', err);
     }
@@ -129,7 +127,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
         };
         if (data.type === 'ready') {
           isReadyRef.current = true;
-          setLoadError(null);
           // Aplicar el estado inicial completo apenas el mapa esté listo.
           sendCommand({ type: 'setMarkers', markers });
           sendCommand({ type: 'setPolylines', polylines });
@@ -138,8 +135,8 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
         } else if (data.type === 'markerPress' && data.id) {
           onMarkerPress?.(data.id);
         } else if (data.type === 'loadError' || data.type === 'jsError') {
+          // Loguear pero NO usar setState para evitar re-render loop con el WebView.
           if (__DEV__) console.warn('[OSMMap]', data.type, data.message);
-          setLoadError(data.message ?? 'Error al cargar el mapa');
         }
       } catch (e) {
         if (__DEV__) console.warn('[OSMMap] bad message', e);
@@ -159,14 +156,11 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
         javaScriptEnabled
         domStorageEnabled
         scalesPageToFit={false}
-        // No usamos androidLayerType: en algunos GPUs causa crash.
         style={styles.web}
         nestedScrollEnabled
         mixedContentMode="always"
-        allowsInlineMediaPlayback
         cacheEnabled
         onError={(e) => {
-          setLoadError(e.nativeEvent.description || 'Error al cargar el mapa');
           if (__DEV__) console.warn('[OSMMap] webview error', e.nativeEvent);
         }}
         onHttpError={(e) => {
@@ -180,11 +174,6 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
         )}
         startInLoadingState
       />
-      {loadError ? (
-        <View style={styles.errorOverlay} pointerEvents="none">
-          <Text style={styles.errorText}>{loadError}</Text>
-        </View>
-      ) : null}
     </View>
   );
 });
@@ -384,23 +373,5 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.sansMedium,
     fontSize: 13,
     color: colors.textSecondary,
-  },
-  errorOverlay: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    right: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: colors.dangerSoft,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder,
-  },
-  errorText: {
-    fontFamily: fontFamily.sansSemibold,
-    fontSize: 12,
-    color: colors.danger,
-    textAlign: 'center',
   },
 });

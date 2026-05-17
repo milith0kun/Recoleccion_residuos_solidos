@@ -15,6 +15,7 @@ import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 import { getZoneId } from '../../src/utils/zone';
 import { AppHeader } from '../../src/components/layout/AppShell';
 import { OSMMap, type MapMarker, type MapPolyline, type OSMMapRef } from '../../src/components/OSMMap';
+import { ErrorBoundary } from '../../src/components/ErrorBoundary';
 
 type RouteStatus = 'active' | 'completed' | 'pending' | 'planned' | 'cancelled' | 'inactive';
 
@@ -289,17 +290,19 @@ export default function MapScreen() {
     <View style={s.container}>
       <AppHeader title="Mapa en vivo" section="Ciudadano" />
 
-      <OSMMap
-        ref={mapRef}
-        center={userLoc ?? CUSCO_CENTER}
-        zoom={14}
-        markers={markers}
-        polylines={polylines}
-        showUserLocation
-        userLocation={userLoc}
-        onMarkerPress={handleMarkerPress}
-        style={s.map}
-      />
+      <ErrorBoundary label="El mapa no pudo cargar">
+        <OSMMap
+          ref={mapRef}
+          center={userLoc ?? CUSCO_CENTER}
+          zoom={14}
+          markers={markers}
+          polylines={polylines}
+          showUserLocation
+          userLocation={userLoc}
+          onMarkerPress={handleMarkerPress}
+          style={s.map}
+        />
+      </ErrorBoundary>
 
       <View style={s.overlay}>
         <View style={s.card}>
