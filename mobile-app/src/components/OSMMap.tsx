@@ -5,10 +5,11 @@ import React, {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
 } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import WebView, { WebViewMessageEvent } from 'react-native-webview';
-import { colors } from '../theme/tokens';
+import { colors, fontFamily } from '../theme/tokens';
 
 export interface MapMarker {
   id: string;
@@ -86,10 +87,16 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
 ) {
   const webRef = useRef<WebView>(null);
   const isReadyRef = useRef(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const sendCommand = useCallback((cmd: object) => {
     if (!webRef.current || !isReadyRef.current) return;
-    webRef.current.injectJavaScript(`window.osmHandle(${JSON.stringify(cmd)}); true;`);
+    try {
+      const payload = JSON.stringify(cmd).replace(/</g, '\\u003c');
+      webRef.current.injectJavaScript(`window.osmHandle(${payload}); true;`);
+    } catch (err) {
+      if (__DEV__) console.warn('[OSMMap] injectJavaScript failed', err);
+    }
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -115,9 +122,14 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
       try {
-        const data = JSON.parse(event.nativeEvent.data) as { type: string; id?: string };
+        const data = JSON.parse(event.nativeEvent.data) as {
+          type: string;
+          id?: string;
+          message?: string;
+        };
         if (data.type === 'ready') {
           isReadyRef.current = true;
+          setLoadError(null);
           // Aplicar el estado inicial completo apenas el mapa esté listo.
           sendCommand({ type: 'setMarkers', markers });
           sendCommand({ type: 'setPolylines', polylines });
@@ -125,6 +137,9 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
           onReady?.();
         } else if (data.type === 'markerPress' && data.id) {
           onMarkerPress?.(data.id);
+        } else if (data.type === 'loadError' || data.type === 'jsError') {
+          if (__DEV__) console.warn('[OSMMap]', data.type, data.message);
+          setLoadError(data.message ?? 'Error al cargar el mapa');
         }
       } catch (e) {
         if (__DEV__) console.warn('[OSMMap] bad message', e);
@@ -139,17 +154,37 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
       <WebView
         ref={webRef}
         originWhitelist={['*']}
-        source={{ html }}
+        source={{ html, baseUrl: 'https://tile.openstreetmap.org/' }}
         onMessage={handleMessage}
         javaScriptEnabled
         domStorageEnabled
         scalesPageToFit={false}
-        androidLayerType="hardware"
-        startInLoadingState
+        // No usamos androidLayerType: en algunos GPUs causa crash.
         style={styles.web}
-        // En Android sin esto los gestos en mapa se pelean con el scroll.
         nestedScrollEnabled
+        mixedContentMode="always"
+        allowsInlineMediaPlayback
+        cacheEnabled
+        onError={(e) => {
+          setLoadError(e.nativeEvent.description || 'Error al cargar el mapa');
+          if (__DEV__) console.warn('[OSMMap] webview error', e.nativeEvent);
+        }}
+        onHttpError={(e) => {
+          if (__DEV__) console.warn('[OSMMap] webview http error', e.nativeEvent);
+        }}
+        renderLoading={() => (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Cargando mapa…</Text>
+          </View>
+        )}
+        startInLoadingState
       />
+      {loadError ? (
+        <View style={styles.errorOverlay} pointerEvents="none">
+          <Text style={styles.errorText}>{loadError}</Text>
+        </View>
+      ) : null}
     </View>
   );
 });
@@ -161,8 +196,7 @@ function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     html, body, #map { margin:0; padding:0; height:100%; width:100%; background:#FFFFFF; }
     .leaflet-control-attribution { font-size: 10px; }
@@ -198,8 +232,7 @@ function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
 </head>
 <body>
 <div id="map"></div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   var map = L.map('map', { zoomControl: false, attributionControl: true })
     .setView([${center.lat}, ${center.lng}], ${zoom});
@@ -281,8 +314,28 @@ function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
     }
   };
 
-  // Notificar a RN cuando todo está listo.
-  setTimeout(function() { send({ type: 'ready' }); }, 60);
+  // Notificar a RN cuando todo está listo. Esperamos un tick a que Leaflet
+  // termine de inicializar sus capas internas.
+  if (window.L && map) {
+    setTimeout(function() { send({ type: 'ready' }); }, 80);
+  } else {
+    // Si Leaflet no cargó (sin internet o CDN bloqueado), avisar al host.
+    setTimeout(function() {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'loadError',
+          message: 'No se pudo cargar Leaflet (¿sin internet?)'
+        }));
+      }
+    }, 5000);
+  }
+
+  // Atrapar errores JS no manejados.
+  window.onerror = function(msg) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'jsError', message: String(msg) }));
+    }
+  };
 </script>
 </body>
 </html>`;
@@ -291,4 +344,38 @@ function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   web: { flex: 1, backgroundColor: 'transparent' },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bg,
+    gap: 10,
+  },
+  loadingText: {
+    fontFamily: fontFamily.sansMedium,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  errorOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
+  },
+  errorText: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 12,
+    color: colors.danger,
+    textAlign: 'center',
+  },
 });
