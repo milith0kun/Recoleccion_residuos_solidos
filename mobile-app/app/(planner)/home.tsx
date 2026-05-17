@@ -45,19 +45,24 @@ export default function PlannerHomeScreen() {
 
   const load = useCallback(async () => {
     try {
-      // El endpoint /dispatches aún no existe (Fase 2). Fallback: pedir route-executions.
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const { data } = await api.get('/route-executions', {
-        params: { date: today.toISOString().split('T')[0] },
+      // Rango: solo dispatches programados para HOY (00:00 – 23:59).
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setHours(23, 59, 59, 999);
+
+      const { data } = await api.get('/dispatches', {
+        params: { from: start.toISOString(), to: end.toISOString() },
       });
-      const execs = Array.isArray(data?.data) ? data.data : [];
+      const items: { status: string }[] = Array.isArray(data?.data) ? data.data : [];
       const summary: DispatchSummary = {
-        pending: 0,
-        accepted: 0,
-        inProgress: execs.filter((e: { status: string }) => e.status === 'in_progress').length,
-        completed: execs.filter((e: { status: string }) => e.status === 'completed').length,
-        rejected: 0,
+        pending: items.filter((e) => e.status === 'pending').length,
+        accepted: items.filter((e) => e.status === 'accepted').length,
+        inProgress: items.filter((e) => e.status === 'in_progress').length,
+        completed: items.filter((e) => e.status === 'completed').length,
+        rejected: items.filter(
+          (e) => e.status === 'rejected' || e.status === 'cancelled',
+        ).length,
       };
       setStats(summary);
     } catch (e) {

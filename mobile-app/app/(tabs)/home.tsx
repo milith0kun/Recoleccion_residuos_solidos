@@ -22,6 +22,99 @@ interface Stats {
   vehicles: number;
 }
 
+interface NextCollection {
+  routeName: string;
+  // Cuándo ocurre exactamente, ya como Date local.
+  when: Date;
+  // Texto humano: "hoy 14:00", "mañana 06:00", "jueves 14:00", "en 3 días".
+  whenText: string;
+  timeRange: string;
+}
+
+interface LiveExecution {
+  executionId: string;
+  routeName: string;
+}
+
+interface RouteFromApi {
+  _id: string;
+  name?: string;
+  zone?: string | { _id: string };
+  schedule?: {
+    dayOfWeek?: number[];
+    startTime?: string;
+    estimatedDuration?: number;
+  };
+}
+
+interface ActiveExecutionFromApi {
+  executionId: string;
+  routeId: string;
+  routeName: string;
+  routeZone?: string;
+}
+
+const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+function fmtTime(d: Date): string {
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function computeNextCollection(
+  routes: RouteFromApi[],
+  userZone: string,
+): NextCollection | null {
+  const now = new Date();
+  let best: { when: Date; route: RouteFromApi } | null = null;
+
+  for (const r of routes) {
+    const rz = typeof r.zone === 'string' ? r.zone : r.zone?._id;
+    if (!rz || rz !== userZone) continue;
+    const days = r.schedule?.dayOfWeek;
+    const startTime = r.schedule?.startTime;
+    if (!days?.length || !startTime) continue;
+    const [hh, mm] = startTime.split(':').map(Number);
+    if (Number.isNaN(hh) || Number.isNaN(mm)) continue;
+
+    for (const dow of days) {
+      // Próxima ocurrencia de ese día de la semana >= ahora.
+      const candidate = new Date(now);
+      candidate.setHours(hh, mm, 0, 0);
+      const diff = (dow - now.getDay() + 7) % 7;
+      candidate.setDate(now.getDate() + diff);
+      if (candidate.getTime() < now.getTime()) {
+        candidate.setDate(candidate.getDate() + 7);
+      }
+      if (!best || candidate.getTime() < best.when.getTime()) {
+        best = { when: candidate, route: r };
+      }
+    }
+  }
+  if (!best) return null;
+
+  const dur = best.route.schedule?.estimatedDuration ?? 90;
+  const endTime = new Date(best.when.getTime() + dur * 60_000);
+
+  const dayDiff = Math.floor(
+    (new Date(best.when.getFullYear(), best.when.getMonth(), best.when.getDate()).getTime() -
+      new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) /
+      86_400_000,
+  );
+  let whenText: string;
+  if (dayDiff === 0) whenText = `hoy ${fmtTime(best.when)}`;
+  else if (dayDiff === 1) whenText = `mañana ${fmtTime(best.when)}`;
+  else whenText = `${DAY_NAMES[best.when.getDay()]} ${fmtTime(best.when)}`;
+
+  return {
+    routeName: best.route.name ?? 'Tu ruta',
+    when: best.when,
+    whenText,
+    timeRange: `${fmtTime(best.when)} — ${fmtTime(endTime)}`,
+  };
+}
+
 type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
 
 export default function HomeScreen() {
@@ -29,20 +122,49 @@ export default function HomeScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<Stats>({ routes: 0, vehicles: 0 });
+  const [nextCollection, setNextCollection] = useState<NextCollection | null>(null);
+  const [live, setLive] = useState<LiveExecution | null>(null);
 
   const fade = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(12)).current;
 
   const loadData = async () => {
     try {
-      const [resRoutes, resVehicles] = await Promise.all([
+      const zoneId = getZoneId(user?.zone);
+      const [resRoutes, resVehicles, resActive] = await Promise.all([
         api.get('/routes'),
         api.get('/vehicles'),
+        api.get('/gps/active').catch(() => ({ data: { data: [] } })),
       ]);
+      const routesList = (resRoutes.data?.data ?? []) as RouteFromApi[];
       setStats({
-        routes: resRoutes.data?.data?.length || 0,
+        routes: routesList.length,
         vehicles: resVehicles.data?.data?.length || 0,
       });
+      if (zoneId) {
+        setNextCollection(computeNextCollection(routesList, zoneId));
+      } else {
+        setNextCollection(null);
+      }
+
+      // Camión activo en mi zona = primer execution cuya ruta pertenezca a la zona del usuario.
+      const activeList = (Array.isArray(resActive.data?.data)
+        ? resActive.data.data
+        : Array.isArray(resActive.data?.data?.data)
+          ? resActive.data.data.data
+          : []) as ActiveExecutionFromApi[];
+      if (zoneId) {
+        // Para saber la zona de cada execution, buscamos la ruta en routesList.
+        const routesById = new Map(routesList.map((r) => [r._id, r]));
+        const inZone = activeList.find((a) => {
+          const r = routesById.get(a.routeId);
+          const rz = typeof r?.zone === 'string' ? r.zone : r?.zone?._id;
+          return rz === zoneId;
+        });
+        setLive(inZone ? { executionId: inZone.executionId, routeName: inZone.routeName } : null);
+      } else {
+        setLive(null);
+      }
     } catch (e) {
       if (__DEV__) console.warn('[home] resumen failed', e);
     }
@@ -119,22 +241,66 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ) : null}
 
-        <View style={s.heroCard}>
-          <View style={s.heroBadge}>
-            <View style={s.heroDot} />
-            <Text style={s.heroLabel}>Próxima recolección</Text>
+        {live ? (
+          <View style={[s.heroCard, s.heroCardLive]}>
+            <View style={s.heroBadge}>
+              <View style={[s.heroDot, s.heroDotLive]} />
+              <Text style={[s.heroLabel, { color: colors.primaryDark }]}>Camión en tu zona ahora</Text>
+            </View>
+            <Text style={s.heroTime}>{live.routeName}</Text>
+            <Text style={s.heroDesc}>
+              Está recolectando en tu zona. Podés verlo en el mapa y confirmar el paso.
+            </Text>
+            <TouchableOpacity
+              style={s.heroBtn}
+              activeOpacity={0.85}
+              onPress={() => router.push('/(tabs)/map')}
+            >
+              <Feather name="map-pin" size={14} color="#FFFFFF" />
+              <Text style={s.heroBtnText}>Ver en el mapa</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={s.heroTime}>14:00 — 16:30</Text>
-          <Text style={s.heroDesc}>Tu zona está programada para hoy.</Text>
-          <TouchableOpacity
-            style={s.heroBtn}
-            activeOpacity={0.85}
-            onPress={() => router.push('/(tabs)/map')}
-          >
-            <Feather name="map-pin" size={14} color="#FFFFFF" />
-            <Text style={s.heroBtnText}>Rastrear en el mapa</Text>
-          </TouchableOpacity>
-        </View>
+        ) : nextCollection ? (
+          <View style={s.heroCard}>
+            <View style={s.heroBadge}>
+              <View style={s.heroDot} />
+              <Text style={s.heroLabel}>Próxima recolección</Text>
+            </View>
+            <Text style={s.heroTime}>{nextCollection.timeRange}</Text>
+            <Text style={s.heroDesc}>
+              {nextCollection.routeName} · {nextCollection.whenText}
+            </Text>
+            <TouchableOpacity
+              style={s.heroBtn}
+              activeOpacity={0.85}
+              onPress={() => router.push('/(tabs)/schedule')}
+            >
+              <Feather name="calendar" size={14} color="#FFFFFF" />
+              <Text style={s.heroBtnText}>Ver horarios</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={s.heroCard}>
+            <View style={s.heroBadge}>
+              <View style={s.heroDot} />
+              <Text style={s.heroLabel}>Sin recolección programada</Text>
+            </View>
+            <Text style={s.heroTime}>—</Text>
+            <Text style={s.heroDesc}>
+              {getZoneId(user?.zone)
+                ? 'Aún no hay rutas programadas para tu zona.'
+                : 'Seleccioná tu zona para ver los horarios.'}
+            </Text>
+            <TouchableOpacity
+              style={s.heroBtn}
+              activeOpacity={0.85}
+              onPress={() => router.push('/(tabs)/map')}
+            >
+              <Feather name="map-pin" size={14} color="#FFFFFF" />
+              <Text style={s.heroBtnText}>Abrir el mapa</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <Text style={s.sectionTitle}>Accesos rápidos</Text>
         <View style={s.quickRow}>
@@ -281,6 +447,14 @@ const s = StyleSheet.create({
     borderColor: colors.primaryBorder,
     borderLeftWidth: 3,
     borderLeftColor: colors.primary,
+  },
+  heroCardLive: {
+    backgroundColor: '#E3FCEF',
+    borderColor: '#7DE3B0',
+    borderLeftColor: '#00A35C',
+  },
+  heroDotLive: {
+    backgroundColor: '#00A35C',
   },
   heroBadge: {
     flexDirection: 'row',

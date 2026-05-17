@@ -87,6 +87,7 @@ export default function JornadaScreen() {
   const [execution, setExecution] = useState<Execution | null>(null);
   const [routes, setRoutes] = useState<Route[]>([]);
   const [dispatches, setDispatches] = useState<DispatchItem[]>([]);
+  const [history, setHistory] = useState<Execution[]>([]);
   const [busyDispatch, setBusyDispatch] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [finishing, setFinishing] = useState(false);
@@ -148,15 +149,20 @@ export default function JornadaScreen() {
       // Cargar dispatches del driver (pending + accepted) en paralelo con rutas
       // legacy. Las dispatches son el nuevo flujo principal; las rutas son
       // fallback hasta que todas las salidas se migren al nuevo modelo.
-      const [routesRes, dispatchesRes] = await Promise.all([
+      const [routesRes, dispatchesRes, historyRes] = await Promise.all([
         api.get('/routes', { params: { status: 'active' } }),
         api.get('/dispatches', { params: { driver: 'me' } }).catch(() => ({ data: { data: [] } })),
+        api
+          .get('/route-executions', { params: { operator: 'me', status: 'completed' } })
+          .catch(() => ({ data: { data: [] } })),
       ]);
       const allDispatches = Array.isArray(dispatchesRes.data?.data) ? dispatchesRes.data.data : [];
       const relevantDispatches = (allDispatches as DispatchItem[]).filter(
         (d) => d.status === 'pending' || d.status === 'accepted'
       );
       setDispatches(relevantDispatches);
+      const allHistory = Array.isArray(historyRes.data?.data) ? historyRes.data.data : [];
+      setHistory((allHistory as Execution[]).slice(0, 5));
       const all: any[] = routesRes.data.data || [];
       const mine = all.filter((r) => {
         const opId = typeof r.operator === 'string' ? r.operator : r.operator?._id;
@@ -688,8 +694,50 @@ export default function JornadaScreen() {
         </>
       ) : null}
 
+      {history.length > 0 ? (
+        <>
+          <SectionTitle trailing={<Badge label={String(history.length)} tone="muted" />}>
+            Últimas jornadas completadas
+          </SectionTitle>
+          {history.map((h) => (
+            <HistoryRow key={h._id} item={h} />
+          ))}
+        </>
+      ) : null}
+
       <View style={{ height: spacing.xxxl }} />
     </ScrollView>
+    </View>
+  );
+}
+
+function HistoryRow({ item }: { item: Execution }) {
+  const ended = item.endedAt ? new Date(item.endedAt) : null;
+  const started = new Date(item.startedAt);
+  const durationMin = ended
+    ? Math.max(0, Math.round((ended.getTime() - started.getTime()) / 60_000))
+    : null;
+  const dateText = started.toLocaleDateString('es-PE', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  const visited = item.waypointsVisited?.filter((w) => !w.skipped).length ?? 0;
+  return (
+    <View style={s.historyRow}>
+      <View style={s.historyIcon}>
+        <Feather name="check-circle" size={14} color={colors.primary} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={s.historyTitle} numberOfLines={1}>
+          {item.route?.name ?? 'Jornada'}
+        </Text>
+        <Text style={s.historySub}>
+          {dateText}
+          {durationMin != null ? ` · ${durationMin} min` : ''}
+          {visited > 0 ? ` · ${visited} paradas` : ''}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -1151,5 +1199,38 @@ const s = StyleSheet.create({
     fontFamily: fontFamily.sansSemibold,
     fontSize: 15,
     marginTop: spacing.lg,
+  },
+
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  historyIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyTitle: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  historySub: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 11.5,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });
