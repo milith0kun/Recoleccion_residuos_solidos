@@ -71,7 +71,7 @@ async function main() {
   await render({
     size: 1024,
     padding: 0.18,
-    bg: BG,
+    bg: null,
     outFile: join(ASSETS, 'icon.png'),
   });
   await render({
