@@ -198,7 +198,10 @@ function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    html, body, #map { margin:0; padding:0; height:100%; width:100%; background:#FFFFFF; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; background: #F4F6F4; }
+    #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; }
+    .leaflet-container { height: 100%; width: 100%; background: #F4F6F4; }
     .leaflet-control-attribution { font-size: 10px; }
     .pin {
       width: 24px; height: 24px; border-radius: 12px;
@@ -234,18 +237,45 @@ function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
 <div id="map"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  var map = L.map('map', { zoomControl: false, attributionControl: true })
-    .setView([${center.lat}, ${center.lng}], ${zoom});
-  L.tileLayer('${TILE_URL}', { attribution: '${TILE_ATTRIB}', maxZoom: 19 }).addTo(map);
-  L.control.zoom({ position: 'topright' }).addTo(map);
-
-  var markerLayer = L.layerGroup().addTo(map);
-  var polylineLayer = L.layerGroup().addTo(map);
-  var userMarker = null;
+  var map, markerLayer, polylineLayer, userMarker = null;
 
   function send(msg) {
     if (window.ReactNativeWebView) {
       window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+    }
+  }
+
+  function initMap() {
+    if (!window.L) {
+      send({ type: 'loadError', message: 'Leaflet no se cargó (CDN bloqueado?)' });
+      return;
+    }
+    try {
+      map = L.map('map', {
+        zoomControl: false,
+        attributionControl: true,
+        preferCanvas: true,
+      }).setView([${center.lat}, ${center.lng}], ${zoom});
+      L.tileLayer('${TILE_URL}', {
+        attribution: '${TILE_ATTRIB}',
+        maxZoom: 19,
+        crossOrigin: true,
+      }).addTo(map);
+      L.control.zoom({ position: 'topright' }).addTo(map);
+      markerLayer = L.layerGroup().addTo(map);
+      polylineLayer = L.layerGroup().addTo(map);
+
+      // Crítico: invalidateSize despues de que el container tenga dimensión real.
+      // Sin esto Leaflet calcula el tile range con tamaño 0 y NO descarga tiles → mapa blanco.
+      var fixSize = function() { if (map) map.invalidateSize(true); };
+      setTimeout(fixSize, 80);
+      setTimeout(fixSize, 300);
+      setTimeout(fixSize, 800);
+      window.addEventListener('resize', fixSize);
+
+      send({ type: 'ready' });
+    } catch (err) {
+      send({ type: 'loadError', message: 'init: ' + (err && err.message ? err.message : String(err)) });
     }
   }
 
@@ -278,7 +308,7 @@ function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
   }
 
   window.osmHandle = function(cmd) {
-    if (!cmd) return;
+    if (!cmd || !map || !markerLayer || !polylineLayer) return;
     if (cmd.type === 'setMarkers') {
       markerLayer.clearLayers();
       (cmd.markers || []).forEach(function(m) {
@@ -314,28 +344,23 @@ function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
     }
   };
 
-  // Notificar a RN cuando todo está listo. Esperamos un tick a que Leaflet
-  // termine de inicializar sus capas internas.
-  if (window.L && map) {
-    setTimeout(function() { send({ type: 'ready' }); }, 80);
-  } else {
-    // Si Leaflet no cargó (sin internet o CDN bloqueado), avisar al host.
-    setTimeout(function() {
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'loadError',
-          message: 'No se pudo cargar Leaflet (¿sin internet?)'
-        }));
-      }
-    }, 5000);
-  }
-
   // Atrapar errores JS no manejados.
   window.onerror = function(msg) {
-    if (window.ReactNativeWebView) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'jsError', message: String(msg) }));
-    }
+    send({ type: 'jsError', message: String(msg) });
+    return false;
   };
+
+  // Esperar a que el DOM y Leaflet estén listos antes de inicializar.
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(initMap, 0);
+  } else {
+    document.addEventListener('DOMContentLoaded', initMap);
+  }
+
+  // Watchdog: si Leaflet no cargó en 8s, avisar.
+  setTimeout(function() {
+    if (!map) send({ type: 'loadError', message: 'El mapa tardó demasiado en cargar' });
+  }, 8000);
 </script>
 </body>
 </html>`;
