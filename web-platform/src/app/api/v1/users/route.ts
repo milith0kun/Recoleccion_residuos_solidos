@@ -7,8 +7,18 @@ import { successResponse, errorResponse } from '@/lib/utils/response';
 import { assignZoneByAddress } from '@/lib/utils/geolocation';
 
 export async function GET(request: NextRequest) {
-  const { error } = requireRole(request, 'admin');
+  // operator (planner) puede listar para asignar salidas; admin gestiona todo.
+  const { user, error } = requireRole(request, 'operator', 'admin');
   if (error) return error;
+  // Si no es admin, solo puede listar usuarios con role driver/operator
+  // (necesario para asignación de salidas). Debe especificarlo explícito.
+  const url = new URL(request.url);
+  const requestedRole = url.searchParams.get('role');
+  if (user!.role !== 'admin') {
+    if (!requestedRole || (requestedRole !== 'driver' && requestedRole !== 'operator')) {
+      return errorResponse('Indicá role=driver o role=operator', 403);
+    }
+  }
 
   try {
     await connectDB();

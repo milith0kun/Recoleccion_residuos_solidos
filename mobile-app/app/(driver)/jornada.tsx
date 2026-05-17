@@ -28,6 +28,19 @@ import {
   SectionTitle,
 } from '../../src/theme/ui';
 import { AppHeader } from '../../src/components/layout/AppShell';
+import { DispatchCard, type DispatchStatus } from '../../src/components/DispatchCard';
+
+interface DispatchItem {
+  _id: string;
+  code: string;
+  status: DispatchStatus;
+  scheduledFor: string;
+  notes?: string;
+  route: { _id: string; name: string };
+  driver: { _id: string };
+  assignedBy?: { firstName?: string; lastName?: string };
+  vehicle?: { plate?: string };
+}
 
 interface Waypoint {
   order: number;
@@ -73,6 +86,8 @@ export default function JornadaScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [execution, setExecution] = useState<Execution | null>(null);
   const [routes, setRoutes] = useState<Route[]>([]);
+  const [dispatches, setDispatches] = useState<DispatchItem[]>([]);
+  const [busyDispatch, setBusyDispatch] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [finishing, setFinishing] = useState(false);
 
@@ -130,7 +145,18 @@ export default function JornadaScreen() {
       await setActiveExecutionId(null);
       setExecution(null);
 
-      const routesRes = await api.get('/routes', { params: { status: 'active' } });
+      // Cargar dispatches del driver (pending + accepted) en paralelo con rutas
+      // legacy. Las dispatches son el nuevo flujo principal; las rutas son
+      // fallback hasta que todas las salidas se migren al nuevo modelo.
+      const [routesRes, dispatchesRes] = await Promise.all([
+        api.get('/routes', { params: { status: 'active' } }),
+        api.get('/dispatches', { params: { driver: 'me' } }).catch(() => ({ data: { data: [] } })),
+      ]);
+      const allDispatches = Array.isArray(dispatchesRes.data?.data) ? dispatchesRes.data.data : [];
+      const relevantDispatches = (allDispatches as DispatchItem[]).filter(
+        (d) => d.status === 'pending' || d.status === 'accepted'
+      );
+      setDispatches(relevantDispatches);
       const all: any[] = routesRes.data.data || [];
       const mine = all.filter((r) => {
         const opId = typeof r.operator === 'string' ? r.operator : r.operator?._id;
@@ -187,6 +213,83 @@ export default function JornadaScreen() {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  };
+
+  const handleAccept = async (id: string) => {
+    setBusyDispatch(id);
+    try {
+      await api.patch(`/dispatches/${id}/accept`);
+      await loadData();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message || 'No se pudo aceptar';
+      Alert.alert('Error', message);
+    } finally {
+      setBusyDispatch(null);
+    }
+  };
+
+  const handleReject = (id: string, code: string) => {
+    Alert.alert(
+      'Rechazar salida',
+      `¿Por qué rechazás ${code}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Vehículo en falla',
+          onPress: () => submitReject(id, 'Vehículo en falla'),
+        },
+        {
+          text: 'No disponible',
+          onPress: () => submitReject(id, 'No disponible para conducir'),
+        },
+      ]
+    );
+  };
+
+  const submitReject = async (id: string, reason: string) => {
+    setBusyDispatch(id);
+    try {
+      await api.patch(`/dispatches/${id}/reject`, { reason });
+      await loadData();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message || 'No se pudo rechazar';
+      Alert.alert('Error', message);
+    } finally {
+      setBusyDispatch(null);
+    }
+  };
+
+  const handleStartDispatch = async (id: string) => {
+    setBusyDispatch(id);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permiso requerido',
+          'Necesitamos acceso a tu ubicación para registrar el recorrido.'
+        );
+        return;
+      }
+      const { data } = await api.post(`/dispatches/${id}/start`);
+      const exec = data?.data?.execution;
+      if (exec) {
+        await setActiveExecutionId(exec._id);
+        setExecution(exec);
+      }
+      Alert.alert('Jornada iniciada', 'Tu ubicación se enviará automáticamente cada 10s.');
+      await loadData();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message || 'No se pudo iniciar';
+      Alert.alert('Error', message);
+    } finally {
+      setBusyDispatch(null);
+    }
   };
 
   const startJornada = async (route: Route) => {
@@ -498,10 +601,12 @@ export default function JornadaScreen() {
 
   const todays = routes.filter((r) => r.schedule?.dayOfWeek?.includes(todayDow));
   const others = routes.filter((r) => !r.schedule?.dayOfWeek?.includes(todayDow));
+  const pendingDispatches = dispatches.filter((d) => d.status === 'pending');
+  const acceptedDispatches = dispatches.filter((d) => d.status === 'accepted');
 
   return (
     <View style={s.container}>
-    <AppHeader title="Inicio" section="Operador" />
+    <AppHeader title="Inicio" section="Conductor" />
     <ScrollView
       contentContainerStyle={s.contentPad}
       refreshControl={
@@ -512,12 +617,51 @@ export default function JornadaScreen() {
         <View style={s.startIconWrap}>
           <Feather name="play-circle" size={22} color={colors.primary} />
         </View>
-        <Text style={s.startTitle}>Comenzar jornada</Text>
+        <Text style={s.startTitle}>Tu jornada del día</Text>
         <Text style={s.startDesc}>
-          Seleccioná la ruta asignada que vas a operar hoy. Se enviará tu ubicación en tiempo real
-          durante el recorrido.
+          El operador te asigna salidas. Aceptalas o rechazalas y, en el horario indicado,
+          tocá "Iniciar" para empezar a transmitir tu ubicación.
         </Text>
       </Card>
+
+      {pendingDispatches.length > 0 ? (
+        <>
+          <SectionTitle
+            trailing={<Badge label={String(pendingDispatches.length)} tone="warn" />}
+          >
+            Asignaciones nuevas
+          </SectionTitle>
+          {pendingDispatches.map((d) => (
+            <DispatchCard
+              key={d._id}
+              dispatch={d}
+              perspective="driver"
+              busy={busyDispatch === d._id}
+              onAccept={() => handleAccept(d._id)}
+              onReject={() => handleReject(d._id, d.code)}
+            />
+          ))}
+        </>
+      ) : null}
+
+      {acceptedDispatches.length > 0 ? (
+        <>
+          <SectionTitle
+            trailing={<Badge label={String(acceptedDispatches.length)} tone="primary" />}
+          >
+            Aceptadas — listas para iniciar
+          </SectionTitle>
+          {acceptedDispatches.map((d) => (
+            <DispatchCard
+              key={d._id}
+              dispatch={d}
+              perspective="driver"
+              busy={busyDispatch === d._id}
+              onStart={() => handleStartDispatch(d._id)}
+            />
+          ))}
+        </>
+      ) : null}
 
       <SectionTitle trailing={<Badge label={String(todays.length)} tone="primary" />}>
         Hoy
