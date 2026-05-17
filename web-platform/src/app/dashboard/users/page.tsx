@@ -503,84 +503,95 @@ export default function UsersPage() {
       <Modal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Crear Operador"
+        title="Invitar al proyecto"
       >
-        <form onSubmit={submitCreate} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label>Nombre</label>
+        <form onSubmit={submitCreate} className="adm-form">
+          <div className="adm-form-grid">
+            <div className="adm-form-field">
+              <label className="adm-form-label">Nombre</label>
               <input
                 required
+                className="adm-form-input"
                 value={createForm.firstName}
                 onChange={(e) =>
                   setCreateForm({ ...createForm, firstName: e.target.value })
                 }
               />
             </div>
-            <div>
-              <label>Apellido</label>
+            <div className="adm-form-field">
+              <label className="adm-form-label">Apellido</label>
               <input
                 required
+                className="adm-form-input"
                 value={createForm.lastName}
                 onChange={(e) =>
                   setCreateForm({ ...createForm, lastName: e.target.value })
                 }
               />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label>DNI</label>
+            <div className="adm-form-field">
+              <label className="adm-form-label">DNI</label>
               <input
                 required
+                className="adm-form-input"
+                inputMode="numeric"
+                maxLength={8}
+                placeholder="8 dígitos"
                 value={createForm.dni}
                 onChange={(e) => setCreateForm({ ...createForm, dni: e.target.value })}
               />
             </div>
-            <div>
-              <label>Teléfono</label>
+            <div className="adm-form-field">
+              <label className="adm-form-label">Teléfono</label>
               <input
+                className="adm-form-input"
+                inputMode="numeric"
+                placeholder="Opcional"
                 value={createForm.phone}
                 onChange={(e) =>
                   setCreateForm({ ...createForm, phone: e.target.value })
                 }
               />
             </div>
-          </div>
-          <div>
-            <label>Email</label>
-            <input
-              required
-              type="email"
-              value={createForm.email}
-              onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-            />
-          </div>
-          <div>
-            <label>Dirección</label>
-            <input
-              required
-              value={createForm.address}
-              onChange={(e) =>
-                setCreateForm({ ...createForm, address: e.target.value })
-              }
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label>Contraseña</label>
+            <div className="adm-form-field adm-form-field--full">
+              <label className="adm-form-label">Correo electrónico</label>
+              <input
+                required
+                type="email"
+                className="adm-form-input"
+                placeholder="usuario@cusco.gob.pe"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              />
+            </div>
+            <div className="adm-form-field adm-form-field--full">
+              <label className="adm-form-label">Dirección</label>
+              <input
+                required
+                className="adm-form-input"
+                value={createForm.address}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, address: e.target.value })
+                }
+              />
+            </div>
+            <div className="adm-form-field">
+              <label className="adm-form-label">Contraseña</label>
               <input
                 required
                 type="password"
+                className="adm-form-input"
+                placeholder="Mínimo 6 caracteres"
                 value={createForm.password}
                 onChange={(e) =>
                   setCreateForm({ ...createForm, password: e.target.value })
                 }
               />
             </div>
-            <div>
-              <label>Rol</label>
+            <div className="adm-form-field">
+              <label className="adm-form-label">Rol</label>
               <select
+                className="adm-form-select"
                 value={createForm.role}
                 onChange={(e) =>
                   setCreateForm({
@@ -594,20 +605,20 @@ export default function UsersPage() {
               </select>
             </div>
           </div>
-          <div className="pt-4 flex justify-end gap-3">
+          <div className="adm-form-actions">
             <button
               type="button"
               onClick={() => setCreateOpen(false)}
-              className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200"
+              className="adm-btn-secondary"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={createSubmitting}
-              className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 disabled:opacity-60"
+              className="adm-btn-primary"
             >
-              {createSubmitting ? 'Creando...' : 'Crear'}
+              {createSubmitting ? 'Creando…' : 'Crear usuario'}
             </button>
           </div>
         </form>
@@ -737,49 +748,63 @@ export default function UsersPage() {
       <Modal
         isOpen={zoneModalOpen}
         onClose={() => setZoneModalOpen(false)}
-        title="Reasignar Zona"
+        title="Reasignar zona"
       >
         {zoneTargetUser && (
-          <form onSubmit={submitZone} className="space-y-4">
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Usuario
-              </p>
-              <p className="text-sm font-bold text-slate-700 mt-1">
-                {zoneTargetUser.firstName} {zoneTargetUser.lastName}
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">{zoneTargetUser.email}</p>
+          <form onSubmit={submitZone} className="adm-form">
+            <div className="up-edit-userinfo">
+              <span className="up-edit-avatar">
+                {(zoneTargetUser.firstName?.[0] ?? '').toUpperCase()}
+                {(zoneTargetUser.lastName?.[0] ?? '').toUpperCase()}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="up-edit-name">
+                  {zoneTargetUser.firstName} {zoneTargetUser.lastName}
+                </div>
+                <div className="up-edit-meta">{zoneTargetUser.email}</div>
+              </div>
+              <span className={`up-role-pill up-role-pill--${zoneTargetUser.role}`}>
+                {roleBadge[zoneTargetUser.role]?.label ?? zoneTargetUser.role}
+              </span>
             </div>
-            <div>
-              <label>Zona activa</label>
-              <select
-                value={zoneSelection}
-                onChange={(e) => setZoneSelection(e.target.value)}
-              >
-                <option value="">— Sin zona —</option>
-                {zones
-                  .filter((z) => z.isActive)
-                  .map((z) => (
-                    <option key={z._id} value={z._id}>
-                      {z.name} ({z.district})
-                    </option>
-                  ))}
-              </select>
+
+            <div className="adm-form-grid">
+              <div className="adm-form-field adm-form-field--full">
+                <label className="adm-form-label">Zona asignada</label>
+                <select
+                  className="adm-form-select"
+                  value={zoneSelection}
+                  onChange={(e) => setZoneSelection(e.target.value)}
+                >
+                  <option value="">— Sin zona —</option>
+                  {zones
+                    .filter((z) => z.isActive)
+                    .map((z) => (
+                      <option key={z._id} value={z._id}>
+                        {z.name} ({z.district})
+                      </option>
+                    ))}
+                </select>
+                <span className="adm-form-hint">
+                  Solo se listan zonas activas. Para crear una nueva, andá a la sección Zonas.
+                </span>
+              </div>
             </div>
-            <div className="pt-4 flex justify-end gap-3">
+
+            <div className="adm-form-actions">
               <button
                 type="button"
                 onClick={() => setZoneModalOpen(false)}
-                className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200"
+                className="adm-btn-secondary"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={zoneSubmitting}
-                className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 disabled:opacity-60"
+                className="adm-btn-primary"
               >
-                {zoneSubmitting ? 'Asignando...' : 'Aplicar'}
+                {zoneSubmitting ? 'Asignando…' : 'Aplicar cambios'}
               </button>
             </div>
           </form>

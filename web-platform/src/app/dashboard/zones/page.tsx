@@ -535,80 +535,84 @@ export default function ZonesPage() {
         ))}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingId ? 'Editar Zona' : 'Añadir Zona'} size="lg">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Nombre</label>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingId ? 'Editar zona' : 'Añadir zona'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="adm-form">
+          <div className="adm-form-grid">
+            <div className="adm-form-field">
+              <label className="adm-form-label">Nombre</label>
               <input
                 required
                 type="text"
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/10"
+                className="adm-form-input"
+                placeholder="Ej: Centro Histórico"
                 value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Distrito</label>
+            <div className="adm-form-field">
+              <label className="adm-form-label">Distrito</label>
               <input
                 required
                 type="text"
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/10"
+                className="adm-form-input"
+                placeholder="Ej: Cusco"
                 value={formData.district}
-                onChange={e => setFormData({ ...formData, district: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, district: e.target.value })}
               />
+            </div>
+            <div className="adm-form-field adm-form-field--full">
+              <label className="adm-form-label">Descripción</label>
+              <textarea
+                required
+                className="adm-form-textarea"
+                rows={2}
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+              />
+            </div>
+            <div className="adm-form-field">
+              <label className="adm-form-label">Color de identificación</label>
+              <input
+                required
+                type="color"
+                className="adm-form-input"
+                style={{ height: 44, padding: 4 }}
+                value={formData.color}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              />
+              <span className="adm-form-hint">
+                Color que identifica la zona en mapas y listados.
+              </span>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Descripción</label>
-            <textarea
-              required
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/10"
-              rows={2}
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Color</label>
-            <input
-              required
-              type="color"
-              className="w-24 h-10 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer"
-              value={formData.color}
-              onChange={e => setFormData({ ...formData, color: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Polígono de la Zona</label>
+          <div className="adm-form-field" style={{ marginTop: 4 }}>
+            <label className="adm-form-label">Polígono de la zona</label>
             <PolygonDrawer
               key={`${editingId ?? 'new'}-${isModalOpen ? 'open' : 'closed'}`}
               color={formData.color}
               initial={drawerInitial}
               onChange={setDrawerState}
             />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
-              Clic para agregar vértices · Mínimo 3 puntos · Arrastra vértices tras cerrar
-            </p>
+            <span className="adm-form-hint">
+              Clic para agregar vértices · Mínimo 3 puntos · Arrastrá vértices tras cerrar el
+              polígono.
+            </span>
           </div>
 
-          <div className="pt-2 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleCloseModal}
-              className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors"
-            >
+          <div className="adm-form-actions">
+            <button type="button" onClick={handleCloseModal} className="adm-btn-secondary">
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={!canSave}
-              className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {editingId ? 'Guardar Cambios' : 'Guardar Zona'}
+            <button type="submit" disabled={!canSave} className="adm-btn-primary">
+              {editingId ? 'Guardar cambios' : 'Crear zona'}
             </button>
           </div>
         </form>
