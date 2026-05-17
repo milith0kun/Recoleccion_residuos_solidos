@@ -9,6 +9,7 @@ import {
   RefreshControl,
   StatusBar,
   Platform,
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -55,6 +56,12 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('es-PE');
 }
 
+interface PushStatus {
+  registered: boolean;
+  tokenPreview: string | null;
+  tokenUpdatedAt: string | null;
+}
+
 export default function NotificationsScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -63,6 +70,41 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
+  const [pushStatus, setPushStatus] = useState<PushStatus | null>(null);
+  const [testingPush, setTestingPush] = useState(false);
+
+  const loadPushStatus = useCallback(async () => {
+    try {
+      const { data } = await api.get('/notifications/test');
+      setPushStatus(data?.data as PushStatus);
+    } catch (e) {
+      if (__DEV__) console.warn('[notif] push status fail', e);
+      setPushStatus({ registered: false, tokenPreview: null, tokenUpdatedAt: null });
+    }
+  }, []);
+
+  const sendTestPush = useCallback(async () => {
+    if (testingPush) return;
+    setTestingPush(true);
+    try {
+      const { data } = await api.post('/notifications/test');
+      Alert.alert(
+        '✓ Push enviado',
+        (data?.message ?? 'Si no lo recibís en pocos segundos, revisá los permisos del sistema.') +
+          (data?.data?.tokenPreview ? `\n\nToken: ${data.data.tokenPreview}` : ''),
+      );
+    } catch (e: unknown) {
+      const res = (e as { response?: { data?: { error?: { message?: string; code?: string } } } })
+        ?.response?.data?.error;
+      Alert.alert(
+        'No se pudo enviar',
+        res?.message ?? 'Error desconocido al enviar la notificación de prueba.',
+      );
+    } finally {
+      setTestingPush(false);
+      await loadPushStatus();
+    }
+  }, [testingPush, loadPushStatus]);
 
   const load = useCallback(async () => {
     try {
@@ -81,11 +123,12 @@ export default function NotificationsScreen() {
       return;
     }
     load();
-  }, [user, load, router]);
+    loadPushStatus();
+  }, [user, load, loadPushStatus, router]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load();
+    await Promise.all([load(), loadPushStatus()]);
     await refreshGlobal();
     setRefreshing(false);
   };
@@ -162,6 +205,42 @@ export default function NotificationsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
+        {pushStatus !== null ? (
+          <View style={[s.pushCard, !pushStatus.registered && s.pushCardWarn]}>
+            <View style={s.pushCardRow}>
+              <View
+                style={[
+                  s.pushDot,
+                  { backgroundColor: pushStatus.registered ? colors.primary : colors.warn },
+                ]}
+              />
+              <Text style={s.pushTitle}>
+                {pushStatus.registered ? 'Notificaciones activas' : 'Notificaciones inactivas'}
+              </Text>
+            </View>
+            <Text style={s.pushDesc}>
+              {pushStatus.registered
+                ? 'Tu dispositivo está registrado. Tocá el botón para enviarte un push de prueba.'
+                : 'Tu dispositivo no se registró todavía. Asegurate de:\n• Estar en un dispositivo físico (no emulador).\n• Haber aceptado los permisos.\n• Tener Internet al abrir la app.'}
+            </Text>
+            <TouchableOpacity
+              style={[s.pushBtn, !pushStatus.registered && s.pushBtnDisabled]}
+              onPress={sendTestPush}
+              disabled={!pushStatus.registered || testingPush}
+              activeOpacity={0.85}
+            >
+              {testingPush ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Feather name="send" size={14} color="#FFFFFF" />
+                  <Text style={s.pushBtnText}>Enviar push de prueba</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {loading ? (
           <View style={s.empty}>
             <ActivityIndicator color={colors.primary} />
@@ -262,6 +341,66 @@ const s = StyleSheet.create({
   },
 
   content: { paddingHorizontal: 14, paddingTop: 12 },
+
+  pushCard: {
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  pushCardWarn: {
+    backgroundColor: colors.warnSoft,
+    borderColor: colors.warnBorder,
+    borderLeftColor: colors.warn,
+  },
+  pushCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  pushDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  pushTitle: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13.5,
+    color: colors.ink,
+  },
+  pushDesc: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginBottom: spacing.md,
+  },
+  pushBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 9,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    alignSelf: 'flex-start',
+  },
+  pushBtnDisabled: {
+    backgroundColor: colors.textMuted,
+    opacity: 0.6,
+  },
+  pushBtnText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 12.5,
+  },
+
   empty: {
     alignItems: 'center',
     justifyContent: 'center',

@@ -37,10 +37,24 @@ async function ensureAndroidChannel() {
  * en el backend. En emulador (no es Device) devuelve null sin pedir nada
  * (los emuladores no reciben pushes reales).
  */
-export async function registerForPushNotifications(): Promise<string | null> {
+export type PushRegisterError =
+  | 'emulator'
+  | 'permission_denied'
+  | 'no_project_id'
+  | 'token_failed';
+
+export interface PushRegisterResult {
+  token: string | null;
+  error?: PushRegisterError;
+  message?: string;
+}
+
+export async function registerForPushNotifications(): Promise<PushRegisterResult> {
   if (!Device.isDevice) {
-    if (__DEV__) console.warn('[push] dispositivo virtual, no se solicita token');
-    return null;
+    const message =
+      'Estás usando un emulador. Las notificaciones push solo funcionan en dispositivos físicos.';
+    console.warn('[push]', message);
+    return { token: null, error: 'emulator', message };
   }
 
   await ensureAndroidChannel();
@@ -52,24 +66,32 @@ export async function registerForPushNotifications(): Promise<string | null> {
     finalStatus = requested.status;
   }
   if (finalStatus !== 'granted') {
-    if (__DEV__) console.warn('[push] permiso denegado');
-    return null;
+    const message =
+      'No diste permisos de notificaciones. Activalos desde Configuración → Apps → SRSS Cusco → Notificaciones.';
+    console.warn('[push]', message);
+    return { token: null, error: 'permission_denied', message };
   }
 
   const projectId =
     Constants.expoConfig?.extra?.eas?.projectId ??
     (Constants.easConfig as { projectId?: string } | undefined)?.projectId;
   if (!projectId) {
-    if (__DEV__) console.warn('[push] no se encontró projectId EAS');
-    return null;
+    const message = 'Falta projectId en app.json (extra.eas.projectId).';
+    console.warn('[push]', message);
+    return { token: null, error: 'no_project_id', message };
   }
 
   try {
     const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-    return tokenData.data;
+    if (__DEV__) console.log('[push] token obtenido:', tokenData.data.slice(0, 24) + '…');
+    return { token: tokenData.data };
   } catch (err) {
-    if (__DEV__) console.warn('[push] error obteniendo token', err);
-    return null;
+    const message =
+      err instanceof Error
+        ? err.message
+        : 'No se pudo obtener el token. Verificá que tengas Google Play Services (Android) o iCloud configurado (iOS).';
+    console.warn('[push] error obteniendo token', err);
+    return { token: null, error: 'token_failed', message };
   }
 }
 
@@ -100,23 +122,29 @@ export async function syncPushTokenWithBackend(token: string): Promise<void> {
 export function usePushToken(enabled: boolean) {
   const [token, setToken] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'denied'>('idle');
+  const [error, setError] = useState<PushRegisterError | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const register = useCallback(async () => {
     if (!enabled) return;
     setStatus('loading');
-    const t = await registerForPushNotifications();
-    if (!t) {
+    setError(null);
+    setMessage(null);
+    const result = await registerForPushNotifications();
+    if (!result.token) {
       setStatus('denied');
+      setError(result.error ?? null);
+      setMessage(result.message ?? null);
       return;
     }
-    setToken(t);
+    setToken(result.token);
     setStatus('ready');
-    await syncPushTokenWithBackend(t);
+    await syncPushTokenWithBackend(result.token);
   }, [enabled]);
 
   useEffect(() => {
     register();
   }, [register]);
 
-  return { token, status };
+  return { token, status, error, message, register };
 }
