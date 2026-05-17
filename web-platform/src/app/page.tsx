@@ -1,646 +1,686 @@
 'use client';
 
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import Script from 'next/script';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Route,
+  MapPin,
+  AlertTriangle,
+  BarChart3,
+  Recycle,
+  Users,
+  ChevronRight,
+  ArrowRight,
+} from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { IconTile } from '@/components/ui';
 
-interface GoogleCredentialResponse {
-  credential: string;
-}
-
-interface GoogleIdConfig {
-  client_id: string;
-  callback: (resp: GoogleCredentialResponse) => void;
-  auto_select?: boolean;
-  cancel_on_tap_outside?: boolean;
-}
-
-interface GoogleButtonConfig {
-  type?: 'standard' | 'icon';
-  theme?: 'outline' | 'filled_blue' | 'filled_black';
-  size?: 'large' | 'medium' | 'small';
-  text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
-  shape?: 'rectangular' | 'pill' | 'circle' | 'square';
-  logo_alignment?: 'left' | 'center';
-  width?: number;
-  locale?: string;
-}
-
-interface GoogleIdApi {
-  initialize: (config: GoogleIdConfig) => void;
-  prompt: () => void;
-  renderButton: (parent: HTMLElement, config: GoogleButtonConfig) => void;
-  cancel: () => void;
-}
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: GoogleIdApi;
-      };
-    };
-  }
-}
-
-export default function HomePage() {
-  const { user, login, loginWithGoogle, isLoading } = useAuth();
+export default function LandingPage() {
+  const { user, isAdmin, isLoading } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [gisReady, setGisReady] = useState(false);
-  const googleBtnRef = useRef<HTMLDivElement>(null);
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
-    if (!isLoading && user) {
-      router.push('/dashboard');
+    if (!isLoading && user && isAdmin) {
+      router.replace('/dashboard');
     }
-  }, [user, isLoading, router]);
-
-  const handleGoogleCredential = useCallback(async (resp: GoogleCredentialResponse) => {
-    setSubmitting(true);
-    setError('');
-    try {
-      await loginWithGoogle(resp.credential);
-      router.push('/dashboard');
-    } catch (err: unknown) {
-      setError((err as Error).message || 'Error con Google');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [loginWithGoogle, router]);
-
-  useEffect(() => {
-    if (!gisReady) return;
-    if (!googleClientId) return;
-    if (!window.google) return;
-    if (!googleBtnRef.current) return;
-    window.google.accounts.id.initialize({
-      client_id: googleClientId,
-      callback: handleGoogleCredential,
-      cancel_on_tap_outside: false,
-    });
-    googleBtnRef.current.innerHTML = '';
-    window.google.accounts.id.renderButton(googleBtnRef.current, {
-      type: 'standard',
-      theme: 'outline',
-      size: 'large',
-      text: 'continue_with',
-      shape: 'rectangular',
-      logo_alignment: 'left',
-      width: 332,
-      locale: 'es',
-    });
-  }, [gisReady, googleClientId, handleGoogleCredential]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
-    try {
-      await login(email, password);
-      router.push('/dashboard');
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="landing-root" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <style>{styles}</style>
-        <span className="spinner-lg" aria-label="Cargando" />
-      </div>
-    );
-  }
+  }, [user, isAdmin, isLoading, router]);
 
   return (
-    <div className="landing-root">
+    <div className="landing">
       <style>{styles}</style>
-      <Script
-        src="https://accounts.google.com/gsi/client"
-        strategy="afterInteractive"
-        onLoad={() => setGisReady(true)}
-      />
 
-      {/* Panel Izquierdo */}
-      <div className="panel-left">
-        <div className="left-decor" aria-hidden />
-        <div className="left-content animate-fade-in">
-
-          <div className="brand">
-            <span className="wordmark">SRSS</span>
-            <span className="brand-bar" aria-hidden />
-            <span className="brand-loc">Cusco</span>
-          </div>
-
-          <div className="hero">
-            <span className="hero-eyebrow">Plataforma de Gestión Municipal</span>
-            <h1 className="hero-title">
-              Recolección inteligente<br />
-              de residuos sólidos<br />
-              para una ciudad limpia.
-            </h1>
-            <p className="hero-desc">
-              Monitorea, planifica y optimiza la recolección de residuos en
-              tiempo real con datos al servicio de la ciudadanía del Cusco.
-            </p>
-          </div>
-
-          <div className="features">
-            {[
-              'Geolocalización de zonas y rutas',
-              'Seguimiento GPS en tiempo real',
-              'Planificación de recorridos diarios',
-              'Reportes y analítica operativa',
-            ].map((f, i) => (
-              <div key={i} className="feature-item">
-                <span className="feature-dot" />
-                <span>{f}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="left-footer">
-            <span>Municipalidad Provincial del Cusco</span>
-            <span className="sep">·</span>
-            <span>Gerencia de Medio Ambiente</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Panel Derecho - Login */}
-      <div className="panel-right">
-        <div className="login-box animate-fade-in">
-          <div className="login-header">
-            <span className="login-eyebrow">Acceso al sistema</span>
-            <h2>Bienvenido de vuelta</h2>
-            <p>Inicia sesión para continuar con la gestión.</p>
-          </div>
-
-          <form onSubmit={handleLogin}>
-            <div className="field">
-              <label>Correo electrónico</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="usuario@cusco.gob.pe"
-                required
+      <header className="landing-nav">
+        <Link href="/" className="brand">
+          <span className="brand-mark" aria-hidden>
+            <svg viewBox="0 0 32 32" fill="none">
+              <path
+                d="M16 4C16 4 8 10 8 18C8 23 11 27 16 27C21 27 24 23 24 18C24 10 16 4 16 4Z"
+                fill="currentColor"
               />
-            </div>
-            <div className="field">
-              <label>Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
+            </svg>
+          </span>
+          <span className="brand-word">SRSS Cusco</span>
+        </Link>
+        <nav className="nav-links">
+          <a href="#caracteristicas" className="nav-link">Características</a>
+          <a href="#actores" className="nav-link">Para quién</a>
+          <a href="#modulos" className="nav-link">Módulos</a>
+          <Link href="/login" className="ui-btn ui-btn--secondary ui-btn--sm">
+            Iniciar sesión
+          </Link>
+        </nav>
+      </header>
 
-            {error && (
-              <div className="error-msg" role="alert">
-                <span className="error-dot" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button type="submit" disabled={submitting} className="btn-login">
-              {submitting ? <span className="spinner-sm" /> : 'Ingresar'}
-            </button>
-
-            <div className="forgot-row">
-              <Link href="/forgot-password" className="forgot-link">¿Olvidaste tu contraseña?</Link>
-            </div>
-          </form>
-
-          <div className="divider-or" role="separator" aria-label="o">
-            <span className="divider-line" />
-            <span className="divider-text">o</span>
-            <span className="divider-line" />
-          </div>
-
-          <div className="google-wrap">
-            <div ref={googleBtnRef} className="google-btn-host" />
-            {googleClientId && !gisReady && (
-              <p className="google-hint">Cargando Google Sign-In…</p>
-            )}
-            {!googleClientId && (
-              <p className="google-hint">
-                Configura <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> en <code>.env.local</code> para activar Google Sign-In
+      <main className="landing-main">
+        <section className="hero">
+          <div className="hero-inner stagger">
+            <div className="hero-copy animate-fade-up">
+              <span className="hero-eyebrow">
+                <span className="hero-eyebrow-dot" />
+                Municipalidad Provincial del Cusco
+              </span>
+              <h1 className="hero-title text-display">
+                Recolección inteligente
+                <br />
+                de residuos sólidos
+                <br />
+                <em className="hero-italic">para la ciudad del Cusco.</em>
+              </h1>
+              <p className="hero-sub">
+                Plataforma de gestión ambiental urbana que integra rutas de recolección, zonas
+                geográficas, seguimiento GPS en tiempo real y participación ciudadana en una sola
+                experiencia.
               </p>
-            )}
-          </div>
+              <div className="hero-cta">
+                <Link href="/login" className="ui-btn ui-btn--primary ui-btn--lg">
+                  Ingresar al panel
+                  <ArrowRight size={16} />
+                </Link>
+                <a href="#caracteristicas" className="ui-btn ui-btn--ghost-bordered ui-btn--lg">
+                  Conocer el sistema
+                </a>
+              </div>
+              <p className="hero-fineprint">
+                Acceso restringido a personal autorizado. Ciudadanos y operadores usan la
+                aplicación móvil SRSS Cusco.
+              </p>
+            </div>
 
-          <div className="login-footer">
-            © 2026 Municipalidad Provincial del Cusco
+            <aside className="hero-card animate-fade-up" aria-hidden>
+              <div className="hero-card-head">
+                <span className="text-tiny" style={{ color: 'var(--color-text-muted)' }}>
+                  Resumen operativo
+                </span>
+                <span className="ui-badge ui-badge--green">
+                  <span className="ui-badge-dot" />
+                  En vivo
+                </span>
+              </div>
+
+              <div className="hero-card-stats">
+                <Stat number="24" label="Zonas activas" />
+                <Stat number="8" label="Rutas en curso" />
+                <Stat number="312" label="Reportes ciudadanos" />
+              </div>
+
+              <div className="hero-card-row">
+                <IconTile tone="green">
+                  <Route size={20} />
+                </IconTile>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-text)' }}>
+                    Ruta Centro AM · 06:30
+                  </div>
+                  <div className="text-small" style={{ color: 'var(--color-text-muted)' }}>
+                    Camión 8 · Centro Histórico
+                  </div>
+                </div>
+                <ChevronRight size={16} color="var(--color-text-faint)" />
+              </div>
+
+              <div className="hero-card-row">
+                <IconTile tone="amber">
+                  <AlertTriangle size={20} />
+                </IconTile>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-text)' }}>
+                    Incidencia reportada
+                  </div>
+                  <div className="text-small" style={{ color: 'var(--color-text-muted)' }}>
+                    Wanchaq · Hace 12 minutos
+                  </div>
+                </div>
+                <ChevronRight size={16} color="var(--color-text-faint)" />
+              </div>
+
+              <div className="hero-card-row">
+                <IconTile tone="blue">
+                  <MapPin size={20} />
+                </IconTile>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-text)' }}>
+                    GPS en tiempo real
+                  </div>
+                  <div className="text-small" style={{ color: 'var(--color-text-muted)' }}>
+                    Actualizado cada 10 segundos
+                  </div>
+                </div>
+                <ChevronRight size={16} color="var(--color-text-faint)" />
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="caracteristicas" className="features-section">
+          <div className="section-inner">
+            <div className="section-head">
+              <span className="text-tiny" style={{ color: 'var(--color-text-muted)' }}>
+                Características
+              </span>
+              <h2 className="text-h1" style={{ marginTop: 8 }}>
+                Una plataforma. Tres roles. Un solo sistema.
+              </h2>
+              <p
+                className="text-body"
+                style={{ color: 'var(--color-text-muted)', marginTop: 12, maxWidth: 640 }}
+              >
+                Cada actor tiene una experiencia diseñada para su rol: panel administrativo
+                web para la municipalidad, app móvil para operadores y ciudadanos.
+              </p>
+            </div>
+
+            <div id="actores" className="features-grid stagger">
+              <FeatureCard
+                tone="green"
+                icon={<Users size={22} />}
+                title="Administrador municipal"
+                description="Gestiona zonas, rutas, vehículos, operadores y residuos. Consulta reportes y métricas de cumplimiento en tiempo real."
+                tag="Web · Panel"
+              />
+              <FeatureCard
+                tone="blue"
+                icon={<Route size={22} />}
+                title="Operador de recolección"
+                description="Ejecuta rutas planificadas desde la app móvil, registra incidencias operativas y emite tracking GPS continuo."
+                tag="Móvil · Operativo"
+              />
+              <FeatureCard
+                tone="amber"
+                icon={<MapPin size={22} />}
+                title="Ciudadano del Cusco"
+                description="Consulta horarios de su zona, recibe alertas de cercanía del camión y reporta incidencias con foto y geolocalización."
+                tag="Móvil · Comunidad"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section id="modulos" className="modules-section">
+          <div className="section-inner">
+            <div className="section-head">
+              <span className="text-tiny" style={{ color: 'var(--color-text-muted)' }}>
+                Módulos del sistema
+              </span>
+              <h2 className="text-h1" style={{ marginTop: 8 }}>
+                Cobertura integral, del catálogo a la analítica.
+              </h2>
+            </div>
+
+            <div className="modules-grid stagger">
+              <ModuleCard
+                icon={<Users size={20} />}
+                title="Gestión de usuarios y zonas"
+                items={[
+                  'Registro ciudadano con asignación geográfica',
+                  'Autenticación segura con JWT y Google',
+                  'Mapa interactivo para definir zonas en GeoJSON',
+                ]}
+              />
+              <ModuleCard
+                icon={<Recycle size={20} />}
+                title="Gestión de residuos"
+                items={[
+                  'Catálogo por categoría: orgánico, reciclable, peligroso',
+                  'Guía visual NTP 900.058 para ciudadanos',
+                  'Instrucciones de manejo y código de colores',
+                ]}
+              />
+              <ModuleCard
+                icon={<Route size={20} />}
+                title="Monitoreo de rutas"
+                items={[
+                  'Visualización en mapa con paradas y horarios',
+                  'Seguimiento GPS en tiempo real cada 10 s',
+                  'Asignación vehículo-operador-zona',
+                ]}
+              />
+              <ModuleCard
+                icon={<AlertTriangle size={20} />}
+                title="Sistema de alertas"
+                items={[
+                  'Notificación push de cercanía del camión',
+                  'Alertas de retraso o cambio de horario',
+                  'Reporte ciudadano con foto y ubicación',
+                ]}
+              />
+              <ModuleCard
+                icon={<BarChart3 size={20} />}
+                title="Reportes y analítica"
+                items={[
+                  'Volumen de residuos por zona y categoría',
+                  'Cumplimiento de rutas y desviaciones',
+                  'Participación ciudadana y métricas de impacto',
+                ]}
+              />
+              <ModuleCard
+                icon={<MapPin size={20} />}
+                title="Aplicación móvil"
+                items={[
+                  'Consulta de horarios offline',
+                  'Educación sobre segregación',
+                  'Reporte de incidencias con cámara y GPS',
+                ]}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="cta-section">
+          <div className="section-inner">
+            <div className="cta-card">
+              <div>
+                <h2 className="text-h1">¿Sos parte del personal municipal?</h2>
+                <p
+                  className="text-body"
+                  style={{ color: 'var(--color-text-muted)', marginTop: 8, maxWidth: 520 }}
+                >
+                  Accedé al panel administrativo con tu cuenta institucional. Si sos ciudadano u
+                  operador, descargá la app móvil SRSS Cusco.
+                </p>
+              </div>
+              <Link href="/login" className="ui-btn ui-btn--primary ui-btn--lg">
+                Ingresar al panel
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="landing-foot">
+        <div className="section-inner foot-inner">
+          <div>
+            <span className="text-tiny" style={{ color: 'var(--color-text-faint)' }}>
+              © 2026 Municipalidad Provincial del Cusco
+            </span>
+          </div>
+          <div className="foot-links">
+            <span>Gerencia de Medio Ambiente</span>
+            <span className="foot-sep">·</span>
+            <a href="https://www.gob.pe/munic" className="foot-link">Web institucional</a>
+            <span className="foot-sep">·</span>
+            <a href="#" className="foot-link">Privacidad</a>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
 
+function Stat({ number, label }: { number: string; label: string }) {
+  return (
+    <div className="stat">
+      <span className="stat-num">{number}</span>
+      <span className="stat-label">{label}</span>
+    </div>
+  );
+}
+
+function FeatureCard({
+  tone,
+  icon,
+  title,
+  description,
+  tag,
+}: {
+  tone: 'green' | 'blue' | 'amber';
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  tag: string;
+}) {
+  return (
+    <article className="feature-card animate-fade-up">
+      <IconTile tone={tone} size="lg">
+        {icon}
+      </IconTile>
+      <span
+        className="text-tiny"
+        style={{ color: 'var(--color-text-muted)', marginTop: 20, display: 'block' }}
+      >
+        {tag}
+      </span>
+      <h3 className="text-h2" style={{ marginTop: 6, color: 'var(--color-text)' }}>
+        {title}
+      </h3>
+      <p className="text-body" style={{ color: 'var(--color-text-muted)', marginTop: 10 }}>
+        {description}
+      </p>
+    </article>
+  );
+}
+
+function ModuleCard({
+  icon,
+  title,
+  items,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  items: string[];
+}) {
+  return (
+    <article className="module-card animate-fade-up">
+      <div className="module-head">
+        <IconTile tone="green">{icon}</IconTile>
+        <h3 className="text-h3" style={{ color: 'var(--color-text)' }}>
+          {title}
+        </h3>
+      </div>
+      <ul className="module-list">
+        {items.map((i) => (
+          <li key={i}>
+            <span className="module-dot" aria-hidden />
+            <span>{i}</span>
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
 const styles = `
-  .landing-root {
+  .landing {
     min-height: 100vh;
-    display: flex;
-    font-family: 'Outfit', 'DM Sans', -apple-system, sans-serif;
-    background: #FFFFFF;
-    color: #1A1A1A;
+    background:
+      radial-gradient(900px 600px at 90% -10%, rgba(0,104,74,0.06), transparent 60%),
+      radial-gradient(700px 500px at -10% 30%, rgba(0,104,74,0.04), transparent 60%),
+      var(--color-canvas);
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* Panel Izquierdo */
-  .panel-left {
-    flex: 1.15;
-    background: #FAFAF8;
+  .landing-nav {
+    height: 64px;
+    padding: 0 32px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 4.5rem 4rem;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(249, 251, 250, 0.85);
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--color-line-soft);
+    z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 26px; height: 26px;
+    color: var(--color-primary);
+    display: grid; place-items: center;
+  }
+  .brand-mark svg { width: 100%; height: 100%; }
+  .brand-word {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+    font-variation-settings: "opsz" 36;
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+  .nav-link {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    transition: color 0.15s ease;
+  }
+  .nav-link:hover { color: var(--color-text); }
+
+  @media (max-width: 720px) {
+    .landing-nav { padding: 0 20px; }
+    .nav-links { gap: 12px; }
+    .nav-link:not(:last-child) { display: none; }
+  }
+
+  .landing-main { padding-bottom: 80px; }
+
+  /* HERO */
+  .hero { padding: 80px 32px 48px; }
+  .hero-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 64px;
+    align-items: center;
+  }
+  @media (max-width: 1024px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+    .hero { padding: 56px 24px 40px; }
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    padding: 6px 14px 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: 28px;
+  }
+  .hero-eyebrow-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(0,104,74,0.18);
+  }
+
+  .hero-title {
+    color: var(--color-text);
+    font-weight: 500;
+  }
+  .hero-italic {
+    font-style: italic;
+    color: var(--color-primary);
+    font-weight: 400;
+  }
+  .hero-sub {
+    margin-top: 24px;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    max-width: 540px;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 12px;
+    margin-top: 36px;
+    flex-wrap: wrap;
+  }
+  .hero-fineprint {
+    margin-top: 20px;
+    font-size: 12.5px;
+    color: var(--color-text-faint);
+    max-width: 480px;
+  }
+
+  /* Hero card */
+  .hero-card {
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     position: relative;
-    border-right: 1px solid #F0EEEB;
-    overflow: hidden;
   }
-  .left-decor {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(600px 400px at 90% -10%, rgba(5,150,105,0.07), transparent 60%),
-      radial-gradient(500px 350px at -10% 110%, rgba(5,150,105,0.05), transparent 60%);
-    pointer-events: none;
-  }
-  .panel-left::after {
+  .hero-card::before {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #E8E5E0, transparent);
+    inset: -1px;
+    border-radius: 15px;
+    border: 1px solid transparent;
+    background: linear-gradient(140deg, rgba(0,104,74,0.18), transparent 50%) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
-
-  .left-content {
-    position: relative;
-    max-width: 540px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 2.75rem;
-    z-index: 1;
-  }
-
-  /* Brand */
-  .brand {
+  .hero-card-head {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    justify-content: space-between;
   }
-  .wordmark {
-    font-size: 1.7rem;
-    font-weight: 900;
-    color: #059669;
-    letter-spacing: -0.05em;
-    line-height: 1;
+  .hero-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 16px 0;
+    border-top: 1px solid var(--color-line-soft);
+    border-bottom: 1px solid var(--color-line-soft);
   }
-  .brand-bar {
-    display: inline-block;
-    width: 1px;
-    height: 22px;
-    background: #D6D3CE;
-  }
-  .brand-loc {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #6B6862;
-    letter-spacing: 0.02em;
-  }
-
-  /* Hero */
-  .hero-eyebrow {
-    display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #059669;
-    background: rgba(5,150,105,0.08);
-    padding: 0.35rem 0.75rem;
-    border-radius: 99px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 1.25rem;
-  }
-  .hero-title {
-    font-size: clamp(1.9rem, 3.6vw, 2.85rem);
-    font-weight: 800;
-    line-height: 1.15;
-    letter-spacing: -0.03em;
-    color: #1A1A1A;
-    margin-bottom: 1.25rem;
-  }
-  .hero-desc {
-    font-size: 1rem;
-    color: #6B6862;
-    font-weight: 400;
-    line-height: 1.7;
-    max-width: 460px;
-  }
-
-  /* Features */
-  .features {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-  }
-  .feature-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 0.875rem;
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-num {
+    font-family: var(--font-display);
+    font-size: 30px;
     font-weight: 500;
-    color: #4A4742;
+    color: var(--color-text);
+    letter-spacing: -0.02em;
+    font-variation-settings: "opsz" 36;
   }
-  .feature-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #059669;
-    flex-shrink: 0;
-    box-shadow: 0 0 0 4px rgba(5,150,105,0.1);
-  }
-
-  /* Footer left */
-  .left-footer {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.7rem;
-    color: #B0ADA8;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-  }
-  .left-footer .sep { color: #DDDBD7; }
-
-  /* Panel Derecho */
-  .panel-right {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
-    background: #FFFFFF;
-  }
-
-  .login-box {
-    width: 100%;
-    max-width: 380px;
-  }
-
-  .login-header {
-    margin-bottom: 1.75rem;
-  }
-  .login-eyebrow {
-    display: block;
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: #B0ADA8;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    margin-bottom: 0.6rem;
-  }
-  .login-header h2 {
-    font-size: 1.85rem;
-    font-weight: 800;
-    color: #1A1A1A;
-    letter-spacing: -0.025em;
-    margin-bottom: 0.4rem;
-    line-height: 1.15;
-  }
-  .login-header p {
-    font-size: 0.875rem;
-    color: #8A8780;
-    font-weight: 400;
-  }
-
-  /* Form */
-  .field {
-    margin-bottom: 1.15rem;
-  }
-  .field label {
-    display: block;
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: #8A8780;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 0.45rem;
-  }
-  .field input {
-    width: 100%;
-    padding: 0.85rem 1rem;
-    border-radius: 10px;
-    border: 1.5px solid #ECEAE6;
-    background: #FAFAF8;
-    color: #1A1A1A;
-    font-family: inherit;
-    font-size: 0.9rem;
-    font-weight: 500;
-    outline: none;
-    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-  }
-  .field input::placeholder {
-    color: #CDCAC5;
-    font-weight: 400;
-  }
-  .field input:hover {
-    border-color: #E0DDD8;
-  }
-  .field input:focus {
-    border-color: #059669;
-    background: #FFFFFF;
-    box-shadow: 0 0 0 4px rgba(5,150,105,0.08);
-  }
-
-  .error-msg {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    padding: 0.7rem 0.9rem;
-    border-radius: 10px;
-    background: #FEF2F2;
-    border: 1px solid #FECACA;
-    color: #DC2626;
-    font-size: 0.78rem;
-    font-weight: 600;
-    margin-bottom: 1.15rem;
-  }
-  .error-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #DC2626;
-    flex-shrink: 0;
-    box-shadow: 0 0 0 3px rgba(220,38,38,0.15);
-  }
-
-  .btn-login {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.9rem;
-    border-radius: 10px;
-    border: none;
-    background: #059669;
-    color: #FFFFFF;
-    font-family: inherit;
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-    transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.25s ease;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 4px 12px rgba(5,150,105,0.18);
-  }
-  .btn-login:hover:not(:disabled) {
-    background: #047857;
-    transform: translateY(-1px) scale(1.005);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 8px 20px rgba(5,150,105,0.28);
-  }
-  .btn-login:active:not(:disabled) {
-    transform: translateY(0) scale(0.99);
-  }
-  .btn-login:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
-
-  .forgot-row {
-    margin-top: 0.85rem;
-    text-align: center;
-  }
-  .forgot-link {
-    font-size: 0.73rem;
-    font-weight: 600;
-    color: #8A8780;
-    text-decoration: none;
-    letter-spacing: 0.01em;
-    transition: color 0.2s ease;
-  }
-  .forgot-link:hover {
-    color: #059669;
-  }
-
-  .login-footer {
-    margin-top: 2.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid #F0EEEB;
-    text-align: center;
-    font-size: 0.65rem;
-    color: #C5C2BD;
+  .stat-label {
+    font-size: 11.5px;
+    color: var(--color-text-muted);
     font-weight: 500;
   }
-
-  /* Divider OR */
-  .divider-or {
+  .hero-card-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin: 1.5rem 0 1.1rem;
-  }
-  .divider-line {
-    flex: 1;
-    height: 1px;
-    background: #F0EEEB;
-  }
-  .divider-text {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #8A8780;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
+    gap: 12px;
+    padding: 4px 0;
   }
 
-  /* Google */
-  .google-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.55rem;
+  /* SECTIONS */
+  .section-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px;
   }
-  .google-btn-host {
-    display: flex;
-    justify-content: center;
-    min-height: 44px;
+  @media (max-width: 720px) {
+    .section-inner { padding: 0 20px; }
   }
-  .google-btn-host > div {
-    width: 100% !important;
+  .features-section, .modules-section, .cta-section {
+    padding: 80px 0;
   }
-  .google-hint {
-    font-size: 0.65rem;
-    color: #B0ADA8;
-    font-weight: 500;
-    line-height: 1.5;
-    text-align: center;
-    margin: 0;
-  }
-  .google-hint code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.62rem;
-    background: #F0EEEB;
-    color: #6B6862;
-    padding: 1px 5px;
-    border-radius: 4px;
+  @media (max-width: 720px) {
+    .features-section, .modules-section, .cta-section { padding: 56px 0; }
   }
 
-  /* Spinners (sin librería de iconos) */
-  .spinner-lg {
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    border: 3px solid #E8E5E0;
-    border-top-color: #059669;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  .spinner-sm {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2.5px solid rgba(255,255,255,0.35);
-    border-top-color: #FFFFFF;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+  .section-head {
+    max-width: 720px;
+    margin-bottom: 48px;
   }
 
-  /* Responsive */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 900px) {
+    .features-grid { grid-template-columns: 1fr; }
+  }
+  .feature-card {
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--color-line);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
   @media (max-width: 1024px) {
-    .landing-root { flex-direction: column; }
-    .panel-left {
-      padding: 3rem 2rem;
-      border-right: none;
-      border-bottom: 1px solid #F0EEEB;
-    }
-    .left-content { gap: 2rem; }
-    .panel-right { padding: 2.5rem 2rem; }
+    .modules-grid { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 640px) {
-    .panel-left { padding: 2.25rem 1.5rem; }
-    .panel-right { padding: 2rem 1.5rem; }
-    .hero-title { font-size: 1.7rem; }
-    .login-header h2 { font-size: 1.55rem; }
+    .modules-grid { grid-template-columns: 1fr; }
   }
+  .module-card {
+    background: var(--color-paper);
+    padding: 28px;
+  }
+  .module-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .module-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .module-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+  }
+  .module-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    margin-top: 9px;
+    flex-shrink: 0;
+  }
+
+  /* CTA */
+  .cta-card {
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    padding: 40px 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 720px) {
+    .cta-card { padding: 28px; }
+  }
+
+  /* FOOTER */
+  .landing-foot {
+    border-top: 1px solid var(--color-line);
+    padding: 28px 0;
+    background: var(--color-paper);
+  }
+  .foot-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .foot-links {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+  }
+  .foot-sep { color: var(--color-text-faint); }
+  .foot-link { transition: color 0.15s ease; }
+  .foot-link:hover { color: var(--color-text); }
 `;
