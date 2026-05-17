@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useGoogleAuth } from '../src/hooks/useGoogleAuth';
 import { BrandMark } from '../src/components/branding/BrandMark';
@@ -31,6 +32,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [focused, setFocused] = useState<FocusedField>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const fade = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(10)).current;
@@ -174,21 +176,46 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            autoComplete="email"
+            textContentType="emailAddress"
             onFocus={() => setFocused('email')}
             onBlur={() => setFocused(null)}
           />
 
           <Text style={[s.fieldLabel, s.fieldLabelSpaced]}>Contraseña</Text>
-          <TextInput
-            style={[s.input, focused === 'password' && s.inputFocused]}
-            placeholder="••••••••"
-            placeholderTextColor={colors.textPlaceholder}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            onFocus={() => setFocused('password')}
-            onBlur={() => setFocused(null)}
-          />
+          <View
+            style={[
+              s.passwordRow,
+              focused === 'password' && s.inputFocused,
+            ]}
+          >
+            <TextInput
+              style={s.passwordInput}
+              placeholder="••••••••"
+              placeholderTextColor={colors.textPlaceholder}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="current-password"
+              textContentType="password"
+              onFocus={() => setFocused('password')}
+              onBlur={() => setFocused(null)}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword((v) => !v)}
+              hitSlop={10}
+              style={s.eyeBtn}
+              accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            >
+              <Feather
+                name={showPassword ? 'eye-off' : 'eye'}
+                size={17}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
 
           <Animated.View style={[s.btnWrap, { transform: [{ scale: pressScale }] }]}>
             <Pressable
@@ -356,6 +383,27 @@ const s = StyleSheet.create({
   },
   inputFocused: {
     borderColor: colors.primary,
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingRight: 8,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 11,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    color: colors.ink,
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 14,
+  },
+  eyeBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 6,
   },
 
   btnWrap: { marginTop: spacing.md },

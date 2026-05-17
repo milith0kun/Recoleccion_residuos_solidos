@@ -69,6 +69,7 @@ export default function RegisterScreen() {
   const [detectedZone, setDetectedZone] = useState<DetectedZone | null>(null);
   const [detectionStatus, setDetectionStatus] = useState<DetectionStatus>('idle');
   const [detectionMessage, setDetectionMessage] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
   const chipScale = useRef(new Animated.Value(0)).current;
 
   const update = (key: keyof FormState, value: string) =>
@@ -232,24 +233,52 @@ export default function RegisterScreen() {
         </View>
 
         <View style={s.card}>
-          {fields.map((f) => (
-            <View key={f.key} style={s.fieldGroup}>
-              <Text style={s.label}>{f.label}</Text>
-              <View style={s.inputContainer}>
-                <Feather name={f.icon} size={16} color={colors.textMuted} style={s.inputIcon} />
-                <TextInput
-                  style={s.input}
-                  placeholder={f.placeholder}
-                  placeholderTextColor={colors.textPlaceholder}
-                  value={form[f.key]}
-                  onChangeText={(v) => update(f.key, v)}
-                  keyboardType={f.keyboard || 'default'}
-                  secureTextEntry={f.secure}
-                  autoCapitalize={f.key === 'email' ? 'none' : 'words'}
-                />
+          {fields.map((f) => {
+            const isPassword = f.key === 'password';
+            const isEmail = f.key === 'email';
+            const hideValue = isPassword && !showPassword;
+            return (
+              <View key={f.key} style={s.fieldGroup}>
+                <Text style={s.label}>{f.label}</Text>
+                <View style={s.inputContainer}>
+                  <Feather name={f.icon} size={16} color={colors.textMuted} style={s.inputIcon} />
+                  <TextInput
+                    style={s.input}
+                    placeholder={f.placeholder}
+                    placeholderTextColor={colors.textPlaceholder}
+                    value={form[f.key]}
+                    onChangeText={(v) => update(f.key, v)}
+                    keyboardType={f.keyboard || 'default'}
+                    secureTextEntry={hideValue}
+                    autoCapitalize={isEmail || isPassword ? 'none' : 'words'}
+                    autoCorrect={!isEmail && !isPassword}
+                    autoComplete={
+                      isEmail ? 'email' : isPassword ? 'new-password' : undefined
+                    }
+                    textContentType={
+                      isEmail ? 'emailAddress' : isPassword ? 'newPassword' : undefined
+                    }
+                  />
+                  {isPassword && (
+                    <TouchableOpacity
+                      onPress={() => setShowPassword((v) => !v)}
+                      hitSlop={10}
+                      style={s.eyeBtn}
+                      accessibilityLabel={
+                        showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                      }
+                    >
+                      <Feather
+                        name={showPassword ? 'eye-off' : 'eye'}
+                        size={16}
+                        color={colors.textMuted}
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
 
           <View style={s.fieldGroup}>
             <Text style={s.label}>Dirección</Text>
@@ -396,6 +425,10 @@ const s = StyleSheet.create({
     color: colors.ink,
     fontSize: 14,
     fontFamily: fontFamily.sansRegular,
+  },
+  eyeBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 6,
   },
   btn: {
     backgroundColor: colors.primary,

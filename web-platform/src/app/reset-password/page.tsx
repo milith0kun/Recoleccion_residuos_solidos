@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { BrandMark } from '@/components/branding/BrandMark';
 
 function ResetPasswordInner() {
@@ -13,6 +13,8 @@ function ResetPasswordInner() {
 
   const [newPassword, setNewPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
@@ -84,33 +86,55 @@ function ResetPasswordInner() {
               <label className="adm-form-label" htmlFor="reset-new">
                 Nueva contraseña
               </label>
-              <input
-                id="reset-new"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="••••••••"
-                className="adm-form-input"
-                required
-                minLength={6}
-                autoComplete="new-password"
-              />
+              <div className="pw-wrap">
+                <input
+                  id="reset-new"
+                  type={showNew ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="adm-form-input pw-input"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew((v) => !v)}
+                  className="pw-toggle"
+                  aria-label={showNew ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  title={showNew ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
             <div className="auth-field">
               <label className="adm-form-label" htmlFor="reset-confirm">
                 Confirmar contraseña
               </label>
-              <input
-                id="reset-confirm"
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="••••••••"
-                className="adm-form-input"
-                required
-                minLength={6}
-                autoComplete="new-password"
-              />
+              <div className="pw-wrap">
+                <input
+                  id="reset-confirm"
+                  type={showConfirm ? 'text' : 'password'}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="••••••••"
+                  className="adm-form-input pw-input"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="pw-toggle"
+                  aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  title={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             {!token && (

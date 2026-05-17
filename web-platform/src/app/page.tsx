@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { ArrowRight, BookOpen, Eye, EyeOff } from 'lucide-react';
 import { BrandLockup, BrandMark } from '@/components/branding/BrandMark';
 
 interface GoogleCredentialResponse {
@@ -58,6 +58,7 @@ export default function HomePage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [gisReady, setGisReady] = useState(false);
@@ -225,16 +226,27 @@ export default function HomePage() {
                 <label className="adm-form-label" htmlFor="login-password">
                   Contraseña
                 </label>
-                <input
-                  id="login-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="adm-form-input"
-                  required
-                  autoComplete="current-password"
-                />
+                <div className="home-password-wrap">
+                  <input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="adm-form-input home-password-input"
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="home-password-toggle"
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               {error && (
@@ -498,6 +510,33 @@ const styles = `
   }
   .home-field .adm-form-input {
     height: 40px;
+  }
+  .home-password-wrap {
+    position: relative;
+  }
+  .home-password-input {
+    padding-right: 36px !important;
+  }
+  .home-password-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .home-password-toggle:hover {
+    background: var(--color-surface-soft);
+    color: var(--color-ink);
   }
   .home-error {
     display: flex;

@@ -555,6 +555,39 @@ button:active:not(:disabled) {
 }
 .adm-form-input::placeholder,
 .adm-form-textarea::placeholder { color: #889397; }
+
+/* Password field with toggle button (ojo/ojo-tachado) */
+.pw-wrap {
+  position: relative;
+}
+.pw-input {
+  padding-right: 36px !important;
+}
+.pw-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: #889397;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.pw-toggle:hover {
+  background: #F1F4F2;
+  color: #001E2B;
+}
+.pw-toggle:focus-visible {
+  outline: 2px solid #00684A;
+  outline-offset: 1px;
+}
 .adm-form-input:focus,
 .adm-form-select:focus,
 .adm-form-textarea:focus {
