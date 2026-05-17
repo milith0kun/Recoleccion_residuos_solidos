@@ -60,6 +60,12 @@ const CITIZEN_MENU: MenuGroup[] = [
     ],
   },
   {
+    label: 'Comunidad',
+    items: [
+      { href: '/(tabs)/incidents', label: 'Reportar incidencia', icon: 'alert-triangle' },
+    ],
+  },
+  {
     label: 'Cuenta',
     items: [{ href: '/(tabs)/profile', label: 'Mi perfil', icon: 'user' }],
   },
