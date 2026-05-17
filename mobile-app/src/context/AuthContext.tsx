@@ -2,27 +2,40 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import * as SecureStore from 'expo-secure-store';
 import api from '../api/client';
 
+export interface ZoneRef {
+  _id: string;
+  name?: string;
+  color?: string;
+  district?: string;
+}
+
 export interface User {
   id: string;
+  _id?: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
-  dni: string;
-  zone?: string;
+  role: 'citizen' | 'operator' | 'admin';
+  dni?: string;
+  zone?: string | ZoneRef | null;
   phone?: string;
   address?: string;
+  avatar?: string;
+  profileComplete?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  isAdmin: boolean;
   isOperator: boolean;
+  isCitizen: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
   register: (data: Record<string, string>) => Promise<void>;
   logout: () => Promise<void>;
+  setUser: (user: User) => Promise<void>;
   getActiveExecutionId: () => Promise<string | null>;
   setActiveExecutionId: (id: string | null) => Promise<void>;
 }
@@ -117,8 +130,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const isOperator = useMemo(
-    () => user?.role === 'operator' || user?.role === 'admin',
+  const updateUser = useCallback(async (next: User) => {
+    await SecureStore.setItemAsync('user', JSON.stringify(next));
+    setUser(next);
+  }, []);
+
+  const { isAdmin, isOperator, isCitizen } = useMemo(
+    () => ({
+      isAdmin: user?.role === 'admin',
+      isOperator: user?.role === 'operator' || user?.role === 'admin',
+      isCitizen: user?.role === 'citizen',
+    }),
     [user?.role]
   );
 
@@ -128,11 +150,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         isLoading,
+        isAdmin,
         isOperator,
+        isCitizen,
         login,
         loginWithGoogle,
         register,
         logout,
+        setUser: updateUser,
         getActiveExecutionId,
         setActiveExecutionId,
       }}

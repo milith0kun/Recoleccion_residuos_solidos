@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/db/connection';
 import User from '@/lib/models/User';
@@ -5,9 +6,13 @@ import Zone from '@/lib/models/Zone';
 import WasteType from '@/lib/models/WasteType';
 import Vehicle from '@/lib/models/Vehicle';
 import Route from '@/lib/models/Route';
+import { requireRole } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const { error } = requireRole(request, 'admin');
+  if (error) return error;
+
   try {
     await connectDB();
 

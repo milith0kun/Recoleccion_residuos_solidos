@@ -11,6 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
+import { getZoneName } from '../../src/utils/zone';
 
 export default function OperatorProfileScreen() {
   const { user, logout } = useAuth();
@@ -101,9 +102,18 @@ export default function OperatorProfileScreen() {
         </View>
         <View style={s.infoRow}>
           <Text style={s.infoLabel}>Zona</Text>
-          <Text style={s.infoValue}>{user?.zone || 'Por asignar'}</Text>
+          <Text style={s.infoValue}>{getZoneName(user?.zone) || 'Por asignar'}</Text>
         </View>
       </View>
+
+      <TouchableOpacity
+        style={s.editBtn}
+        onPress={() => router.push('/profile-edit')}
+        activeOpacity={0.85}
+      >
+        <Feather name="edit-2" size={14} color="#10B981" />
+        <Text style={s.editBtnText}>Editar mi perfil</Text>
+      </TouchableOpacity>
 
       <View style={s.section}>
         <Text style={s.sectionTitle}>Configuración</Text>
@@ -226,4 +236,19 @@ const s = StyleSheet.create({
     borderColor: 'rgba(239,68,68,0.3)',
   },
   logoutBtnText: { color: '#EF4444', fontSize: 16, fontWeight: 'bold' },
+
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(16,185,129,0.12)',
+    paddingVertical: 12,
+    borderRadius: 14,
+    marginTop: -8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.35)',
+  },
+  editBtnText: { color: '#10B981', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 });

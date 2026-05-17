@@ -1,25 +1,42 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
-interface User {
+export interface ZoneRef {
+  _id: string;
+  name?: string;
+  color?: string;
+  district?: string;
+}
+
+export interface User {
   id: string;
+  _id?: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
-  dni: string;
-  zone?: string;
+  role: 'citizen' | 'operator' | 'admin';
+  dni?: string;
+  phone?: string;
+  address?: string;
+  avatar?: string;
+  zone?: string | ZoneRef | null;
+  profileComplete?: boolean;
+  isVerified?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  isLoading: boolean;
+  isAdmin: boolean;
+  isOperator: boolean;
+  isCitizen: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
   register: (data: Record<string, string>) => Promise<void>;
   logout: () => void;
-  isLoading: boolean;
+  setUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -103,8 +120,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback((next: User) => {
+    localStorage.setItem('user', JSON.stringify(next));
+    setUser(next);
+  }, []);
+
+  const { isAdmin, isOperator, isCitizen } = useMemo(
+    () => ({
+      isAdmin: user?.role === 'admin',
+      isOperator: user?.role === 'operator',
+      isCitizen: user?.role === 'citizen',
+    }),
+    [user?.role]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, token, login, loginWithGoogle, register, logout, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isLoading,
+        isAdmin,
+        isOperator,
+        isCitizen,
+        login,
+        loginWithGoogle,
+        register,
+        logout,
+        setUser: updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

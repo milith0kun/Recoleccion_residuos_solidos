@@ -14,6 +14,7 @@ import * as Location from 'expo-location';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, radius, spacing } from '../../src/theme/tokens';
+import { getZoneId } from '../../src/utils/zone';
 
 type RouteStatus = 'active' | 'completed' | 'pending' | 'planned' | 'cancelled' | 'inactive';
 
@@ -129,7 +130,8 @@ export default function MapScreen() {
   const loadRoutes = async () => {
     try {
       const params: Record<string, string> = {};
-      if (user?.zone) params.zone = user.zone;
+      const zoneId = getZoneId(user?.zone);
+      if (zoneId) params.zone = zoneId;
       const { data } = await api.get('/routes', { params });
       setRoutes((data?.data || []) as RouteData[]);
     } catch (e) {

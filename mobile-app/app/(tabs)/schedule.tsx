@@ -11,8 +11,11 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
+import { getZoneId } from '../../src/utils/zone';
 import { colors, radius, spacing } from '../../src/theme/tokens';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -79,17 +82,19 @@ const BADGE_META: Record<RouteBadge, { label: string; color: string; bg: string 
 
 export default function ScheduleScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [routes, setRoutes] = useState<RouteData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
 
   const today = new Date().getDay();
+  const userZoneId = getZoneId(user?.zone);
 
   const loadRoutes = async () => {
     try {
       const params: Record<string, string> = {};
-      if (user?.zone) params.zone = user.zone;
+      if (userZoneId) params.zone = userZoneId;
       const { data } = await api.get('/routes', { params });
       setRoutes((data?.data || []) as RouteData[]);
     } catch (e) {
@@ -100,9 +105,13 @@ export default function ScheduleScreen() {
   };
 
   useEffect(() => {
+    if (!userZoneId) {
+      setLoading(false);
+      return;
+    }
     loadRoutes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.zone]);
+  }, [userZoneId]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -127,6 +136,33 @@ export default function ScheduleScreen() {
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={s.loadingText}>Cargando horarios...</Text>
       </View>
+    );
+  }
+
+  if (!userZoneId) {
+    return (
+      <ScrollView style={s.container} contentContainerStyle={s.content}>
+        <Text style={s.pageTitle}>Horarios</Text>
+        <Text style={s.pageSub}>Programación semanal de recolección en tu zona.</Text>
+
+        <View style={s.zoneNeededCard}>
+          <View style={s.zoneNeededIcon}>
+            <Feather name="map-pin" size={28} color={colors.warn} />
+          </View>
+          <Text style={s.zoneNeededTitle}>Aún no configuraste tu zona</Text>
+          <Text style={s.zoneNeededDesc}>
+            Para ver los horarios de recolección en tu zona, primero seleccionala desde tu perfil.
+          </Text>
+          <TouchableOpacity
+            style={s.zoneNeededBtn}
+            onPress={() => router.push('/profile-edit')}
+            activeOpacity={0.85}
+          >
+            <Feather name="settings" size={16} color="#FFF" />
+            <Text style={s.zoneNeededBtnText}>Configurar mi zona</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     );
   }
 
@@ -419,5 +455,55 @@ const s = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     paddingHorizontal: 30,
+  },
+
+  zoneNeededCard: {
+    backgroundColor: colors.warnSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.4)',
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
+    alignItems: 'center',
+    marginTop: spacing.xl,
+  },
+  zoneNeededIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(245,158,11,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  zoneNeededTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  zoneNeededDesc: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  zoneNeededBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.warn,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.md,
+  },
+  zoneNeededBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 0.3,
   },
 });

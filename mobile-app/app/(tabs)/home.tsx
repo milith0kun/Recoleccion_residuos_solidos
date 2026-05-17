@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { colors, radius, spacing } from '../../src/theme/tokens';
+import { getZoneId } from '../../src/utils/zone';
 
 interface Stats {
   routes: number;
@@ -72,6 +73,7 @@ export default function HomeScreen() {
   };
 
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
+  const needsZone = !getZoneId(user?.zone);
 
   return (
     <ScrollView
@@ -94,6 +96,25 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        {needsZone ? (
+          <TouchableOpacity
+            style={s.onboardingCard}
+            onPress={() => router.push('/profile-edit')}
+            activeOpacity={0.9}
+          >
+            <View style={s.onboardingIcon}>
+              <Feather name="map-pin" size={18} color={colors.warn} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.onboardingTitle}>Seleccioná tu zona</Text>
+              <Text style={s.onboardingDesc}>
+                Para ver tus horarios y recibir alertas cuando el camión pase cerca.
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={colors.warn} />
+          </TouchableOpacity>
+        ) : null}
 
         <View style={s.heroWrap}>
           <LinearGradient
@@ -466,5 +487,36 @@ const s = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     fontWeight: '500',
+  },
+
+  onboardingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.warnSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.4)',
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  onboardingIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(245,158,11,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onboardingTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.warn,
+    marginBottom: 2,
+  },
+  onboardingDesc: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 16,
   },
 });

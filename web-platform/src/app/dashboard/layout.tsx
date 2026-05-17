@@ -19,8 +19,10 @@ import {
   Bell,
   Car,
   AlertTriangle,
-  BarChart3
+  BarChart3,
+  User as UserIcon,
 } from 'lucide-react';
+import AccessRestricted from '@/components/AccessRestricted';
 
 const menuItems = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard },
@@ -32,6 +34,7 @@ const menuItems = [
   { href: '/dashboard/incidents', label: 'Incidentes', icon: AlertTriangle },
   { href: '/dashboard/reports', label: 'Reportes', icon: BarChart3 },
   { href: '/dashboard/tracking', label: 'Seguimiento', icon: Radio },
+  { href: '/dashboard/profile', label: 'Mi Perfil', icon: UserIcon },
 ];
 
 const roleLabels: Record<string, string> = {
@@ -50,6 +53,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard/incidents': 'Incidentes',
   '/dashboard/reports': 'Reportes',
   '/dashboard/tracking': 'Seguimiento GPS',
+  '/dashboard/profile': 'Mi Perfil',
 };
 
 interface SidebarContentProps {
@@ -60,6 +64,37 @@ interface SidebarContentProps {
   user: { firstName: string; lastName: string; role: string };
   onNavigate: () => void;
   onLogout: () => void;
+}
+
+function BrandMark() {
+  return (
+    <span className="sb-brand-mark" aria-hidden>
+      <svg viewBox="0 0 32 32" width="32" height="32" fill="none">
+        <defs>
+          <linearGradient id="sbBrandBg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#10B981" />
+            <stop offset="1" stopColor="#047857" />
+          </linearGradient>
+        </defs>
+        <rect width="32" height="32" rx="8" fill="url(#sbBrandBg)" />
+
+        <rect x="4.8" y="9.5" width="6.4" height="1.6" rx="0.8" fill="#FFFFFF" />
+        <rect x="5.5" y="11.5" width="5" height="12" rx="1" fill="#FFFFFF" />
+        <rect x="6.6" y="14.2" width="2.8" height="0.7" rx="0.35" fill="#059669" />
+        <rect x="6.6" y="16" width="2.8" height="0.7" rx="0.35" fill="#059669" />
+        <rect x="6.6" y="17.8" width="2.8" height="0.7" rx="0.35" fill="#059669" />
+
+        <rect x="12.3" y="9.5" width="6.4" height="1.6" rx="0.8" fill="#ECFDF5" />
+        <rect x="13" y="11.5" width="5" height="12" rx="1" fill="#ECFDF5" />
+        <path d="M15.5 14.4 C13.9 15.8 13.9 17.3 15.5 18.6 C17.1 17.3 17.1 15.8 15.5 14.4 Z" fill="#059669" />
+
+        <rect x="19.8" y="9.5" width="6.4" height="1.6" rx="0.8" fill="#D1FAE5" />
+        <rect x="20.5" y="11.5" width="5" height="12" rx="1" fill="#D1FAE5" />
+        <circle cx="23" cy="16.5" r="1.7" fill="none" stroke="#059669" strokeWidth="0.7" />
+        <circle cx="23" cy="16.5" r="0.6" fill="#059669" />
+      </svg>
+    </span>
+  );
 }
 
 function SidebarContent({
@@ -75,9 +110,7 @@ function SidebarContent({
   return (
     <>
       <div className="sb-brand">
-        <div className="sb-brand-mark" aria-hidden>
-          <span className="sb-brand-mark-dot" />
-        </div>
+        <BrandMark />
         {expanded && (
           <div className="sb-brand-text">
             <span className="sb-brand-name">SRSS</span>
@@ -150,6 +183,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div style={{ width: 36, height: 36, border: '3px solid #E8E5E0', borderTopColor: '#059669', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       </div>
     );
+  }
+
+  if (user.role !== 'admin') {
+    return <AccessRestricted />;
   }
 
   const filteredMenu = menuItems.filter(
@@ -278,21 +315,20 @@ const dashStyles = `
     border-bottom: 1px solid #F7F6F4;
   }
   .sb-brand-mark {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #059669, #047857);
-    display: flex;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 3px 10px rgba(5,150,105,0.22);
+    border-radius: 9px;
+    box-shadow: 0 4px 12px rgba(5,150,105,0.22);
+    overflow: hidden;
   }
-  .sb-brand-mark-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #FFFFFF;
+  .sb-brand-mark svg {
+    display: block;
+    width: 32px;
+    height: 32px;
   }
   .sb-brand-text {
     display: flex;

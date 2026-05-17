@@ -13,6 +13,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, spacing } from '../../src/theme/tokens';
+import { getZoneName } from '../../src/utils/zone';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -95,7 +96,7 @@ export default function ProfileScreen() {
       <View style={s.card}>
         <InfoRow label="DNI" value={user?.dni || '—'} />
         <View style={s.separator} />
-        <InfoRow label="Zona asignada" value={user?.zone || 'Por asignar'} />
+        <InfoRow label="Zona asignada" value={getZoneName(user?.zone) || 'Por asignar'} />
         {user?.phone ? (
           <>
             <View style={s.separator} />
@@ -109,6 +110,14 @@ export default function ProfileScreen() {
           </>
         ) : null}
       </View>
+
+      <TouchableOpacity
+        style={s.editBtn}
+        onPress={() => router.push('/profile-edit')}
+        activeOpacity={0.85}
+      >
+        <Text style={s.editBtnText}>Editar mi perfil</Text>
+      </TouchableOpacity>
 
       <Text style={s.sectionTitle}>Configuración</Text>
       <View style={s.card}>
@@ -253,4 +262,16 @@ const s = StyleSheet.create({
     borderColor: 'rgba(239,68,68,0.35)',
   },
   logoutBtnText: { color: colors.danger, fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
+
+  editBtn: {
+    backgroundColor: colors.primarySoft,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    marginTop: -spacing.md,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+  },
+  editBtnText: { color: colors.primary, fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 });
