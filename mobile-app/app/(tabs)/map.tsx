@@ -9,11 +9,12 @@ import {
   ScrollView,
   Easing,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
-import { colors, radius, spacing } from '../../src/theme/tokens';
+import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 import { getZoneId } from '../../src/utils/zone';
 
 type RouteStatus = 'active' | 'completed' | 'pending' | 'planned' | 'cancelled' | 'inactive';
@@ -48,7 +49,7 @@ type FilterKey = 'active' | 'completed' | 'pending';
 const FILTER_META: Record<FilterKey, { label: string; color: string }> = {
   active: { label: 'Activas', color: colors.primary },
   completed: { label: 'Completadas', color: colors.info },
-  pending: { label: 'Pendientes', color: colors.textMuted },
+  pending: { label: 'Pendientes', color: colors.textSecondary },
 };
 
 function minutesAgo(iso: string | null): string {
@@ -103,7 +104,7 @@ const mStyles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 3,
-    backgroundColor: colors.bg,
+    backgroundColor: '#FFFFFF',
   },
 });
 
@@ -253,12 +254,12 @@ export default function MapScreen() {
 
   const polylineStyleFor = (status: RouteStatus | undefined) => {
     if (status === 'active') {
-      return { color: 'rgba(16,185,129,1)', width: 5, dash: undefined as number[] | undefined };
+      return { color: colors.primary, width: 5, dash: undefined as number[] | undefined };
     }
     if (status === 'completed') {
-      return { color: 'rgba(59,130,246,0.5)', width: 3, dash: [8, 8] as number[] | undefined };
+      return { color: 'rgba(30,81,128,0.55)', width: 3, dash: [8, 8] as number[] | undefined };
     }
-    return { color: 'rgba(148,163,184,0.4)', width: 2, dash: [2, 6] as number[] | undefined };
+    return { color: 'rgba(92,108,117,0.35)', width: 2, dash: [2, 6] as number[] | undefined };
   };
 
   if (loading) {
@@ -275,7 +276,7 @@ export default function MapScreen() {
       <View style={s.loadingBox}>
         <Text style={s.errorTitle}>Sin acceso a tu ubicación</Text>
         <Text style={s.loadingText}>{errorMsg}</Text>
-        <TouchableOpacity style={s.retryBtn} onPress={handleRefresh}>
+        <TouchableOpacity style={s.retryBtn} onPress={handleRefresh} activeOpacity={0.85}>
           <Text style={s.retryBtnText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
@@ -297,7 +298,6 @@ export default function MapScreen() {
         }}
         showsUserLocation
         showsMyLocationButton={false}
-        customMapStyle={mapStyle}
       >
         {filteredRoutes.map((r) => {
           const coords = r.path?.coordinates;
@@ -323,18 +323,16 @@ export default function MapScreen() {
                 longitude: wp.location.coordinates[0],
               }}
               title={wp.name || `Punto ${wp.order}`}
-              description={wp.estimatedArrival ? `Llegada estimada: ${wp.estimatedArrival}` : undefined}
+              description={
+                wp.estimatedArrival ? `Llegada estimada: ${wp.estimatedArrival}` : undefined
+              }
               pinColor={colors.info}
             />
           ))
         )}
 
         {trail && trail.points.length > 1 && (
-          <Polyline
-            coordinates={trail.points}
-            strokeColor="rgba(16,185,129,0.55)"
-            strokeWidth={3}
-          />
+          <Polyline coordinates={trail.points} strokeColor="rgba(0,104,74,0.55)" strokeWidth={3} />
         )}
 
         {executions.map((exec) =>
@@ -358,7 +356,7 @@ export default function MapScreen() {
             <View
               style={[
                 s.statusDot,
-                { backgroundColor: activeTrucks > 0 ? colors.primary : colors.textFaint },
+                { backgroundColor: activeTrucks > 0 ? colors.primary : colors.textMuted },
               ]}
             />
             <Text style={s.cardTitle}>
@@ -369,8 +367,8 @@ export default function MapScreen() {
           </View>
           <Text style={s.cardDesc}>
             {activeTrucks > 0
-              ? 'Toca un camión para ver detalles y rastreo'
-              : 'Te avisaremos cuando un camión esté en ruta'}
+              ? 'Tocá un camión para ver detalles y rastreo en vivo.'
+              : 'Te avisaremos cuando un camión esté en ruta.'}
           </Text>
 
           <ScrollView
@@ -388,14 +386,17 @@ export default function MapScreen() {
                   activeOpacity={0.8}
                   style={[
                     s.filterChip,
-                    {
-                      borderColor: active ? `${meta.color}80` : colors.border,
-                      backgroundColor: active ? `${meta.color}25` : 'rgba(15,23,42,0.6)',
+                    active && {
+                      borderColor: `${meta.color}80`,
+                      backgroundColor: `${meta.color}18`,
                     },
                   ]}
                 >
                   <Text
-                    style={[s.filterChipText, { color: active ? meta.color : colors.textMuted }]}
+                    style={[
+                      s.filterChipText,
+                      { color: active ? meta.color : colors.textSecondary },
+                    ]}
                   >
                     {meta.label}
                   </Text>
@@ -418,7 +419,7 @@ export default function MapScreen() {
                 }}
                 hitSlop={8}
               >
-                <Text style={s.tooltipClose}>×</Text>
+                <Feather name="x" size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             <Text style={s.tooltipLine}>Operador: {selectedExecution.operatorName}</Text>
@@ -435,29 +436,15 @@ export default function MapScreen() {
       )}
 
       <TouchableOpacity style={s.fab} onPress={centerOnUser} activeOpacity={0.85}>
-        <Text style={s.fabIcon}>◎</Text>
+        <Feather name="crosshair" size={20} color="#FFFFFF" />
       </TouchableOpacity>
 
       <TouchableOpacity style={s.fabSecondary} onPress={handleRefresh} activeOpacity={0.85}>
-        <Text style={s.fabSecIcon}>↻</Text>
+        <Feather name="refresh-cw" size={16} color={colors.primary} />
       </TouchableOpacity>
     </View>
   );
 }
-
-const mapStyle = [
-  { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#263c3f' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#212a37' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#9ca5b3' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#746855' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
-];
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
@@ -470,8 +457,19 @@ const s = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.xl,
   },
-  loadingText: { color: colors.textMuted, marginTop: spacing.md, fontSize: 14, textAlign: 'center' },
-  errorTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 4 },
+  loadingText: {
+    fontFamily: fontFamily.sansMedium,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  errorTitle: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 15,
+    marginBottom: 4,
+  },
   retryBtn: {
     backgroundColor: colors.primary,
     paddingHorizontal: 20,
@@ -479,73 +477,102 @@ const s = StyleSheet.create({
     borderRadius: radius.pill,
     marginTop: spacing.md,
   },
-  retryBtnText: { color: '#FFF', fontWeight: '700' },
-
-  overlay: { position: 'absolute', top: 50, left: 16, right: 16 },
-  card: {
-    backgroundColor: 'rgba(15,23,42,0.92)',
-    padding: spacing.lg,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  statusDot: { width: 10, height: 10, borderRadius: 5, marginRight: spacing.md },
-  cardTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '800', flex: 1 },
-  cardDesc: { color: colors.textMuted, fontSize: 12, marginBottom: spacing.md },
-  filtersRow: { gap: spacing.sm, paddingRight: spacing.sm },
+
+  overlay: { position: 'absolute', top: 56, left: 16, right: 16 },
+  card: {
+    backgroundColor: '#FFFFFF',
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  statusDot: { width: 9, height: 9, borderRadius: 4.5, marginRight: spacing.md },
+  cardTitle: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 14,
+    flex: 1,
+  },
+  cardDesc: {
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginBottom: spacing.md,
+  },
+  filtersRow: { gap: spacing.xs, paddingRight: spacing.sm },
   filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
     borderRadius: radius.pill,
     borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
   },
-  filterChipText: { fontSize: 11, fontWeight: '700' },
+  filterChipText: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 11,
+  },
 
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 24,
     backgroundColor: colors.primary,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
   },
-  fabIcon: { color: '#FFF', fontSize: 22, fontWeight: '700' },
   fabSecondary: {
     position: 'absolute',
-    bottom: 86,
+    bottom: 82,
     right: 24,
-    backgroundColor: 'rgba(30,41,59,0.95)',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
+    elevation: 4,
+    shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  fabSecIcon: { color: colors.primary, fontSize: 18, fontWeight: '700' },
 
   tooltipWrap: { position: 'absolute', bottom: 100, left: 16, right: 80 },
   tooltip: {
-    backgroundColor: 'rgba(15,23,42,0.95)',
+    backgroundColor: '#FFFFFF',
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   tooltipHeader: {
     flexDirection: 'row',
@@ -553,7 +580,16 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
   },
-  tooltipTitle: { color: colors.textPrimary, fontWeight: '800', fontSize: 14, flex: 1 },
-  tooltipClose: { color: colors.textMuted, fontSize: 24, fontWeight: '300', paddingHorizontal: 4 },
-  tooltipLine: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
+  tooltipTitle: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 13.5,
+    flex: 1,
+  },
+  tooltipLine: {
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
 });

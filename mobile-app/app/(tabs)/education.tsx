@@ -16,8 +16,9 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import api from '../../src/api/client';
-import { colors, radius, spacing } from '../../src/theme/tokens';
+import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -43,9 +44,9 @@ interface CategoryChip {
 
 const CATEGORIES: CategoryChip[] = [
   { key: 'all', label: 'Todos', color: colors.primary },
-  { key: 'organic', label: 'Orgánico', color: '#92400E' },
+  { key: 'organic', label: 'Orgánico', color: '#8C6300' },
   { key: 'recyclable', label: 'Reciclable', color: colors.info },
-  { key: 'non_recyclable', label: 'No reciclable', color: '#475569' },
+  { key: 'non_recyclable', label: 'No reciclable', color: colors.textSecondary },
   { key: 'hazardous', label: 'Peligroso', color: colors.danger },
 ];
 
@@ -56,20 +57,20 @@ interface AnimatedItemProps {
 
 function AnimatedItem({ index, children }: AnimatedItemProps) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(20)).current;
+  const translateY = useRef(new Animated.Value(16)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 320,
-        delay: index * 60,
+        duration: 300,
+        delay: index * 50,
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
         toValue: 0,
-        duration: 320,
-        delay: index * 60,
+        duration: 300,
+        delay: index * 50,
         useNativeDriver: true,
       }),
     ]).start();
@@ -149,12 +150,7 @@ export default function EducationScreen() {
 
   const renderCard = (wt: WasteType, idx: number) => (
     <AnimatedItem key={wt._id} index={idx}>
-      <View
-        style={[
-          s.card,
-          { borderColor: `${wt.colorCode}40`, backgroundColor: `${wt.colorCode}0A` },
-        ]}
-      >
+      <View style={[s.card, { borderLeftColor: wt.colorCode }]}>
         <View style={s.cardHeader}>
           <View style={[s.colorBox, { backgroundColor: wt.colorCode }]} />
           <Text style={s.cardTitle}>{wt.name}</Text>
@@ -169,11 +165,12 @@ export default function EducationScreen() {
         ) : null}
 
         <TouchableOpacity
-          style={[s.moreBtn, { borderColor: `${wt.colorCode}60` }]}
+          style={s.moreBtn}
           onPress={() => setSelected(wt)}
           activeOpacity={0.8}
         >
-          <Text style={[s.moreBtnText, { color: wt.colorCode }]}>Ver más</Text>
+          <Text style={s.moreBtnText}>Ver detalle</Text>
+          <Feather name="arrow-right" size={12} color={colors.primary} />
         </TouchableOpacity>
       </View>
     </AnimatedItem>
@@ -205,7 +202,7 @@ export default function EducationScreen() {
           <Text style={s.emptyTitle}>Sin resultados</Text>
           <Text style={s.emptyText}>
             {query.trim().length > 0
-              ? `No encontramos "${query}". ¿Quieres sugerirlo a la municipalidad?`
+              ? `No encontramos "${query}". ¿Querés sugerirlo a la municipalidad?`
               : 'No hay residuos disponibles ahora.'}
           </Text>
           {query.trim().length > 0 && (
@@ -243,7 +240,7 @@ export default function EducationScreen() {
       return (
         <View key={cat} style={{ marginBottom: spacing.sm }}>
           <View style={s.groupHeader}>
-            <View style={[s.groupDot, { backgroundColor: meta?.color || colors.textFaint }]} />
+            <View style={[s.groupDot, { backgroundColor: meta?.color || colors.textMuted }]} />
             <Text style={s.groupTitle}>{meta?.label || cat}</Text>
             <Text style={s.groupCount}>{items.length}</Text>
           </View>
@@ -260,14 +257,16 @@ export default function EducationScreen() {
   return (
     <View style={s.container}>
       <View style={s.stickyHeader}>
-        <Text style={s.pageTitle}>Guía de Reciclaje</Text>
-        <Text style={s.pageSub}>NTP 900.058 — busca, filtra y aprende a separar.</Text>
+        <Text style={s.eyebrow}>NTP 900.058</Text>
+        <Text style={s.pageTitle}>Guía de reciclaje</Text>
+        <Text style={s.pageSub}>Buscá, filtrá y aprendé a separar tus residuos.</Text>
 
         <View style={s.searchBox}>
+          <Feather name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
           <TextInput
             style={s.searchInput}
             placeholder="Buscar residuo (ej: papel, pilas...)"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textPlaceholder}
             value={query}
             onChangeText={setQuery}
             autoCapitalize="none"
@@ -298,13 +297,10 @@ export default function EducationScreen() {
                 <View
                   style={[
                     s.chip,
-                    {
-                      borderColor: active ? `${c.color}80` : colors.border,
-                      backgroundColor: active ? `${c.color}25` : 'rgba(30,41,59,0.6)',
-                    },
+                    active && { borderColor: `${c.color}80`, backgroundColor: `${c.color}14` },
                   ]}
                 >
-                  <Text style={[s.chipLabel, { color: active ? c.color : colors.textMuted }]}>
+                  <Text style={[s.chipLabel, { color: active ? c.color : colors.textSecondary }]}>
                     {c.label}
                   </Text>
                 </View>
@@ -345,7 +341,7 @@ export default function EducationScreen() {
                   <View style={[s.colorBox, { backgroundColor: selected.colorCode }]} />
                   <Text style={s.modalTitle}>{selected.name}</Text>
                   <TouchableOpacity onPress={() => setSelected(null)} hitSlop={8}>
-                    <Text style={s.modalClose}>×</Text>
+                    <Feather name="x" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
 
@@ -371,7 +367,7 @@ export default function EducationScreen() {
                     style={[
                       s.instructionBox,
                       {
-                        backgroundColor: `${selected.colorCode}15`,
+                        backgroundColor: `${selected.colorCode}12`,
                         borderColor: `${selected.colorCode}40`,
                       },
                     ]}
@@ -400,39 +396,73 @@ const s = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: spacing.md,
     backgroundColor: colors.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSoft,
   },
   loadingBox: { paddingVertical: 80, alignItems: 'center' },
 
-  pageTitle: { fontSize: 26, fontWeight: '900', color: colors.textPrimary, marginBottom: 4, letterSpacing: -0.5 },
-  pageSub: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.md, fontWeight: '500' },
+  eyebrow: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.primary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  pageTitle: {
+    fontFamily: fontFamily.serif,
+    fontSize: 28,
+    fontWeight: '500',
+    color: colors.ink,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+    marginBottom: 4,
+  },
+  pageSub: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13.5,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
 
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(30,41,59,0.8)',
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 4,
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 4,
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: spacing.md,
   },
   searchInput: {
     flex: 1,
-    color: colors.textPrimary,
+    color: colors.ink,
     fontSize: 14,
+    fontFamily: fontFamily.sansRegular,
     paddingVertical: Platform.OS === 'ios' ? 0 : 8,
   },
-  searchClear: { color: colors.textMuted, fontSize: 22, fontWeight: '300', paddingHorizontal: 4 },
+  searchClear: {
+    color: colors.textMuted,
+    fontSize: 20,
+    fontWeight: '300',
+    paddingHorizontal: 4,
+  },
 
-  chipsRow: { gap: spacing.sm, paddingRight: spacing.sm, paddingBottom: 4 },
+  chipsRow: { gap: spacing.xs, paddingRight: spacing.sm, paddingBottom: 4 },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
   },
-  chipLabel: { fontSize: 12, fontWeight: '700' },
+  chipLabel: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 11.5,
+  },
 
   groupHeader: {
     flexDirection: 'row',
@@ -440,85 +470,136 @@ const s = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
-  groupDot: { width: 8, height: 8, borderRadius: 4, marginRight: spacing.sm },
+  groupDot: { width: 7, height: 7, borderRadius: 3.5, marginRight: 8 },
   groupTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textMuted,
-    letterSpacing: 0.8,
+    fontFamily: fontFamily.sansBold,
+    fontSize: 11,
+    color: colors.textSecondary,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
     flex: 1,
   },
-  groupCount: { fontSize: 12, fontWeight: '700', color: colors.textFaint },
+  groupCount: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
 
   sectionLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '700',
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 11.5,
+    color: colors.textSecondary,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
 
-  card: { borderRadius: radius.xl, padding: spacing.lg, marginBottom: spacing.md, borderWidth: 1 },
+  card: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderLeftWidth: 3,
+  },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   colorBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 18,
+    height: 18,
+    borderRadius: 5,
     marginRight: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
   },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, flex: 1 },
-  descText: { fontSize: 13, color: colors.textSecondary, marginBottom: spacing.sm, lineHeight: 19 },
-  examplesText: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.md, fontStyle: 'italic' },
+  cardTitle: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 15,
+    color: colors.ink,
+    flex: 1,
+  },
+  descText: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+    lineHeight: 19,
+  },
+  examplesText: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginBottom: spacing.md,
+    fontStyle: 'italic',
+  },
 
   moreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: radius.pill,
     borderWidth: 1,
-    backgroundColor: 'rgba(15,23,42,0.5)',
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primarySoft,
   },
-  moreBtnText: { fontSize: 12, fontWeight: '700' },
+  moreBtnText: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.primaryDark,
+    fontSize: 11.5,
+  },
 
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   tag: {
-    backgroundColor: 'rgba(30,41,59,0.8)',
+    backgroundColor: colors.bgSurface,
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  tagText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  tagText: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.textSecondary,
+    fontSize: 11.5,
+  },
 
   instructionBox: {
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
     marginTop: spacing.md,
   },
   instructionLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontFamily: fontFamily.sansBold,
+    fontSize: 11,
+    letterSpacing: 0.6,
     marginBottom: spacing.sm,
     textTransform: 'uppercase',
   },
-  instructionText: { color: colors.textPrimary, fontSize: 14, lineHeight: 20, fontWeight: '500' },
+  instructionText: {
+    fontFamily: fontFamily.sansMedium,
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 20,
+  },
 
   emptyBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 6 },
+  emptyTitle: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 15,
+    marginBottom: 6,
+  },
   emptyText: {
-    color: colors.textMuted,
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
     fontSize: 13,
-    fontWeight: '500',
     textAlign: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
     paddingHorizontal: 30,
   },
   retryBtn: {
@@ -527,29 +608,54 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: radius.pill,
   },
-  retryBtnText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13,
+  },
 
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,30,43,0.55)',
+    justifyContent: 'flex-end',
+  },
   modalCard: {
     backgroundColor: colors.bg,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: spacing.xxl,
     borderTopWidth: 1,
     borderColor: colors.border,
     maxHeight: '85%',
   },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
-  modalTitle: { fontSize: 20, fontWeight: '900', color: colors.textPrimary, flex: 1 },
-  modalClose: { color: colors.textMuted, fontSize: 26, fontWeight: '300', paddingHorizontal: 4 },
-  modalDesc: { fontSize: 14, color: colors.textSecondary, lineHeight: 21, marginBottom: spacing.lg },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  modalTitle: {
+    fontFamily: fontFamily.serif,
+    fontSize: 22,
+    fontWeight: '500',
+    color: colors.ink,
+    flex: 1,
+    letterSpacing: -0.3,
+  },
+  modalDesc: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: spacing.lg,
+  },
   modalSection: { marginBottom: spacing.md },
   modalSectionLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '800',
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.textSecondary,
     marginBottom: spacing.sm,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
 });

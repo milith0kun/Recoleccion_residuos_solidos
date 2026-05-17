@@ -16,6 +16,7 @@ import { useFocusEffect } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { useGpsTracker } from '../../src/hooks/useGpsTracker';
+import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 
 interface Waypoint {
   order: number;
@@ -52,7 +53,7 @@ function haversineMeters(
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-const AVG_SPEED_MS = 5; // ~18 km/h, conservative for collection trucks
+const AVG_SPEED_MS = 5;
 
 export default function RouteMapScreen() {
   const { getActiveExecutionId } = useAuth();
@@ -67,8 +68,6 @@ export default function RouteMapScreen() {
   });
   const [skipReason, setSkipReason] = useState('');
 
-  // GPS tracker (background of sorts — also runs in jornada screen, but enabling
-  // here ensures position keeps streaming while operator is on the map)
   useGpsTracker(execution?.status === 'in_progress' ? execution._id : null);
 
   const visitedSet = useMemo(() => {
@@ -121,7 +120,6 @@ export default function RouteMapScreen() {
     }, [loadExecution])
   );
 
-  // Watch position continuously for the live marker
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
     let cancelled = false;
@@ -160,7 +158,6 @@ export default function RouteMapScreen() {
     [execution?.route?.path?.coordinates]
   );
 
-  // Next pending waypoint (in numerical order)
   const nextWaypoint = useMemo(() => {
     const sorted = [...waypoints].sort((a, b) => a.order - b.order);
     return sorted.find((w) => !visitedSet.has(w.order)) || null;
@@ -174,7 +171,9 @@ export default function RouteMapScreen() {
     });
   }, [myLocation, nextWaypoint]);
 
-  const etaMinutes = distanceToNext ? Math.max(1, Math.round(distanceToNext / AVG_SPEED_MS / 60)) : null;
+  const etaMinutes = distanceToNext
+    ? Math.max(1, Math.round(distanceToNext / AVG_SPEED_MS / 60))
+    : null;
 
   const centerOnUser = () => {
     if (myLocation && mapRef.current) {
@@ -207,7 +206,7 @@ export default function RouteMapScreen() {
   const skipStop = async () => {
     if (!execution || skipModal.order == null) return;
     if (!skipReason.trim()) {
-      Alert.alert('Falta razón', 'Indica por qué se omite esta parada');
+      Alert.alert('Falta razón', 'Indicá por qué se omite esta parada');
       return;
     }
     try {
@@ -231,7 +230,7 @@ export default function RouteMapScreen() {
   if (loading) {
     return (
       <View style={s.loading}>
-        <ActivityIndicator size="large" color="#059669" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={s.loadingText}>Cargando ruta...</Text>
       </View>
     );
@@ -240,9 +239,13 @@ export default function RouteMapScreen() {
   if (!execution) {
     return (
       <View style={s.empty}>
-        <Feather name="map" size={48} color="#B0ADA8" />
+        <View style={s.emptyIcon}>
+          <Feather name="map" size={28} color={colors.primary} />
+        </View>
         <Text style={s.emptyTitle}>Sin jornada activa</Text>
-        <Text style={s.emptyDesc}>Inicia una jornada desde la pestaña "Jornada" para ver tu ruta.</Text>
+        <Text style={s.emptyDesc}>
+          Iniciá una jornada desde la pestaña "Jornada" para ver tu ruta.
+        </Text>
       </View>
     );
   }
@@ -263,23 +266,18 @@ export default function RouteMapScreen() {
           longitudeDelta: 0.03,
         }}
         showsUserLocation={false}
-        customMapStyle={mapStyle}
       >
         {polylineCoords.length > 1 ? (
-          <Polyline
-            coordinates={polylineCoords}
-            strokeColor="#059669"
-            strokeWidth={4}
-          />
+          <Polyline coordinates={polylineCoords} strokeColor={colors.primary} strokeWidth={4} />
         ) : null}
 
         {waypoints.map((wp) => {
           const visited = visitedSet.get(wp.order);
           const color = visited
             ? visited.skipped
-              ? '#EF4444'
-              : '#059669'
-            : '#B0ADA8';
+              ? colors.danger
+              : colors.primary
+            : colors.textMuted;
           return (
             <Marker
               key={wp.order}
@@ -289,11 +287,7 @@ export default function RouteMapScreen() {
               }}
               title={`${wp.order}. ${wp.name}`}
               description={
-                visited
-                  ? visited.skipped
-                    ? 'Saltada'
-                    : 'Visitada'
-                  : 'Pendiente'
+                visited ? (visited.skipped ? 'Saltada' : 'Visitada') : 'Pendiente'
               }
             >
               <View style={[s.wpMarker, { backgroundColor: color }]}>
@@ -313,7 +307,6 @@ export default function RouteMapScreen() {
         ) : null}
       </MapView>
 
-      {/* Bottom card */}
       <View style={s.bottomCard}>
         {nextWaypoint ? (
           <>
@@ -322,30 +315,33 @@ export default function RouteMapScreen() {
                 <Text style={s.nextBadgeText}>#{nextWaypoint.order}</Text>
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={s.bottomLabel}>PRÓXIMA PARADA</Text>
+                <Text style={s.bottomLabel}>Próxima parada</Text>
                 <Text style={s.bottomTitle} numberOfLines={1}>
                   {nextWaypoint.name}
                 </Text>
                 <View style={s.bottomMeta}>
                   {distanceToNext != null ? (
-                    <Text style={s.metaText}>
-                      <Feather name="navigation" size={11} color="#8A8780" />{' '}
-                      {distanceToNext < 1000
-                        ? `${Math.round(distanceToNext)} m`
-                        : `${(distanceToNext / 1000).toFixed(1)} km`}
-                    </Text>
+                    <View style={s.metaItem}>
+                      <Feather name="navigation" size={11} color={colors.textSecondary} />
+                      <Text style={s.metaText}>
+                        {distanceToNext < 1000
+                          ? `${Math.round(distanceToNext)} m`
+                          : `${(distanceToNext / 1000).toFixed(1)} km`}
+                      </Text>
+                    </View>
                   ) : null}
                   {etaMinutes != null ? (
-                    <Text style={s.metaText}>
-                      <Feather name="clock" size={11} color="#8A8780" /> ~{etaMinutes} min
-                    </Text>
+                    <View style={s.metaItem}>
+                      <Feather name="clock" size={11} color={colors.textSecondary} />
+                      <Text style={s.metaText}>~{etaMinutes} min</Text>
+                    </View>
                   ) : null}
                 </View>
               </View>
             </View>
             <View style={s.bottomActions}>
               <TouchableOpacity style={s.arrivedBtn} onPress={markArrived} activeOpacity={0.85}>
-                <Feather name="check-circle" size={18} color="#FFF" />
+                <Feather name="check-circle" size={16} color="#FFFFFF" />
                 <Text style={s.arrivedBtnText}>He llegado</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -353,22 +349,24 @@ export default function RouteMapScreen() {
                 onPress={() => setSkipModal({ open: true, order: nextWaypoint.order })}
                 activeOpacity={0.85}
               >
-                <Feather name="skip-forward" size={16} color="#EF4444" />
+                <Feather name="skip-forward" size={14} color={colors.danger} />
                 <Text style={s.skipBtnText}>Saltar</Text>
               </TouchableOpacity>
             </View>
           </>
         ) : (
-          <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <Feather name="award" size={28} color="#059669" />
+          <View style={{ alignItems: 'center', paddingVertical: 6 }}>
+            <Feather name="award" size={24} color={colors.primary} />
             <Text style={s.allDoneText}>¡Todas las paradas registradas!</Text>
-            <Text style={s.allDoneDesc}>Puedes finalizar la jornada desde la pestaña Jornada.</Text>
+            <Text style={s.allDoneDesc}>
+              Podés finalizar la jornada desde la pestaña Jornada.
+            </Text>
           </View>
         )}
       </View>
 
       <TouchableOpacity style={s.fab} onPress={centerOnUser} activeOpacity={0.85}>
-        <Feather name="crosshair" size={22} color="#FFF" />
+        <Feather name="crosshair" size={20} color="#FFFFFF" />
       </TouchableOpacity>
 
       <Modal
@@ -379,13 +377,15 @@ export default function RouteMapScreen() {
       >
         <View style={s.modalBackdrop}>
           <View style={s.modalCard}>
-            <Feather name="skip-forward" size={28} color="#EF4444" style={{ alignSelf: 'center' }} />
+            <View style={s.modalIconWrap}>
+              <Feather name="skip-forward" size={22} color={colors.danger} />
+            </View>
             <Text style={s.modalTitle}>Saltar parada</Text>
-            <Text style={s.modalDesc}>Indica brevemente la razón.</Text>
+            <Text style={s.modalDesc}>Indicá brevemente la razón.</Text>
             <TextInput
               style={s.input}
               placeholder="Ej. Calle bloqueada, contenedor inaccesible..."
-              placeholderTextColor="#B0ADA8"
+              placeholderTextColor={colors.textPlaceholder}
               value={skipReason}
               onChangeText={setSkipReason}
               multiline
@@ -394,10 +394,11 @@ export default function RouteMapScreen() {
               <TouchableOpacity
                 style={s.modalCancel}
                 onPress={() => setSkipModal({ open: false, order: null })}
+                activeOpacity={0.85}
               >
                 <Text style={s.modalCancelText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.modalConfirm} onPress={skipStop}>
+              <TouchableOpacity style={s.modalConfirm} onPress={skipStop} activeOpacity={0.85}>
                 <Text style={s.modalConfirmText}>Confirmar</Text>
               </TouchableOpacity>
             </View>
@@ -408,52 +409,88 @@ export default function RouteMapScreen() {
   );
 }
 
-const mapStyle = [
-  { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#9ca5b3' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
-];
-
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF8' },
+  container: { flex: 1, backgroundColor: colors.bg },
   map: { flex: 1 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAF8' },
-  loadingText: { color: '#8A8780', marginTop: 12 },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAF8', padding: 32 },
-  emptyTitle: { color: '#1A1A1A', fontSize: 18, fontWeight: '800', marginTop: 16 },
-  emptyDesc: { color: '#8A8780', fontSize: 13, textAlign: 'center', marginTop: 8 },
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    gap: spacing.md,
+  },
+  loadingText: {
+    fontFamily: fontFamily.sansMedium,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
+  empty: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    padding: spacing.xxl,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyTitle: {
+    fontFamily: fontFamily.serif,
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '500',
+    marginBottom: spacing.sm,
+    letterSpacing: -0.3,
+  },
+  emptyDesc: {
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
+    fontSize: 13.5,
+    textAlign: 'center',
+    lineHeight: 19,
+    paddingHorizontal: spacing.lg,
+  },
 
   wpMarker: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 4,
+    borderColor: '#FFFFFF',
+    shadowColor: colors.ink,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  wpMarkerText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
+  wpMarkerText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansBold,
+    fontSize: 11,
+  },
 
-  meWrap: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  meWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   meHalo: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(16,185,129,0.25)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,104,74,0.22)',
   },
   meDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#059669',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
@@ -462,118 +499,214 @@ const s = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 24,
+    bottom: 20,
     backgroundColor: '#FFFFFF',
-    borderColor: '#ECEAE6',
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.12,
     shadowRadius: 14,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   nextBadge: {
-    backgroundColor: 'rgba(16,185,129,0.18)',
-    borderColor: 'rgba(16,185,129,0.5)',
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primaryBorder,
     borderWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    minWidth: 50,
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: radius.sm,
+    minWidth: 48,
     alignItems: 'center',
   },
-  nextBadgeText: { color: '#059669', fontWeight: '900', fontSize: 16 },
-  bottomLabel: { color: '#8A8780', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  bottomTitle: { color: '#1A1A1A', fontSize: 17, fontWeight: '800', marginTop: 2 },
-  bottomMeta: { flexDirection: 'row', gap: 14, marginTop: 6 },
-  metaText: { color: '#8A8780', fontSize: 12, fontWeight: '600' },
+  nextBadgeText: {
+    fontFamily: fontFamily.sansBold,
+    color: colors.primaryDark,
+    fontSize: 14,
+  },
+  bottomLabel: {
+    fontFamily: fontFamily.sansBold,
+    color: colors.textSecondary,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  bottomTitle: {
+    fontFamily: fontFamily.serif,
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: '500',
+    marginTop: 2,
+    letterSpacing: -0.2,
+  },
+  bottomMeta: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: 4,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaText: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.textSecondary,
+    fontSize: 11.5,
+  },
 
-  bottomActions: { flexDirection: 'row', gap: 10 },
+  bottomActions: { flexDirection: 'row', gap: spacing.sm },
   arrivedBtn: {
     flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#059669',
-    paddingVertical: 14,
-    borderRadius: 14,
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: radius.md,
     gap: 8,
   },
-  arrivedBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
+  arrivedBtnText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
   skipBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239,68,68,0.12)',
-    borderColor: 'rgba(239,68,68,0.35)',
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.dangerBorder,
     borderWidth: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingVertical: 11,
+    borderRadius: radius.md,
     gap: 6,
   },
-  skipBtnText: { color: '#EF4444', fontWeight: '700', fontSize: 13 },
+  skipBtnText: {
+    color: colors.danger,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 12.5,
+  },
 
-  allDoneText: { color: '#1A1A1A', fontWeight: '800', fontSize: 17, marginTop: 10 },
-  allDoneDesc: { color: '#8A8780', fontSize: 12, marginTop: 4, textAlign: 'center' },
+  allDoneText: {
+    fontFamily: fontFamily.serif,
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: '500',
+    marginTop: 8,
+    letterSpacing: -0.2,
+  },
+  allDoneDesc: {
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
 
   fab: {
     position: 'absolute',
     right: 16,
     bottom: 200,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#059669',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.18,
     shadowRadius: 6,
-    elevation: 6,
+    elevation: 5,
   },
 
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,30,43,0.55)',
+    justifyContent: 'center',
+    padding: spacing.xxl,
+  },
   modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    borderColor: '#ECEAE6',
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
+    padding: spacing.xxl,
+    borderColor: colors.border,
     borderWidth: 1,
   },
-  modalTitle: { color: '#1A1A1A', fontSize: 18, fontWeight: '800', marginTop: 12, textAlign: 'center' },
-  modalDesc: { color: '#8A8780', fontSize: 13, textAlign: 'center', marginTop: 6 },
-  input: {
-    backgroundColor: '#FAFAF8',
-    borderColor: '#ECEAE6',
+  modalIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    color: '#1A1A1A',
+    borderColor: colors.dangerBorder,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  modalTitle: {
+    fontFamily: fontFamily.serif,
+    color: colors.ink,
+    fontSize: 19,
+    fontWeight: '500',
+    marginTop: spacing.md,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  modalDesc: {
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
+    fontSize: 13.5,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    lineHeight: 19,
+  },
+  input: {
+    backgroundColor: colors.bg,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    color: colors.ink,
+    fontFamily: fontFamily.sansRegular,
     fontSize: 14,
-    marginTop: 16,
+    marginTop: spacing.lg,
     minHeight: 70,
     textAlignVertical: 'top',
   },
-  modalRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  modalRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
   modalCancel: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.6)',
-    borderColor: '#ECEAE6',
+    backgroundColor: colors.bg,
+    borderColor: colors.border,
     borderWidth: 1,
-    paddingVertical: 13,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: radius.md,
     alignItems: 'center',
   },
-  modalCancelText: { color: '#1A1A1A', fontWeight: '700' },
+  modalCancelText: {
+    color: colors.ink,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13,
+  },
   modalConfirm: {
     flex: 1,
-    backgroundColor: '#EF4444',
-    paddingVertical: 13,
-    borderRadius: 12,
+    backgroundColor: colors.danger,
+    paddingVertical: 12,
+    borderRadius: radius.md,
     alignItems: 'center',
   },
-  modalConfirmText: { color: '#FFFFFF', fontWeight: '800' },
+  modalConfirmText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13,
+  },
 });

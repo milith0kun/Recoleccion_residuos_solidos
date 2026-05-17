@@ -9,10 +9,10 @@ import {
   Switch,
   Linking,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radius, spacing } from '../../src/theme/tokens';
+import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 import { getZoneName } from '../../src/utils/zone';
 
 export default function ProfileScreen() {
@@ -36,7 +36,7 @@ export default function ProfileScreen() {
 
   const handlePrivacy = () => {
     Alert.alert(
-      'Privacidad y Términos',
+      'Privacidad y términos',
       'SRSS Cusco usa tu ubicación sólo durante el rastreo de rutas. Los datos personales están protegidos según la Ley N.° 29733 de Protección de Datos Personales del Perú.',
       [{ text: 'Entendido' }]
     );
@@ -45,7 +45,7 @@ export default function ProfileScreen() {
   const handleSupport = () => {
     Alert.alert(
       'Soporte',
-      '¿Tienes problemas con la app o quieres reportar una incidencia?',
+      '¿Tenés problemas con la app o querés reportar una incidencia?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -69,19 +69,13 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
-      <Text style={s.pageTitle}>Mi Perfil</Text>
-      <Text style={s.pageSub}>Tu cuenta y preferencias en SRSS Cusco.</Text>
+      <Text style={s.eyebrow}>Tu cuenta · SRSS</Text>
+      <Text style={s.pageTitle}>Mi perfil</Text>
+      <Text style={s.pageSub}>Cuenta, datos y preferencias.</Text>
 
-      <LinearGradient
-        colors={['rgba(16,185,129,0.22)', 'rgba(15,23,42,0.5)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={s.profileCard}
-      >
-        <View style={s.avatarRing}>
-          <View style={s.avatarBox}>
-            <Text style={s.avatarText}>{initials || 'U'}</Text>
-          </View>
+      <View style={s.profileCard}>
+        <View style={s.avatarBox}>
+          <Text style={s.avatarText}>{initials || 'U'}</Text>
         </View>
         <Text style={s.name}>
           {user?.firstName} {user?.lastName}
@@ -90,7 +84,7 @@ export default function ProfileScreen() {
         <View style={s.badge}>
           <Text style={s.badgeText}>{roleLabel}</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <Text style={s.sectionTitle}>Datos personales</Text>
       <View style={s.card}>
@@ -116,29 +110,40 @@ export default function ProfileScreen() {
         onPress={() => router.push('/profile-edit')}
         activeOpacity={0.85}
       >
+        <Feather name="edit-2" size={13} color={colors.primaryDark} />
         <Text style={s.editBtnText}>Editar mi perfil</Text>
       </TouchableOpacity>
 
       <Text style={s.sectionTitle}>Configuración</Text>
       <View style={s.card}>
         <View style={s.menuItem}>
-          <Text style={s.menuItemText}>Notificaciones</Text>
+          <View style={s.menuItemLeft}>
+            <Feather name="bell" size={15} color={colors.textSecondary} />
+            <Text style={s.menuItemText}>Notificaciones</Text>
+          </View>
           <Switch
             value={pushEnabled}
             onValueChange={setPushEnabled}
-            trackColor={{ false: colors.border, true: 'rgba(16,185,129,0.45)' }}
-            thumbColor={pushEnabled ? colors.primary : colors.textMuted}
+            trackColor={{ false: colors.border, true: colors.primaryBorder }}
+            thumbColor={pushEnabled ? colors.primary : '#FFFFFF'}
+            ios_backgroundColor={colors.border}
           />
         </View>
         <View style={s.separator} />
         <TouchableOpacity style={s.menuItem} onPress={handlePrivacy} activeOpacity={0.7}>
-          <Text style={s.menuItemText}>Privacidad y términos</Text>
-          <Text style={s.menuArrow}>›</Text>
+          <View style={s.menuItemLeft}>
+            <Feather name="shield" size={15} color={colors.textSecondary} />
+            <Text style={s.menuItemText}>Privacidad y términos</Text>
+          </View>
+          <Feather name="chevron-right" size={16} color={colors.textMuted} />
         </TouchableOpacity>
         <View style={s.separator} />
         <TouchableOpacity style={s.menuItem} onPress={handleSupport} activeOpacity={0.7}>
-          <Text style={s.menuItemText}>Soporte</Text>
-          <Text style={s.menuArrow}>›</Text>
+          <View style={s.menuItemLeft}>
+            <Feather name="help-circle" size={15} color={colors.textSecondary} />
+            <Text style={s.menuItemText}>Soporte</Text>
+          </View>
+          <Feather name="chevron-right" size={16} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -147,6 +152,7 @@ export default function ProfileScreen() {
       </View>
 
       <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+        <Feather name="log-out" size={14} color={colors.danger} />
         <Text style={s.logoutBtnText}>Cerrar sesión</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -167,63 +173,102 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.xxl, paddingTop: 60, paddingBottom: 40 },
-  pageTitle: { fontSize: 26, fontWeight: '900', color: colors.textPrimary, marginBottom: 4, letterSpacing: -0.5 },
-  pageSub: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.xl, fontWeight: '500' },
+
+  eyebrow: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.primary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  pageTitle: {
+    fontFamily: fontFamily.serif,
+    fontSize: 28,
+    fontWeight: '500',
+    color: colors.ink,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+    marginBottom: 4,
+  },
+  pageSub: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13.5,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
 
   profileCard: {
-    borderRadius: radius.xxl,
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
     padding: spacing.xxl,
     alignItems: 'center',
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
     borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.25)',
+    borderColor: colors.border,
   },
-  avatarRing: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 2,
-    borderColor: 'rgba(16,185,129,0.5)',
+  avatarBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  avatarBox: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: colors.primarySoft,
-    justifyContent: 'center',
-    alignItems: 'center',
+  avatarText: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 22,
+    color: colors.primaryDark,
+    letterSpacing: 0.3,
   },
-  avatarText: { fontSize: 28, fontWeight: '900', color: colors.primary, letterSpacing: -0.5 },
-  name: { fontSize: 20, fontWeight: '900', color: colors.textPrimary, marginBottom: 4, letterSpacing: -0.3 },
-  email: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.md, fontWeight: '500' },
+  name: {
+    fontFamily: fontFamily.serif,
+    fontSize: 20,
+    fontWeight: '500',
+    color: colors.ink,
+    marginBottom: 2,
+    letterSpacing: -0.2,
+  },
+  email: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
   badge: {
-    backgroundColor: colors.infoSoft,
+    backgroundColor: colors.primarySoft,
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.35)',
+    borderColor: colors.primaryBorder,
   },
-  badgeText: { color: colors.info, fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
+  badgeText: {
+    fontFamily: fontFamily.sansBold,
+    color: colors.primaryDark,
+    fontSize: 10.5,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
 
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textMuted,
+    fontFamily: fontFamily.sansBold,
+    fontSize: 11,
+    color: colors.textSecondary,
     marginBottom: spacing.sm,
     marginTop: 4,
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   card: {
-    backgroundColor: colors.bgSoft,
-    borderRadius: radius.lg,
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
     overflow: 'hidden',
   },
 
@@ -234,8 +279,17 @@ const s = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  infoLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
-  infoValue: { color: colors.textPrimary, fontSize: 13, fontWeight: '700', maxWidth: '55%' },
+  infoLabel: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.textSecondary,
+    fontSize: 12.5,
+  },
+  infoValue: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 13,
+    maxWidth: '55%',
+  },
 
   separator: { height: 1, backgroundColor: colors.borderSoft },
 
@@ -246,32 +300,57 @@ const s = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  menuItemText: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
-  menuArrow: { color: colors.textFaint, fontSize: 24, fontWeight: '300' },
+  menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  menuItemText: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 13.5,
+  },
 
-  versionBox: { alignItems: 'center', marginBottom: spacing.lg, marginTop: 4 },
-  versionText: { color: colors.textFaint, fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+  versionBox: { alignItems: 'center', marginBottom: spacing.md, marginTop: 4 },
+  versionText: {
+    fontFamily: fontFamily.sansMedium,
+    color: colors.textMuted,
+    fontSize: 11,
+    letterSpacing: 0.4,
+  },
 
   logoutBtn: {
-    backgroundColor: colors.dangerSoft,
-    paddingVertical: spacing.lg,
-    borderRadius: radius.lg,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.bg,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.35)',
+    borderColor: colors.dangerBorder,
   },
-  logoutBtnText: { color: colors.danger, fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
+  logoutBtnText: {
+    color: colors.danger,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
 
   editBtn: {
-    backgroundColor: colors.primarySoft,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: -spacing.md,
-    marginBottom: spacing.xl,
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primarySoft,
+    paddingVertical: 11,
+    borderRadius: radius.md,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
   },
-  editBtnText: { color: colors.primary, fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  editBtnText: {
+    color: colors.primaryDark,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 12.5,
+    letterSpacing: 0.2,
+  },
 });

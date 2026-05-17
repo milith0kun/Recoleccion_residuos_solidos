@@ -1,30 +1,44 @@
+import { Platform } from 'react-native';
+
+/**
+ * Paleta Atlas — alineada con web-platform (`--color-atlas`).
+ * Verde institucional profundo, fondos cálidos blancos, tipografía sobria.
+ */
 export const colors = {
-  bg: '#FAFAF8',
+  bg: '#FFFFFF',
   bgElevated: '#FFFFFF',
-  bgSoft: '#F7F6F4',
-  bgOverlay: 'rgba(255,255,255,0.85)',
+  bgSoft: '#F9FBFA',
+  bgSurface: '#F1F4F2',
+  bgOverlay: 'rgba(255,255,255,0.92)',
 
-  border: '#ECEAE6',
-  borderSoft: '#F0EEEB',
+  border: '#E8EDEB',
+  borderSoft: '#F0F2F0',
+  borderStrong: '#DCE2E0',
 
-  textPrimary: '#1A1A1A',
-  textSecondary: '#5A5750',
-  textMuted: '#8A8780',
-  textFaint: '#B0ADA8',
+  ink: '#001E2B',
+  textPrimary: '#001E2B',
+  textSecondary: '#5C6C75',
+  textMuted: '#889397',
+  textFaint: '#B2BAC0',
+  textPlaceholder: '#B2BAC0',
 
-  primary: '#059669',
-  primaryDark: '#047857',
-  primarySoft: 'rgba(5,150,105,0.08)',
-  primaryBorder: 'rgba(5,150,105,0.35)',
+  primary: '#00684A',
+  primaryDark: '#00513A',
+  primaryLight: '#00A35C',
+  primarySoft: '#E3FCEF',
+  primaryBorder: '#C1F1D6',
 
-  info: '#2563EB',
-  infoSoft: 'rgba(37,99,235,0.08)',
+  info: '#1E5180',
+  infoSoft: '#E3EEF9',
+  infoBorder: '#C8DBF0',
 
-  warn: '#D97706',
-  warnSoft: 'rgba(217,119,6,0.08)',
+  warn: '#8C6300',
+  warnSoft: '#FFF5D6',
+  warnBorder: '#FFE9A8',
 
-  danger: '#DC2626',
-  dangerSoft: 'rgba(220,38,38,0.08)',
+  danger: '#8B3030',
+  dangerSoft: '#FCE9E9',
+  dangerBorder: '#F7CFCF',
 } as const;
 
 export const spacing = {
@@ -38,41 +52,96 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
+  sm: 6,
+  md: 8,
+  lg: 10,
+  xl: 12,
+  xxl: 16,
   pill: 999,
 } as const;
 
+/**
+ * Familias tipográficas. Sans = Inter (cargado en _layout).
+ * Serif del sistema (Georgia / serif) hasta que se decida cargar Newsreader.
+ */
+export const fontFamily = {
+  sansRegular: 'Inter_400Regular',
+  sansMedium: 'Inter_500Medium',
+  sansSemibold: 'Inter_600SemiBold',
+  sansBold: 'Inter_700Bold',
+  sansBlack: 'Inter_800ExtraBold',
+  serif: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }) as string,
+} as const;
+
 export const typography = {
+  /** Título grande estilo Atlas — serif, ligero, tracking ajustado. */
+  display: {
+    fontFamily: fontFamily.serif,
+    fontSize: 32,
+    fontWeight: '500' as const,
+    color: colors.ink,
+    letterSpacing: -0.6,
+    lineHeight: 36,
+  },
   pageTitle: {
+    fontFamily: fontFamily.serif,
     fontSize: 26,
-    fontWeight: '900' as const,
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
+    fontWeight: '500' as const,
+    color: colors.ink,
+    letterSpacing: -0.4,
+    lineHeight: 30,
   },
   pageSub: {
-    fontSize: 13,
-    color: colors.textMuted,
-    fontWeight: '500' as const,
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13.5,
+    color: colors.textSecondary,
+    lineHeight: 19,
+  },
+  /** Eyebrow uppercase verde Atlas — sobre títulos hero. */
+  eyebrow: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.primary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase' as const,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '800' as const,
-    color: colors.textMuted,
-    letterSpacing: 0.8,
+    fontFamily: fontFamily.sansBold,
+    fontSize: 11,
+    color: colors.textSecondary,
+    letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
   },
   cardTitle: {
+    fontFamily: fontFamily.sansSemibold,
     fontSize: 16,
-    fontWeight: '800' as const,
-    color: colors.textPrimary,
+    color: colors.ink,
+    letterSpacing: -0.2,
   },
   body: {
-    fontSize: 13,
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13.5,
     color: colors.textSecondary,
+    lineHeight: 19,
+  },
+  /** Etiqueta de campo (uppercase 10.5 bold). */
+  fieldLabel: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.textSecondary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase' as const,
+  },
+  /** Texto monoespaciado para chips de norma / códigos. */
+  mono: {
+    fontFamily: Platform.select({
+      ios: 'Menlo',
+      android: 'monospace',
+      default: 'monospace',
+    }) as string,
+    fontSize: 11,
+    color: colors.textSecondary,
+    letterSpacing: 0.2,
   },
 } as const;
 

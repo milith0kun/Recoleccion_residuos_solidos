@@ -13,6 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
+import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 
 interface Waypoint {
   order: number;
@@ -138,9 +139,13 @@ export default function ReportScreen() {
   if (!execution) {
     return (
       <View style={s.empty}>
-        <Feather name="clipboard" size={48} color="#B0ADA8" />
+        <View style={s.emptyIcon}>
+          <Feather name="clipboard" size={26} color={colors.primary} />
+        </View>
         <Text style={s.emptyTitle}>Sin jornada activa</Text>
-        <Text style={s.emptyDesc}>Inicia una jornada para registrar paradas y recolección.</Text>
+        <Text style={s.emptyDesc}>
+          Iniciá una jornada para registrar paradas y recolección.
+        </Text>
       </View>
     );
   }
@@ -154,11 +159,13 @@ export default function ReportScreen() {
   return (
     <ScrollView
       style={s.container}
+      contentContainerStyle={s.content}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#059669" />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
-      <Text style={s.h1}>Historial de paradas</Text>
+      <Text style={s.eyebrow}>Historial</Text>
+      <Text style={s.h1}>Paradas registradas</Text>
       <Text style={s.subtitle}>{execution.route.name}</Text>
 
       <View style={s.list}>
@@ -168,7 +175,11 @@ export default function ReportScreen() {
             const v = visited.get(wp.order);
             const state = !v ? 'pending' : v.skipped ? 'skipped' : 'done';
             const color =
-              state === 'done' ? '#059669' : state === 'skipped' ? '#EF4444' : '#B0ADA8';
+              state === 'done'
+                ? colors.primary
+                : state === 'skipped'
+                ? colors.danger
+                : colors.textMuted;
             return (
               <View key={wp.order} style={s.item}>
                 <View style={[s.itemBadge, { backgroundColor: color }]}>
@@ -180,13 +191,15 @@ export default function ReportScreen() {
                     {state === 'done'
                       ? `Visitada${v ? ` · ${new Date(v.arrivedAt).toLocaleTimeString()}` : ''}`
                       : state === 'skipped'
-                        ? `Saltada${v?.skipReason ? ` · ${v.skipReason}` : ''}`
-                        : 'Pendiente'}
+                      ? `Saltada${v?.skipReason ? ` · ${v.skipReason}` : ''}`
+                      : 'Pendiente'}
                   </Text>
                 </View>
                 <Feather
-                  name={state === 'done' ? 'check-circle' : state === 'skipped' ? 'x-circle' : 'circle'}
-                  size={20}
+                  name={
+                    state === 'done' ? 'check-circle' : state === 'skipped' ? 'x-circle' : 'circle'
+                  }
+                  size={18}
                   color={color}
                 />
               </View>
@@ -197,9 +210,10 @@ export default function ReportScreen() {
         ) : null}
       </View>
 
+      <Text style={s.eyebrow}>Cierre</Text>
       <Text style={s.h1}>Datos de recolección</Text>
       <Text style={s.helper}>
-        Registra los pesos al final de la jornada. Se enviarán al cerrar la ejecución.
+        Registrá los pesos al final de la jornada. Se enviarán al cerrar la ejecución.
       </Text>
 
       <View style={s.form}>
@@ -227,22 +241,22 @@ export default function ReportScreen() {
 
         <Text style={s.label}>Observaciones</Text>
         <TextInput
-          style={[s.input, { minHeight: 90, textAlignVertical: 'top' }, !isActive && s.disabled]}
+          style={[s.input, { minHeight: 80, textAlignVertical: 'top' }, !isActive && s.disabled]}
           editable={isActive}
           multiline
           placeholder="Comentarios, incidencias o detalles relevantes..."
-          placeholderTextColor="#B0ADA8"
+          placeholderTextColor={colors.textPlaceholder}
           value={observations}
           onChangeText={setObservations}
         />
 
         <TouchableOpacity
-          style={[s.saveBtn, (!isActive || saving) && { opacity: 0.5 }]}
+          style={[s.saveBtn, (!isActive || saving) && { opacity: 0.55 }]}
           disabled={!isActive || saving}
           onPress={saveCollection}
           activeOpacity={0.85}
         >
-          <Feather name="save" size={18} color="#FFFFFF" />
+          <Feather name="save" size={16} color="#FFFFFF" />
           <Text style={s.saveBtnText}>{saving ? 'Guardando...' : 'Guardar recolección'}</Text>
         </TouchableOpacity>
       </View>
@@ -269,13 +283,13 @@ function Field({
     <>
       <Text style={s.label}>{label}</Text>
       <View style={[s.inputRow, disabled && s.disabled]}>
-        <Feather name={icon} size={16} color="#8A8780" />
+        <Feather name={icon} size={15} color={colors.textMuted} />
         <TextInput
           style={s.inputInner}
           editable={!disabled}
           keyboardType="numeric"
           placeholder="0.0"
-          placeholderTextColor="#B0ADA8"
+          placeholderTextColor={colors.textPlaceholder}
           value={value}
           onChangeText={onChange}
         />
@@ -285,64 +299,149 @@ function Field({
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF8', padding: 20 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.lg, paddingTop: spacing.md },
   empty: {
     flex: 1,
-    backgroundColor: '#FAFAF8',
+    backgroundColor: colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: spacing.xxl,
   },
-  emptyTitle: { color: '#1A1A1A', fontSize: 18, fontWeight: '800', marginTop: 16 },
-  emptyDesc: { color: '#8A8780', fontSize: 13, textAlign: 'center', marginTop: 8 },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyTitle: {
+    fontFamily: fontFamily.serif,
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '500',
+    marginBottom: spacing.sm,
+    letterSpacing: -0.2,
+  },
+  emptyDesc: {
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
 
-  h1: { color: '#1A1A1A', fontSize: 20, fontWeight: '900', marginBottom: 4, marginTop: 12 },
-  subtitle: { color: '#8A8780', fontSize: 13, marginBottom: 16 },
-  helper: { color: '#8A8780', fontSize: 12, marginBottom: 12 },
+  eyebrow: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.primary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    marginTop: spacing.md,
+  },
+  h1: {
+    fontFamily: fontFamily.serif,
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: '500',
+    marginBottom: 2,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
+    fontSize: 13,
+    marginBottom: spacing.lg,
+  },
+  helper: {
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
+    fontSize: 12.5,
+    marginBottom: spacing.md,
+    lineHeight: 18,
+  },
 
-  list: { marginBottom: 24 },
+  list: { marginBottom: spacing.lg },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#ECEAE6',
+    backgroundColor: colors.bg,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 8,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
   itemBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  itemBadgeText: { color: '#FFFFFF', fontWeight: '900', fontSize: 13 },
-  itemName: { color: '#1A1A1A', fontSize: 14, fontWeight: '700' },
-  itemStatus: { fontSize: 11, marginTop: 2, fontWeight: '600' },
+  itemBadgeText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansBold,
+    fontSize: 12,
+  },
+  itemName: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 13.5,
+  },
+  itemStatus: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 11,
+    marginTop: 2,
+  },
 
-  form: { backgroundColor: '#FFFFFF', borderColor: '#ECEAE6', borderWidth: 1, borderRadius: 16, padding: 16 },
-  label: { color: '#8A8780', fontSize: 12, fontWeight: '700', marginBottom: 6, marginTop: 12, letterSpacing: 0.3 },
+  form: {
+    backgroundColor: colors.bg,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+  },
+  label: {
+    fontFamily: fontFamily.sansBold,
+    color: colors.textSecondary,
+    fontSize: 10.5,
+    marginBottom: 6,
+    marginTop: spacing.md,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAFAF8',
-    borderColor: '#ECEAE6',
+    backgroundColor: colors.bgSoft,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     gap: 8,
   },
-  inputInner: { flex: 1, color: '#1A1A1A', fontSize: 15, paddingVertical: 12 },
+  inputInner: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 15,
+    fontFamily: fontFamily.sansMedium,
+    paddingVertical: 11,
+  },
   input: {
-    backgroundColor: '#FAFAF8',
-    borderColor: '#ECEAE6',
+    backgroundColor: colors.bgSoft,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
-    paddingVertical: 12,
-    color: '#1A1A1A',
+    paddingVertical: 11,
+    color: colors.ink,
+    fontFamily: fontFamily.sansRegular,
     fontSize: 14,
   },
   disabled: { opacity: 0.6 },
@@ -350,11 +449,16 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#059669',
-    borderRadius: 14,
-    paddingVertical: 14,
-    marginTop: 20,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: 13,
+    marginTop: spacing.lg,
     gap: 8,
   },
-  saveBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
 });

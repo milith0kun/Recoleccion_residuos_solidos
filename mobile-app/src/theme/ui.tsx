@@ -8,18 +8,23 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { colors, radius, spacing } from './tokens';
+import { colors, fontFamily, radius, spacing } from './tokens';
 
 interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
+  eyebrow?: string;
   rightSlot?: React.ReactNode;
 }
 
-export function ScreenHeader({ title, subtitle, rightSlot }: ScreenHeaderProps) {
+/**
+ * Cabecera estándar Atlas — eyebrow opcional, título serif, subtítulo en sans.
+ */
+export function ScreenHeader({ title, subtitle, eyebrow, rightSlot }: ScreenHeaderProps) {
   return (
     <View style={uiStyles.header}>
       <View style={{ flex: 1 }}>
+        {eyebrow ? <Text style={uiStyles.headerEyebrow}>{eyebrow}</Text> : null}
         <Text style={uiStyles.headerTitle}>{title}</Text>
         {subtitle ? <Text style={uiStyles.headerSubtitle}>{subtitle}</Text> : null}
       </View>
@@ -46,15 +51,21 @@ export function SectionTitle({ children, trailing, style }: SectionTitleProps) {
 interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
-  tone?: 'default' | 'subtle';
+  tone?: 'default' | 'subtle' | 'accent';
 }
 
+/**
+ * Card Atlas — fondo blanco, borde gris claro, sombra muy sutil.
+ * tone="subtle" usa fondo bgSoft (gris cálido).
+ * tone="accent" añade borde-izq verde.
+ */
 export function Card({ children, style, tone = 'default' }: CardProps) {
   return (
     <View
       style={[
         uiStyles.card,
         tone === 'subtle' && uiStyles.cardSubtle,
+        tone === 'accent' && uiStyles.cardAccent,
         style,
       ]}
     >
@@ -68,7 +79,7 @@ interface PrimaryButtonProps {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   style?: ViewStyle;
   textStyle?: TextStyle;
 }
@@ -87,10 +98,14 @@ export function PrimaryButton({
       ? uiStyles.btnDanger
       : variant === 'secondary'
       ? uiStyles.btnSecondary
+      : variant === 'ghost'
+      ? uiStyles.btnGhost
       : uiStyles.btnPrimary;
 
   const textVariant =
-    variant === 'secondary' ? uiStyles.btnSecondaryText : uiStyles.btnPrimaryText;
+    variant === 'secondary' || variant === 'ghost'
+      ? uiStyles.btnSecondaryText
+      : uiStyles.btnPrimaryText;
 
   return (
     <TouchableOpacity
@@ -100,7 +115,7 @@ export function PrimaryButton({
       style={[uiStyles.btn, variantStyle, (loading || disabled) && uiStyles.btnDisabled, style]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'secondary' ? colors.primary : '#FFF'} />
+        <ActivityIndicator color={variant === 'secondary' || variant === 'ghost' ? colors.ink : '#FFFFFF'} />
       ) : (
         <Text style={[textVariant, textStyle]}>{label}</Text>
       )}
@@ -140,11 +155,11 @@ interface BadgeProps {
 
 export function Badge({ label, tone = 'primary' }: BadgeProps) {
   const map = {
-    primary: { bg: colors.primarySoft, border: colors.primaryBorder, color: colors.primary },
-    info: { bg: colors.infoSoft, border: 'rgba(59,130,246,0.35)', color: colors.info },
-    warn: { bg: colors.warnSoft, border: 'rgba(245,158,11,0.35)', color: colors.warn },
-    danger: { bg: colors.dangerSoft, border: 'rgba(239,68,68,0.35)', color: colors.danger },
-    muted: { bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.3)', color: colors.textMuted },
+    primary: { bg: colors.primarySoft, border: colors.primaryBorder, color: colors.primaryDark },
+    info: { bg: colors.infoSoft, border: colors.infoBorder, color: colors.info },
+    warn: { bg: colors.warnSoft, border: colors.warnBorder, color: colors.warn },
+    danger: { bg: colors.dangerSoft, border: colors.dangerBorder, color: colors.danger },
+    muted: { bg: colors.bgSurface, border: colors.border, color: colors.textSecondary },
   };
   const t = map[tone];
   return (
@@ -160,20 +175,31 @@ const uiStyles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
     gap: spacing.md,
   },
+  headerEyebrow: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.primary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
   headerTitle: {
+    fontFamily: fontFamily.serif,
     fontSize: 26,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
+    fontWeight: '500',
+    color: colors.ink,
+    letterSpacing: -0.4,
+    lineHeight: 30,
     marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 13,
-    color: colors.textMuted,
-    fontWeight: '500',
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13.5,
+    color: colors.textSecondary,
+    lineHeight: 19,
   },
 
   sectionRow: {
@@ -181,30 +207,34 @@ const uiStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: spacing.md,
-    marginTop: spacing.xs,
+    marginTop: spacing.lg,
   },
   sectionText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textMuted,
-    letterSpacing: 0.8,
+    fontFamily: fontFamily.sansBold,
+    fontSize: 11,
+    color: colors.textSecondary,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
 
   card: {
-    backgroundColor: colors.bgSoft,
-    borderRadius: radius.xl,
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.lg,
   },
   cardSubtle: {
-    backgroundColor: 'rgba(30,41,59,0.4)',
+    backgroundColor: colors.bgSoft,
+  },
+  cardAccent: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
   },
 
   btn: {
-    paddingVertical: 16,
-    borderRadius: radius.lg,
+    paddingVertical: 13,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -212,16 +242,29 @@ const uiStyles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   btnSecondary: {
-    backgroundColor: 'rgba(15,23,42,0.6)',
+    backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  btnGhost: {
+    backgroundColor: 'transparent',
   },
   btnDanger: {
     backgroundColor: colors.danger,
   },
-  btnDisabled: { opacity: 0.6 },
-  btnPrimaryText: { color: '#FFF', fontWeight: '800', fontSize: 15, letterSpacing: 0.3 },
-  btnSecondaryText: { color: colors.textPrimary, fontWeight: '700', fontSize: 14 },
+  btnDisabled: { opacity: 0.55 },
+  btnPrimaryText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+  btnSecondaryText: {
+    color: colors.ink,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 14,
+    letterSpacing: 0.1,
+  },
 
   emptyBox: {
     alignItems: 'center',
@@ -230,17 +273,18 @@ const uiStyles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyTitle: {
-    color: colors.textPrimary,
+    fontFamily: fontFamily.sansSemibold,
     fontSize: 15,
-    fontWeight: '800',
+    color: colors.ink,
     marginBottom: 6,
     textAlign: 'center',
   },
   emptyDesc: {
-    color: colors.textMuted,
+    fontFamily: fontFamily.sansRegular,
     fontSize: 13,
-    fontWeight: '500',
+    color: colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 19,
   },
 
   loadingScreen: {
@@ -250,14 +294,24 @@ const uiStyles = StyleSheet.create({
     backgroundColor: colors.bg,
     gap: spacing.md,
   },
-  loadingText: { color: colors.textMuted, marginTop: spacing.md, fontSize: 13, fontWeight: '500' },
+  loadingText: {
+    fontFamily: fontFamily.sansMedium,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
+    fontSize: 13,
+  },
 
   badge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: radius.pill,
     borderWidth: 1,
     alignSelf: 'flex-start',
   },
-  badgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
+  badgeText: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
 });

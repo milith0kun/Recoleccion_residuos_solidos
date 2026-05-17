@@ -16,24 +16,10 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { useGoogleAuth } from '../src/hooks/useGoogleAuth';
+import { BrandMark } from '../src/components/branding/BrandMark';
+import { colors, fontFamily, radius, spacing } from '../src/theme/tokens';
 
 type FocusedField = 'email' | 'password' | null;
-
-const palette = {
-  bg: '#FAFAF8',
-  surface: '#FFFFFF',
-  surfaceSoft: '#F7F6F4',
-  border: '#ECEAE6',
-  borderSoft: '#F0EEEB',
-  textPrimary: '#1A1A1A',
-  textSecondary: '#5A5750',
-  textMuted: '#8A8780',
-  textFaint: '#B0ADA8',
-  textPlaceholder: '#C5C2BD',
-  primary: '#059669',
-  primaryDark: '#047857',
-  primarySoft: 'rgba(5,150,105,0.08)',
-};
 
 export default function LoginScreen() {
   const { login, loginWithGoogle } = useAuth();
@@ -136,6 +122,7 @@ export default function LoginScreen() {
   };
 
   const googleDisabled = !googleReady || googleLoading || loading;
+  const year = new Date().getFullYear();
 
   return (
     <View style={s.root}>
@@ -147,22 +134,32 @@ export default function LoginScreen() {
         <Animated.View
           style={[s.brandWrap, { opacity: fade, transform: [{ translateY: slide }] }]}
         >
-          <Text style={s.wordmark}>SRSS</Text>
-          <View style={s.brandDivider} />
-          <Text style={s.brandTagline}>Sistema de Recolección de Residuos Sólidos</Text>
+          <BrandMark size={56} />
+          <View style={s.eyebrow}>
+            <View style={s.eyebrowDot} />
+            <Text style={s.eyebrowText}>SRSS · Cusco</Text>
+          </View>
+          <Text style={s.brandTitle}>
+            Recolección de <Text style={s.brandTitleAccent}>residuos</Text> segregados.
+          </Text>
+          <Text style={s.brandTagline}>
+            Plataforma de gestión ambiental urbana del Cusco.
+          </Text>
         </Animated.View>
 
         <Animated.View
           style={[s.card, { opacity: fade, transform: [{ translateY: slide }] }]}
         >
-          <Text style={s.cardTitle}>Iniciar sesión</Text>
-          <Text style={s.cardSubtitle}>Accede con tu cuenta institucional</Text>
+          <Text style={s.cardTitle}>Ingresar al sistema</Text>
+          <Text style={s.cardSubtitle}>
+            Accedé con tu cuenta institucional o Google.
+          </Text>
 
           <Text style={s.fieldLabel}>Correo electrónico</Text>
           <TextInput
             style={[s.input, focused === 'email' && s.inputFocused]}
-            placeholder="correo@ejemplo.com"
-            placeholderTextColor={palette.textPlaceholder}
+            placeholder="usuario@cusco.gob.pe"
+            placeholderTextColor={colors.textPlaceholder}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -175,8 +172,8 @@ export default function LoginScreen() {
           <Text style={[s.fieldLabel, s.fieldLabelSpaced]}>Contraseña</Text>
           <TextInput
             style={[s.input, focused === 'password' && s.inputFocused]}
-            placeholder="Tu contraseña"
-            placeholderTextColor={palette.textPlaceholder}
+            placeholder="••••••••"
+            placeholderTextColor={colors.textPlaceholder}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -199,10 +196,14 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={s.btnText}>Ingresar</Text>
+                <Text style={s.btnText}>Continuar</Text>
               )}
             </Pressable>
           </Animated.View>
+
+          <TouchableOpacity onPress={handleForgotPassword} style={s.forgotBtn}>
+            <Text style={s.forgotText}>¿Olvidaste tu contraseña?</Text>
+          </TouchableOpacity>
 
           <View style={s.dividerRow}>
             <View style={s.dividerLine} />
@@ -220,7 +221,7 @@ export default function LoginScreen() {
             ]}
           >
             {googleLoading ? (
-              <ActivityIndicator color={palette.textPrimary} />
+              <ActivityIndicator color={colors.ink} />
             ) : (
               <>
                 <Text style={s.googleMark}>G</Text>
@@ -231,228 +232,273 @@ export default function LoginScreen() {
 
           {!googleReady && (
             <Text style={s.googleHint}>
-              Configura las credenciales de Google en .env
+              Configurá las credenciales de Google en .env
             </Text>
           )}
-
-          <TouchableOpacity onPress={handleForgotPassword} style={s.forgotBtn}>
-            <Text style={s.forgotText}>¿Olvidaste tu contraseña?</Text>
-          </TouchableOpacity>
 
           <View style={s.bottomDivider} />
 
           <TouchableOpacity onPress={() => router.push('/register')} style={s.linkBtn}>
             <Text style={s.linkText}>
-              ¿No tienes cuenta? <Text style={s.linkAccent}>Regístrate</Text>
+              ¿No tenés cuenta? <Text style={s.linkAccent}>Registrate</Text>
             </Text>
           </TouchableOpacity>
         </Animated.View>
 
-        <Text style={s.footnote}>v1.0 · Municipalidad Provincial del Cusco</Text>
+        <View style={s.foot}>
+          <Text style={s.footYear}>© {year} SRSS Cusco</Text>
+          <Text style={s.footSep}>·</Text>
+          <Text style={s.footAffil}>Municipalidad Provincial del Cusco</Text>
+        </View>
       </ScrollView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.bg },
+  root: { flex: 1, backgroundColor: colors.bg },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xxl,
     paddingVertical: 48,
   },
 
   brandWrap: {
+    alignItems: 'flex-start',
+    marginBottom: spacing.xxl,
+  },
+  eyebrow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 36,
+    gap: 8,
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    marginTop: 18,
+    marginBottom: 16,
   },
-  wordmark: {
-    fontFamily: 'Inter_800ExtraBold',
-    fontSize: 40,
-    color: palette.primary,
-    letterSpacing: -1.5,
-    lineHeight: 44,
+  eyebrowDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: colors.primary,
   },
-  brandDivider: {
-    width: 32,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: palette.primary,
-    marginTop: 14,
-    marginBottom: 14,
+  eyebrowText: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 11,
+    color: colors.primaryDark,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  brandTitle: {
+    fontFamily: fontFamily.serif,
+    fontSize: 30,
+    fontWeight: '500',
+    color: colors.ink,
+    letterSpacing: -0.6,
+    lineHeight: 34,
+  },
+  brandTitleAccent: {
+    fontFamily: fontFamily.serif,
+    color: colors.primary,
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
   brandTagline: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 13,
-    color: palette.textMuted,
-    textAlign: 'center',
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13.5,
+    color: colors.textSecondary,
     lineHeight: 20,
-    paddingHorizontal: 24,
+    marginTop: 10,
   },
 
   card: {
-    backgroundColor: palette.surface,
-    borderRadius: 18,
-    padding: 24,
+    backgroundColor: colors.bg,
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
     borderWidth: 1,
-    borderColor: palette.borderSoft,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
+    borderColor: colors.border,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
   cardTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 20,
-    color: palette.textPrimary,
+    fontFamily: fontFamily.serif,
+    fontSize: 22,
+    fontWeight: '500',
+    color: colors.ink,
     letterSpacing: -0.4,
   },
   cardSubtitle: {
-    fontFamily: 'Inter_400Regular',
+    fontFamily: fontFamily.sansRegular,
     fontSize: 13,
-    color: palette.textMuted,
-    marginTop: 6,
-    marginBottom: 24,
-    lineHeight: 20,
+    color: colors.textSecondary,
+    marginTop: 4,
+    marginBottom: 22,
+    lineHeight: 19,
   },
 
   fieldLabel: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 11,
-    color: palette.textMuted,
-    letterSpacing: 1.2,
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.textSecondary,
+    letterSpacing: 1.3,
     textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   fieldLabelSpaced: {
-    marginTop: 18,
+    marginTop: 14,
   },
   input: {
-    backgroundColor: palette.surfaceSoft,
-    borderWidth: 1.5,
-    borderColor: palette.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
-    color: palette.textPrimary,
-    fontFamily: 'Inter_500Medium',
-    fontSize: 15,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    color: colors.ink,
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 14,
   },
   inputFocused: {
-    borderColor: palette.primary,
-    backgroundColor: palette.surface,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 2,
   },
 
-  btnWrap: { marginTop: 28 },
+  btnWrap: { marginTop: 22 },
   btn: {
-    backgroundColor: palette.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnDisabled: { backgroundColor: palette.primaryDark, opacity: 0.85 },
-  btnPressed: { backgroundColor: palette.primaryDark },
+  btnDisabled: { backgroundColor: colors.primaryDark, opacity: 0.85 },
+  btnPressed: { backgroundColor: colors.primaryDark },
   btnText: {
-    fontFamily: 'Inter_700Bold',
+    fontFamily: fontFamily.sansSemibold,
     color: '#FFFFFF',
-    fontSize: 15,
-    letterSpacing: 0.3,
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+
+  forgotBtn: {
+    marginTop: 12,
+    alignSelf: 'flex-end',
+  },
+  forgotText: {
+    fontFamily: fontFamily.sansMedium,
+    fontSize: 12.5,
+    color: colors.textSecondary,
   },
 
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginTop: 22,
+    marginBottom: 18,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: palette.border,
+    backgroundColor: colors.border,
   },
   dividerText: {
-    fontFamily: 'Inter_500Medium',
+    fontFamily: fontFamily.sansMedium,
     fontSize: 11,
-    color: palette.textMuted,
+    color: colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 1.6,
     marginHorizontal: 14,
   },
 
   googleBtn: {
-    backgroundColor: palette.surface,
-    borderWidth: 1.5,
-    borderColor: palette.border,
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   googleBtnPressed: {
-    backgroundColor: palette.surfaceSoft,
+    backgroundColor: colors.bgSoft,
+    borderColor: colors.borderStrong,
   },
   googleBtnDisabled: {
     opacity: 0.5,
   },
   googleMark: {
-    fontFamily: 'Inter_800ExtraBold',
-    fontSize: 16,
+    fontFamily: fontFamily.sansBlack,
+    fontSize: 15,
     color: '#4285F4',
     marginRight: 10,
-    lineHeight: 18,
+    lineHeight: 17,
   },
   googleBtnText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: palette.textPrimary,
-    letterSpacing: 0.2,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13.5,
+    color: colors.ink,
+    letterSpacing: 0.1,
   },
   googleHint: {
-    fontFamily: 'Inter_400Regular',
+    fontFamily: fontFamily.sansRegular,
     fontSize: 11,
-    color: palette.textFaint,
+    color: colors.textMuted,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 16,
   },
 
-  forgotBtn: {
-    marginTop: 18,
-    alignItems: 'center',
-  },
-  forgotText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 13,
-    color: palette.primary,
-  },
-
   bottomDivider: {
     height: 1,
-    backgroundColor: palette.borderSoft,
+    backgroundColor: colors.borderSoft,
     marginTop: 22,
     marginBottom: 4,
   },
 
   linkBtn: { marginTop: 14, alignItems: 'center' },
   linkText: {
-    fontFamily: 'Inter_500Medium',
-    color: palette.textMuted,
+    fontFamily: fontFamily.sansMedium,
+    color: colors.textSecondary,
     fontSize: 13,
   },
   linkAccent: {
-    fontFamily: 'Inter_700Bold',
-    color: palette.primary,
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.primary,
   },
 
-  footnote: {
-    fontFamily: 'Inter_500Medium',
-    textAlign: 'center',
-    color: palette.textFaint,
-    fontSize: 11,
-    letterSpacing: 0.4,
+  foot: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     marginTop: 28,
+  },
+  footYear: {
+    fontFamily: fontFamily.sansMedium,
+    fontSize: 11.5,
+    color: colors.textMuted,
+  },
+  footSep: {
+    color: colors.textFaint,
+    fontSize: 12,
+  },
+  footAffil: {
+    fontFamily: fontFamily.serif,
+    fontStyle: 'italic',
+    fontSize: 12.5,
+    color: colors.textSecondary,
+    letterSpacing: -0.1,
   },
 });

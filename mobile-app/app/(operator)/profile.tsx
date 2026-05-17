@@ -12,6 +12,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { getZoneName } from '../../src/utils/zone';
+import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 
 export default function OperatorProfileScreen() {
   const { user, logout } = useAuth();
@@ -20,7 +21,6 @@ export default function OperatorProfileScreen() {
 
   const loadStats = useCallback(async () => {
     try {
-      // Best-effort: list completed executions, filter to current week
       const { data } = await api.get('/route-executions', {
         params: { operator: 'me', status: 'completed' },
       });
@@ -57,14 +57,14 @@ export default function OperatorProfileScreen() {
     ]);
   };
 
+  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
+  const roleLabel = user?.role === 'admin' ? 'Administrador' : 'Operador';
+
   return (
-    <ScrollView style={s.container}>
+    <ScrollView style={s.container} contentContainerStyle={s.content}>
       <View style={s.profileCard}>
         <View style={s.avatarBox}>
-          <Text style={s.avatarText}>
-            {user?.firstName?.[0]}
-            {user?.lastName?.[0]}
-          </Text>
+          <Text style={s.avatarText}>{initials || 'O'}</Text>
         </View>
         <Text style={s.name}>
           {user?.firstName} {user?.lastName}
@@ -72,38 +72,28 @@ export default function OperatorProfileScreen() {
         <Text style={s.email}>{user?.email}</Text>
 
         <View style={s.badge}>
-          <Feather name="truck" size={11} color="#059669" />
-          <Text style={s.badgeText}>
-            {user?.role === 'admin' ? 'Administrador' : 'Operador'}
-          </Text>
+          <Feather name="truck" size={11} color={colors.primaryDark} />
+          <Text style={s.badgeText}>{roleLabel}</Text>
         </View>
       </View>
 
-      <View style={s.statRow}>
-        <View style={s.statBox}>
-          <Text style={s.statNum}>{completedWeek ?? '—'}</Text>
+      <View style={s.statBox}>
+        <View style={s.statHeader}>
+          <Feather name="check-circle" size={13} color={colors.primary} />
           <Text style={s.statLabel}>Jornadas esta semana</Text>
         </View>
+        <Text style={s.statNum}>{completedWeek ?? '—'}</Text>
       </View>
 
-      <View style={s.section}>
-        <Text style={s.sectionTitle}>Datos personales</Text>
-        <View style={s.infoRow}>
-          <Text style={s.infoLabel}>DNI</Text>
-          <Text style={s.infoValue}>{user?.dni || '—'}</Text>
-        </View>
-        <View style={s.infoRow}>
-          <Text style={s.infoLabel}>Teléfono</Text>
-          <Text style={s.infoValue}>{user?.phone || '—'}</Text>
-        </View>
-        <View style={s.infoRow}>
-          <Text style={s.infoLabel}>Dirección</Text>
-          <Text style={s.infoValue}>{user?.address || '—'}</Text>
-        </View>
-        <View style={s.infoRow}>
-          <Text style={s.infoLabel}>Zona</Text>
-          <Text style={s.infoValue}>{getZoneName(user?.zone) || 'Por asignar'}</Text>
-        </View>
+      <Text style={s.sectionTitle}>Datos personales</Text>
+      <View style={s.card}>
+        <InfoRow label="DNI" value={user?.dni || '—'} />
+        <View style={s.separator} />
+        <InfoRow label="Teléfono" value={user?.phone || '—'} />
+        <View style={s.separator} />
+        <InfoRow label="Dirección" value={user?.address || '—'} />
+        <View style={s.separator} />
+        <InfoRow label="Zona" value={getZoneName(user?.zone) || 'Por asignar'} />
       </View>
 
       <TouchableOpacity
@@ -111,26 +101,31 @@ export default function OperatorProfileScreen() {
         onPress={() => router.push('/profile-edit')}
         activeOpacity={0.85}
       >
-        <Feather name="edit-2" size={14} color="#059669" />
+        <Feather name="edit-2" size={13} color={colors.primaryDark} />
         <Text style={s.editBtnText}>Editar mi perfil</Text>
       </TouchableOpacity>
 
-      <View style={s.section}>
-        <Text style={s.sectionTitle}>Configuración</Text>
+      <Text style={s.sectionTitle}>Configuración</Text>
+      <View style={s.card}>
         <View style={s.menuItem}>
-          <Feather name="bell" size={16} color="#8A8780" />
-          <Text style={s.menuItemText}>Notificaciones</Text>
-          <Text style={s.menuItemArrow}>›</Text>
+          <View style={s.menuItemLeft}>
+            <Feather name="bell" size={14} color={colors.textSecondary} />
+            <Text style={s.menuItemText}>Notificaciones</Text>
+          </View>
+          <Feather name="chevron-right" size={16} color={colors.textMuted} />
         </View>
+        <View style={s.separator} />
         <View style={s.menuItem}>
-          <Feather name="shield" size={16} color="#8A8780" />
-          <Text style={s.menuItemText}>Privacidad y términos</Text>
-          <Text style={s.menuItemArrow}>›</Text>
+          <View style={s.menuItemLeft}>
+            <Feather name="shield" size={14} color={colors.textSecondary} />
+            <Text style={s.menuItemText}>Privacidad y términos</Text>
+          </View>
+          <Feather name="chevron-right" size={16} color={colors.textMuted} />
         </View>
       </View>
 
-      <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
-        <Feather name="log-out" size={16} color="#EF4444" />
+      <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+        <Feather name="log-out" size={14} color={colors.danger} />
         <Text style={s.logoutBtnText}>Cerrar sesión</Text>
       </TouchableOpacity>
 
@@ -139,116 +134,199 @@ export default function OperatorProfileScreen() {
   );
 }
 
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={s.infoRow}>
+      <Text style={s.infoLabel}>{label}</Text>
+      <Text style={s.infoValue} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF8', padding: 20 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.lg, paddingTop: spacing.md },
+
   profileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
+    padding: spacing.xxl,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#ECEAE6',
+    borderColor: colors.border,
   },
   avatarBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(16,185,129,0.15)',
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#059669',
+    marginBottom: spacing.md,
   },
-  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#059669' },
-  name: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 4 },
-  email: { fontSize: 14, color: '#8A8780', marginBottom: 12 },
+  avatarText: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 22,
+    color: colors.primaryDark,
+    letterSpacing: 0.3,
+  },
+  name: {
+    fontFamily: fontFamily.serif,
+    fontSize: 20,
+    fontWeight: '500',
+    color: colors.ink,
+    marginBottom: 2,
+    letterSpacing: -0.2,
+  },
+  email: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16,185,129,0.15)',
+    backgroundColor: colors.primarySoft,
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.3)',
+    borderColor: colors.primaryBorder,
   },
-  badgeText: { color: '#059669', fontSize: 12, fontWeight: '700' },
-
-  statRow: { flexDirection: 'row', marginBottom: 16 },
-  statBox: {
-    flex: 1,
-    backgroundColor: 'rgba(16,185,129,0.08)',
-    borderColor: 'rgba(16,185,129,0.25)',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-  },
-  statNum: { color: '#059669', fontWeight: '900', fontSize: 30, letterSpacing: -0.5 },
-  statLabel: { color: '#8A8780', fontSize: 12, fontWeight: '600' },
-
-  section: { marginBottom: 20 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#8A8780',
-    marginBottom: 10,
-    letterSpacing: 1,
+  badgeText: {
+    fontFamily: fontFamily.sansBold,
+    color: colors.primaryDark,
+    fontSize: 11,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
+  },
+
+  statBox: {
+    backgroundColor: colors.bg,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  statHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.sm,
+  },
+  statNum: {
+    fontFamily: fontFamily.serif,
+    color: colors.primary,
+    fontSize: 30,
+    fontWeight: '500',
+    letterSpacing: -0.6,
+    lineHeight: 34,
+  },
+  statLabel: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.textSecondary,
+    fontSize: 11,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+
+  sectionTitle: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+    marginTop: spacing.md,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  card: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
+    overflow: 'hidden',
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#FAFAF8',
-    borderRadius: 0,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
-  infoLabel: { color: '#8A8780', fontSize: 14 },
-  infoValue: { color: '#1A1A1A', fontSize: 14, fontWeight: '500' },
+  infoLabel: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  infoValue: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 13,
+    maxWidth: '55%',
+  },
+  separator: { height: 1, backgroundColor: colors.borderSoft },
 
   menuItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#FAFAF8',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
-  menuItemText: { flex: 1, color: '#1A1A1A', fontSize: 14 },
-  menuItemArrow: { color: '#B0ADA8', fontSize: 20 },
+  menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  menuItemText: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 13.5,
+  },
 
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: 'rgba(239,68,68,0.1)',
-    paddingVertical: 14,
-    borderRadius: 16,
-    marginTop: 12,
+    backgroundColor: colors.bg,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    marginTop: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.3)',
+    borderColor: colors.dangerBorder,
   },
-  logoutBtnText: { color: '#EF4444', fontSize: 16, fontWeight: 'bold' },
+  logoutBtnText: {
+    color: colors.danger,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
 
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: 'rgba(16,185,129,0.12)',
-    paddingVertical: 12,
-    borderRadius: 14,
-    marginTop: -8,
-    marginBottom: 12,
+    backgroundColor: colors.primarySoft,
+    paddingVertical: 11,
+    borderRadius: radius.md,
+    marginTop: -spacing.xs,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.35)',
+    borderColor: colors.primaryBorder,
   },
-  editBtnText: { color: '#059669', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  editBtnText: {
+    color: colors.primaryDark,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 12.5,
+    letterSpacing: 0.2,
+  },
 });

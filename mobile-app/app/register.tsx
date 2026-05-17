@@ -18,9 +18,9 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import api from '../src/api/client';
+import { colors, fontFamily, radius, spacing } from '../src/theme/tokens';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -103,7 +103,7 @@ export default function RegisterScreen() {
         if (status !== 'granted') {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setDetectionStatus('error');
-          setDetectionMessage('Permiso de ubicación denegado. Escribe tu dirección o habilita el GPS.');
+          setDetectionMessage('Permiso de ubicación denegado. Escribí tu dirección o habilitá el GPS.');
           return;
         }
         const loc = await Location.getCurrentPositionAsync({});
@@ -115,7 +115,7 @@ export default function RegisterScreen() {
 
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       if (zone) {
-        setDetectedZone({ id: zone._id, name: zone.name, color: zone.color || '#059669' });
+        setDetectedZone({ id: zone._id, name: zone.name, color: zone.color || colors.primary });
         setDetectionStatus('found');
       } else {
         setDetectionStatus('notfound');
@@ -135,7 +135,7 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     const { firstName, lastName, dni, email, password, address } = form;
     if (!firstName || !lastName || !dni || !email || !password || !address) {
-      Alert.alert('Error', 'Completa todos los campos obligatorios');
+      Alert.alert('Error', 'Completá todos los campos obligatorios');
       return;
     }
     if (!/^\d{8}$/.test(dni)) {
@@ -162,12 +162,12 @@ export default function RegisterScreen() {
   };
 
   const fields: FieldConfig[] = [
-    { key: 'firstName', icon: 'user', label: 'Nombres *', placeholder: 'Juan' },
-    { key: 'lastName', icon: 'user', label: 'Apellidos *', placeholder: 'Pérez García' },
-    { key: 'dni', icon: 'credit-card', label: 'DNI *', placeholder: '12345678', keyboard: 'numeric' },
-    { key: 'email', icon: 'mail', label: 'Correo electrónico *', placeholder: 'correo@ejemplo.com', keyboard: 'email-address' },
-    { key: 'password', icon: 'lock', label: 'Contraseña *', placeholder: '••••••••', secure: true },
-    { key: 'phone', icon: 'phone', label: 'Teléfono', placeholder: '984111222', keyboard: 'phone-pad' },
+    { key: 'firstName', icon: 'user', label: 'Nombres', placeholder: 'Juan' },
+    { key: 'lastName', icon: 'user', label: 'Apellidos', placeholder: 'Pérez García' },
+    { key: 'dni', icon: 'credit-card', label: 'DNI', placeholder: '12345678', keyboard: 'numeric' },
+    { key: 'email', icon: 'mail', label: 'Correo electrónico', placeholder: 'correo@ejemplo.com', keyboard: 'email-address' },
+    { key: 'password', icon: 'lock', label: 'Contraseña', placeholder: '••••••••', secure: true },
+    { key: 'phone', icon: 'phone', label: 'Teléfono (opcional)', placeholder: '984111222', keyboard: 'phone-pad' },
   ];
 
   const renderZoneChip = () => {
@@ -176,7 +176,7 @@ export default function RegisterScreen() {
     if (detectionStatus === 'loading') {
       return (
         <View style={[s.chipBase, s.chipLoading]}>
-          <ActivityIndicator size="small" color="#8A8780" />
+          <ActivityIndicator size="small" color={colors.textMuted} />
           <Text style={s.chipLoadingText}>Detectando tu zona...</Text>
         </View>
       );
@@ -186,16 +186,10 @@ export default function RegisterScreen() {
       const color = detectedZone.color;
       return (
         <Animated.View style={{ transform: [{ scale: chipScale }] }}>
-          <LinearGradient
-            colors={[`${color}30`, `${color}10`]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[s.chipBase, { borderColor: `${color}80` }]}
-          >
-            <View style={[s.chipDot, { backgroundColor: color }]} />
-            <Feather name="check-circle" size={14} color={color} style={{ marginRight: 6 }} />
+          <View style={[s.chipBase, { borderColor: `${color}55`, backgroundColor: `${color}14` }]}>
+            <Feather name="check-circle" size={13} color={color} style={{ marginRight: 6 }} />
             <Text style={[s.chipText, { color }]}>Tu zona: {detectedZone.name}</Text>
-          </LinearGradient>
+          </View>
         </Animated.View>
       );
     }
@@ -203,24 +197,19 @@ export default function RegisterScreen() {
     if (detectionStatus === 'notfound') {
       return (
         <Animated.View style={{ transform: [{ scale: chipScale }] }}>
-          <LinearGradient
-            colors={['rgba(245,158,11,0.25)', 'rgba(245,158,11,0.08)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[s.chipBase, { borderColor: 'rgba(245,158,11,0.6)' }]}
-          >
-            <Feather name="alert-triangle" size={14} color="#F59E0B" style={{ marginRight: 6 }} />
-            <Text style={[s.chipText, { color: '#F59E0B' }]}>{detectionMessage}</Text>
-          </LinearGradient>
+          <View style={[s.chipBase, { backgroundColor: colors.warnSoft, borderColor: colors.warnBorder }]}>
+            <Feather name="alert-triangle" size={13} color={colors.warn} style={{ marginRight: 6 }} />
+            <Text style={[s.chipText, { color: colors.warn }]}>{detectionMessage}</Text>
+          </View>
         </Animated.View>
       );
     }
 
     return (
       <Animated.View style={{ transform: [{ scale: chipScale }] }}>
-        <View style={[s.chipBase, { borderColor: 'rgba(239,68,68,0.6)', backgroundColor: 'rgba(239,68,68,0.12)' }]}>
-          <Feather name="x-circle" size={14} color="#EF4444" style={{ marginRight: 6 }} />
-          <Text style={[s.chipText, { color: '#EF4444' }]}>{detectionMessage}</Text>
+        <View style={[s.chipBase, { backgroundColor: colors.dangerSoft, borderColor: colors.dangerBorder }]}>
+          <Feather name="x-circle" size={13} color={colors.danger} style={{ marginRight: 6 }} />
+          <Text style={[s.chipText, { color: colors.danger }]}>{detectionMessage}</Text>
         </View>
       </Animated.View>
     );
@@ -230,12 +219,15 @@ export default function RegisterScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
         <View style={s.header}>
-          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Feather name="arrow-left" size={24} color="#1A1A1A" />
+          <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.85}>
+            <Feather name="arrow-left" size={20} color={colors.ink} />
           </TouchableOpacity>
           <View style={s.headerText}>
-            <Text style={s.title}>Crear Cuenta</Text>
-            <Text style={s.subtitle}>Regístrate como ciudadano</Text>
+            <Text style={s.eyebrow}>SRSS · Crear cuenta</Text>
+            <Text style={s.title}>Sumate al sistema</Text>
+            <Text style={s.subtitle}>
+              Registrate como ciudadano para ver tus horarios y rastrear el camión.
+            </Text>
           </View>
         </View>
 
@@ -244,11 +236,11 @@ export default function RegisterScreen() {
             <View key={f.key} style={s.fieldGroup}>
               <Text style={s.label}>{f.label}</Text>
               <View style={s.inputContainer}>
-                <Feather name={f.icon} size={18} color="#B0ADA8" style={s.inputIcon} />
+                <Feather name={f.icon} size={16} color={colors.textMuted} style={s.inputIcon} />
                 <TextInput
                   style={s.input}
                   placeholder={f.placeholder}
-                  placeholderTextColor="#B0ADA8"
+                  placeholderTextColor={colors.textPlaceholder}
                   value={form[f.key]}
                   onChangeText={(v) => update(f.key, v)}
                   keyboardType={f.keyboard || 'default'}
@@ -259,15 +251,14 @@ export default function RegisterScreen() {
             </View>
           ))}
 
-          {/* Address with detect zone button */}
           <View style={s.fieldGroup}>
-            <Text style={s.label}>Dirección *</Text>
+            <Text style={s.label}>Dirección</Text>
             <View style={s.inputContainer}>
-              <Feather name="map-pin" size={18} color="#B0ADA8" style={s.inputIcon} />
+              <Feather name="map-pin" size={16} color={colors.textMuted} style={s.inputIcon} />
               <TextInput
                 style={s.input}
                 placeholder="Av. Sol 123, Cusco"
-                placeholderTextColor="#B0ADA8"
+                placeholderTextColor={colors.textPlaceholder}
                 value={form.address}
                 onChangeText={(v) => update('address', v)}
                 autoCapitalize="words"
@@ -278,24 +269,17 @@ export default function RegisterScreen() {
               style={s.detectBtn}
               onPress={handleDetectZone}
               disabled={detectionStatus === 'loading'}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={['rgba(16,185,129,0.18)', 'rgba(16,185,129,0.05)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={s.detectBtnInner}
-              >
-                <Feather
-                  name={form.address.trim().length === 0 ? 'navigation' : 'search'}
-                  size={14}
-                  color="#059669"
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={s.detectBtnText}>
-                  {form.address.trim().length === 0 ? 'Detectar con GPS' : 'Detectar mi zona'}
-                </Text>
-              </LinearGradient>
+              <Feather
+                name={form.address.trim().length === 0 ? 'navigation' : 'search'}
+                size={13}
+                color={colors.primary}
+                style={{ marginRight: 6 }}
+              />
+              <Text style={s.detectBtnText}>
+                {form.address.trim().length === 0 ? 'Detectar con GPS' : 'Detectar mi zona'}
+              </Text>
             </TouchableOpacity>
 
             <View style={s.chipWrap}>{renderZoneChip()}</View>
@@ -305,14 +289,23 @@ export default function RegisterScreen() {
             style={[s.btn, loading && s.btnDisabled]}
             onPress={handleRegister}
             disabled={loading}
+            activeOpacity={0.85}
           >
-            <Text style={s.btnText}>{loading ? 'Registrando...' : 'Completar Registro'}</Text>
-            {!loading && <Feather name="check-circle" size={20} color="#FFF" style={{ marginLeft: 8 }} />}
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={s.btnText}>Completar registro</Text>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" style={{ marginLeft: 8 }} />
+              </>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.back()} style={s.linkBtn}>
+          <View style={s.bottomDivider} />
+
+          <TouchableOpacity onPress={() => router.back()} style={s.linkBtn} activeOpacity={0.7}>
             <Text style={s.linkText}>
-              ¿Ya tienes cuenta? <Text style={{ color: '#059669', fontWeight: 'bold' }}>Inicia sesión</Text>
+              ¿Ya tenés cuenta? <Text style={s.linkAccent}>Iniciá sesión</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -322,50 +315,160 @@ export default function RegisterScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flexGrow: 1, padding: 24, backgroundColor: '#FAFAF8', paddingTop: 60 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 32 },
+  container: { flexGrow: 1, padding: spacing.xxl, backgroundColor: colors.bg, paddingTop: 60 },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+  },
   backBtn: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F4',
-    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ECEAE6', marginRight: 16,
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
   },
   headerText: { flex: 1 },
-  title: { fontSize: 26, fontWeight: '900', color: '#059669', letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: '#8A8780', fontWeight: '500', marginTop: 2 },
-  card: {
-    backgroundColor: '#FFFFFF', borderRadius: 24, padding: 28, borderWidth: 1,
-    borderColor: '#F0EEEB', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 }, elevation: 5,
+  eyebrow: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.primary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
-  fieldGroup: { marginBottom: 16 },
-  label: { fontSize: 13, color: '#8A8780', marginBottom: 8, fontWeight: '600', marginLeft: 4 },
+  title: {
+    fontFamily: fontFamily.serif,
+    fontSize: 26,
+    fontWeight: '500',
+    color: colors.ink,
+    letterSpacing: -0.4,
+    lineHeight: 30,
+  },
+  subtitle: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13.5,
+    color: colors.textSecondary,
+    marginTop: 6,
+    lineHeight: 19,
+  },
+
+  card: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  fieldGroup: { marginBottom: spacing.md },
+  label: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.textSecondary,
+    letterSpacing: 1.3,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
   inputContainer: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FAFAF8',
-    borderWidth: 1, borderColor: '#ECEAE6', borderRadius: 16, paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, paddingVertical: Platform.OS === 'ios' ? 14 : 12, color: '#1A1A1A', fontSize: 15 },
+  input: {
+    flex: 1,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    color: colors.ink,
+    fontSize: 14,
+    fontFamily: fontFamily.sansRegular,
+  },
   btn: {
-    backgroundColor: '#059669', borderRadius: 16, paddingVertical: 16, alignItems: 'center',
-    marginTop: 12, flexDirection: 'row', justifyContent: 'center', shadowColor: '#059669',
-    shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
-  btnDisabled: { opacity: 0.7 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  linkBtn: { marginTop: 24, alignItems: 'center' },
-  linkText: { color: '#8A8780', fontSize: 14 },
-  detectBtn: { alignSelf: 'flex-start', marginTop: 10 },
-  detectBtnInner: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 999, borderWidth: 1, borderColor: 'rgba(16,185,129,0.4)',
+  btnDisabled: { opacity: 0.6 },
+  btnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: fontFamily.sansSemibold,
+    letterSpacing: 0.2,
   },
-  detectBtnText: { color: '#059669', fontSize: 12, fontWeight: '700' },
+  bottomDivider: {
+    height: 1,
+    backgroundColor: colors.borderSoft,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xs,
+  },
+  linkBtn: { marginTop: spacing.md, alignItems: 'center' },
+  linkText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontFamily: fontFamily.sansMedium,
+  },
+  linkAccent: {
+    color: colors.primary,
+    fontFamily: fontFamily.sansSemibold,
+  },
+
+  detectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primarySoft,
+  },
+  detectBtnText: {
+    color: colors.primaryDark,
+    fontSize: 11.5,
+    fontFamily: fontFamily.sansSemibold,
+    letterSpacing: 0.2,
+  },
   chipWrap: { marginTop: 10, flexDirection: 'row' },
   chipBase: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 999, borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
   },
-  chipLoading: { backgroundColor: 'rgba(148,163,184,0.1)', borderColor: 'rgba(148,163,184,0.3)' },
-  chipLoadingText: { color: '#8A8780', fontSize: 12, fontWeight: '600', marginLeft: 8 },
-  chipDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  chipText: { fontSize: 12, fontWeight: '700' },
+  chipLoading: {
+    backgroundColor: colors.bgSurface,
+    borderColor: colors.border,
+  },
+  chipLoadingText: {
+    color: colors.textSecondary,
+    fontSize: 11.5,
+    fontFamily: fontFamily.sansSemibold,
+    marginLeft: 8,
+  },
+  chipText: {
+    fontSize: 11.5,
+    fontFamily: fontFamily.sansSemibold,
+  },
 });

@@ -16,7 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { getZoneId } from '../../src/utils/zone';
-import { colors, radius, spacing } from '../../src/theme/tokens';
+import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -73,11 +73,11 @@ function getBadge(route: RouteData, selectedDay: number, isToday: boolean): Rout
   return 'completed';
 }
 
-const BADGE_META: Record<RouteBadge, { label: string; color: string; bg: string }> = {
-  active: { label: 'Activa ahora', color: colors.primary, bg: 'rgba(16,185,129,0.15)' },
-  upcoming: { label: 'Próxima', color: colors.warn, bg: 'rgba(245,158,11,0.15)' },
-  completed: { label: 'Completada', color: colors.info, bg: 'rgba(59,130,246,0.15)' },
-  idle: { label: 'Programada', color: colors.textMuted, bg: 'rgba(148,163,184,0.1)' },
+const BADGE_META: Record<RouteBadge, { label: string; color: string; bg: string; border: string }> = {
+  active: { label: 'Activa ahora', color: colors.primaryDark, bg: colors.primarySoft, border: colors.primaryBorder },
+  upcoming: { label: 'Próxima', color: colors.warn, bg: colors.warnSoft, border: colors.warnBorder },
+  completed: { label: 'Completada', color: colors.info, bg: colors.infoSoft, border: colors.infoBorder },
+  idle: { label: 'Programada', color: colors.textSecondary, bg: colors.bgSurface, border: colors.border },
 };
 
 export default function ScheduleScreen() {
@@ -142,12 +142,13 @@ export default function ScheduleScreen() {
   if (!userZoneId) {
     return (
       <ScrollView style={s.container} contentContainerStyle={s.content}>
+        <Text style={s.eyebrow}>Recolección por zona</Text>
         <Text style={s.pageTitle}>Horarios</Text>
         <Text style={s.pageSub}>Programación semanal de recolección en tu zona.</Text>
 
         <View style={s.zoneNeededCard}>
           <View style={s.zoneNeededIcon}>
-            <Feather name="map-pin" size={28} color={colors.warn} />
+            <Feather name="map-pin" size={22} color={colors.warn} />
           </View>
           <Text style={s.zoneNeededTitle}>Aún no configuraste tu zona</Text>
           <Text style={s.zoneNeededDesc}>
@@ -158,7 +159,7 @@ export default function ScheduleScreen() {
             onPress={() => router.push('/profile-edit')}
             activeOpacity={0.85}
           >
-            <Feather name="settings" size={16} color="#FFF" />
+            <Feather name="settings" size={14} color="#FFFFFF" />
             <Text style={s.zoneNeededBtnText}>Configurar mi zona</Text>
           </TouchableOpacity>
         </View>
@@ -174,6 +175,7 @@ export default function ScheduleScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
+      <Text style={s.eyebrow}>Recolección por zona</Text>
       <Text style={s.pageTitle}>Horarios</Text>
       <Text style={s.pageSub}>Programación semanal de recolección en tu zona.</Text>
 
@@ -190,14 +192,8 @@ export default function ScheduleScreen() {
               <View
                 style={[
                   s.dayPill,
-                  {
-                    backgroundColor: active ? colors.primarySoft : 'rgba(30,41,59,0.6)',
-                    borderColor: active
-                      ? colors.primary
-                      : isTodayPill
-                      ? colors.info
-                      : colors.border,
-                  },
+                  active && s.dayPillActive,
+                  !active && isTodayPill && s.dayPillToday,
                 ]}
               >
                 <Text
@@ -205,17 +201,19 @@ export default function ScheduleScreen() {
                     s.dayLabel,
                     {
                       color: active
-                        ? colors.primary
+                        ? colors.primaryDark
                         : isTodayPill
                         ? colors.info
-                        : colors.textMuted,
+                        : colors.textSecondary,
                     },
                   ]}
                 >
                   {label}
                 </Text>
                 {isTodayPill && (
-                  <Text style={[s.todayMicro, { color: active ? colors.primary : colors.info }]}>
+                  <Text
+                    style={[s.todayMicro, { color: active ? colors.primaryDark : colors.info }]}
+                  >
                     HOY
                   </Text>
                 )}
@@ -249,18 +247,19 @@ export default function ScheduleScreen() {
               <View
                 style={[
                   s.statusBadge,
-                  { backgroundColor: meta.bg, borderColor: `${meta.color}55` },
+                  { backgroundColor: meta.bg, borderColor: meta.border },
                 ]}
               >
                 <Text style={[s.statusBadgeText, { color: meta.color }]}>{meta.label}</Text>
               </View>
             </View>
 
-            {zone && (
-              <Text style={[s.zoneText, { color: zone.color || colors.info }]}>
-                {zone.name || 'Zona'}
-              </Text>
-            )}
+            {zone ? (
+              <View style={s.zoneRow}>
+                <View style={[s.zoneDot, { backgroundColor: zone.color || colors.info }]} />
+                <Text style={s.zoneText}>{zone.name || 'Zona'}</Text>
+              </View>
+            ) : null}
 
             <View style={s.detailGrid}>
               <View style={s.detailItem}>
@@ -287,7 +286,7 @@ export default function ScheduleScreen() {
                       style={[
                         s.wasteTag,
                         {
-                          backgroundColor: `${wt.colorCode}15`,
+                          backgroundColor: `${wt.colorCode}12`,
                           borderColor: `${wt.colorCode}40`,
                         },
                       ]}
@@ -301,7 +300,9 @@ export default function ScheduleScreen() {
             )}
 
             {isToday && badge === 'completed' && (
-              <View style={[s.notice, { backgroundColor: 'rgba(59,130,246,0.1)' }]}>
+              <View
+                style={[s.notice, { backgroundColor: colors.infoSoft, borderColor: colors.infoBorder }]}
+              >
                 <Text style={[s.noticeText, { color: colors.info }]}>
                   La recolección de hoy ya terminó.
                 </Text>
@@ -309,13 +310,10 @@ export default function ScheduleScreen() {
             )}
             {isToday && badge === 'upcoming' && (
               <View
-                style={[
-                  s.notice,
-                  { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)' },
-                ]}
+                style={[s.notice, { backgroundColor: colors.warnSoft, borderColor: colors.warnBorder }]}
               >
                 <Text style={[s.noticeText, { color: colors.warn }]}>
-                  Aún no inicia hoy. Prepara tus residuos.
+                  Aún no inicia hoy. Prepará tus residuos.
                 </Text>
               </View>
             )}
@@ -345,23 +343,63 @@ const s = StyleSheet.create({
     backgroundColor: colors.bg,
     gap: spacing.md,
   },
-  loadingText: { color: colors.textMuted, fontSize: 13, fontWeight: '500' },
+  loadingText: {
+    fontFamily: fontFamily.sansMedium,
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
 
-  pageTitle: { fontSize: 26, fontWeight: '900', color: colors.textPrimary, marginBottom: 4, letterSpacing: -0.5 },
-  pageSub: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.lg, fontWeight: '500' },
+  eyebrow: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.primary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  pageTitle: {
+    fontFamily: fontFamily.serif,
+    fontSize: 28,
+    fontWeight: '500',
+    color: colors.ink,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+    marginBottom: 4,
+  },
+  pageSub: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13.5,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    lineHeight: 19,
+  },
 
-  weekRow: { gap: spacing.sm, paddingBottom: 4 },
+  weekRow: { gap: spacing.xs, paddingBottom: 4 },
   dayPill: {
-    width: 56,
+    width: 54,
     paddingVertical: spacing.md,
     paddingHorizontal: 6,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
   },
-  dayLabel: { fontSize: 13, fontWeight: '800' },
-  todayMicro: { fontSize: 8, fontWeight: '900', letterSpacing: 1, marginTop: 2 },
+  dayPillActive: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  dayPillToday: {
+    borderColor: colors.infoBorder,
+  },
+  dayLabel: { fontFamily: fontFamily.sansBold, fontSize: 13 },
+  todayMicro: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 8,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
 
   subHeader: {
     flexDirection: 'row',
@@ -370,12 +408,20 @@ const s = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
-  subHeaderText: { color: colors.textPrimary, fontSize: 16, fontWeight: '800' },
-  subHeaderCount: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  subHeaderText: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 15,
+  },
+  subHeaderCount: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
 
   card: {
-    backgroundColor: colors.bgSoft,
-    borderRadius: radius.xl,
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
@@ -388,40 +434,66 @@ const s = StyleSheet.create({
     marginBottom: spacing.md,
     gap: spacing.sm,
   },
-  routeName: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, flex: 1 },
+  routeName: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 15,
+    color: colors.ink,
+    flex: 1,
+  },
   statusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: radius.pill,
     borderWidth: 1,
   },
-  statusBadgeText: { fontSize: 11, fontWeight: '800' },
+  statusBadgeText: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    letterSpacing: 0.3,
+  },
 
-  zoneText: { fontSize: 12, fontWeight: '700', marginBottom: spacing.md },
+  zoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.md,
+  },
+  zoneDot: { width: 7, height: 7, borderRadius: 3.5 },
+  zoneText: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
 
   detailGrid: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
   detailItem: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.6)',
+    backgroundColor: colors.bgSoft,
     padding: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.bgElevated,
+    borderColor: colors.borderSoft,
   },
   detailLabel: {
+    fontFamily: fontFamily.sansBold,
     fontSize: 10,
-    color: colors.textFaint,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    color: colors.textSecondary,
+    letterSpacing: 0.8,
     marginBottom: 4,
   },
-  detailValue: { fontSize: 15, color: colors.textPrimary, fontWeight: '800' },
+  detailValue: {
+    fontFamily: fontFamily.serif,
+    fontSize: 18,
+    fontWeight: '500',
+    color: colors.ink,
+    letterSpacing: -0.2,
+  },
 
   wasteBox: { marginTop: 2 },
   wasteLabel: {
-    color: colors.textFaint,
+    fontFamily: fontFamily.sansBold,
+    color: colors.textSecondary,
     fontSize: 10,
-    fontWeight: '800',
     marginBottom: spacing.sm,
     letterSpacing: 1,
   },
@@ -429,13 +501,16 @@ const s = StyleSheet.create({
   wasteTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.md,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
     borderWidth: 1,
   },
   wasteColorDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
-  wasteTagText: { fontSize: 11, fontWeight: '700' },
+  wasteTagText: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 11,
+  },
 
   notice: {
     marginTop: spacing.md,
@@ -443,16 +518,23 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.3)',
   },
-  noticeText: { fontSize: 12, fontWeight: '600' },
+  noticeText: {
+    fontFamily: fontFamily.sansMedium,
+    fontSize: 12,
+  },
 
   emptyBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '800', marginBottom: 6 },
+  emptyTitle: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 15,
+    marginBottom: 6,
+  },
   emptyText: {
-    color: colors.textMuted,
+    fontFamily: fontFamily.sansRegular,
+    color: colors.textSecondary,
     fontSize: 13,
-    fontWeight: '500',
     textAlign: 'center',
     paddingHorizontal: 30,
   },
@@ -460,34 +542,41 @@ const s = StyleSheet.create({
   zoneNeededCard: {
     backgroundColor: colors.warnSoft,
     borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.4)',
-    borderRadius: radius.xl,
+    borderColor: colors.warnBorder,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warn,
+    borderRadius: radius.lg,
     padding: spacing.xxl,
     alignItems: 'center',
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
   },
   zoneNeededIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(245,158,11,0.2)',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.warnBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
   },
   zoneNeededTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.textPrimary,
+    fontFamily: fontFamily.serif,
+    fontSize: 18,
+    fontWeight: '500',
+    color: colors.ink,
     marginBottom: spacing.sm,
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   zoneNeededDesc: {
+    fontFamily: fontFamily.sansRegular,
     fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: spacing.xl,
+    lineHeight: 19,
+    marginBottom: spacing.lg,
     paddingHorizontal: spacing.md,
   },
   zoneNeededBtn: {
@@ -495,15 +584,15 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.warn,
-    paddingVertical: 12,
+    backgroundColor: colors.primary,
+    paddingVertical: 11,
     paddingHorizontal: spacing.xl,
     borderRadius: radius.md,
   },
   zoneNeededBtnText: {
     color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 0.3,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
 });

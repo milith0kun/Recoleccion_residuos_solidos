@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import api from '../src/api/client';
 import { useAuth, type User } from '../src/context/AuthContext';
 import { getZoneId } from '../src/utils/zone';
-import { colors, radius, spacing } from '../src/theme/tokens';
+import { colors, fontFamily, radius, spacing } from '../src/theme/tokens';
 
 interface Zone {
   _id: string;
@@ -52,7 +52,7 @@ export default function ProfileEditScreen() {
 
   const handleSave = async () => {
     if (!firstName.trim() || !lastName.trim()) {
-      Alert.alert('Datos incompletos', 'Ingresa tu nombre y apellido');
+      Alert.alert('Datos incompletos', 'Ingresá tu nombre y apellido');
       return;
     }
     if (dni && !/^\d{8}$/.test(dni)) {
@@ -106,10 +106,13 @@ export default function ProfileEditScreen() {
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Feather name="arrow-left" size={22} color={colors.textPrimary} />
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.85}>
+          <Feather name="arrow-left" size={20} color={colors.ink} />
         </TouchableOpacity>
-        <Text style={s.title}>Editar perfil</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.eyebrow}>Tu perfil</Text>
+          <Text style={s.title}>Editar perfil</Text>
+        </View>
       </View>
       <Text style={s.subtitle}>
         Completá tus datos para acceder a todas las funciones del sistema.
@@ -129,7 +132,7 @@ export default function ProfileEditScreen() {
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
-          placeholder="Ej: 984000111"
+          placeholder="984000111"
         />
         <View style={s.separator} />
         <FieldText
@@ -183,7 +186,7 @@ export default function ProfileEditScreen() {
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <>
-            <Feather name="check" size={18} color="#FFFFFF" />
+            <Feather name="check" size={16} color="#FFFFFF" />
             <Text style={s.saveBtnText}>Guardar cambios</Text>
           </>
         )}
@@ -219,10 +222,12 @@ function FieldText({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textPlaceholder}
         keyboardType={keyboardType ?? 'default'}
         maxLength={maxLength}
-        autoCapitalize={keyboardType === 'number-pad' || keyboardType === 'phone-pad' ? 'none' : 'words'}
+        autoCapitalize={
+          keyboardType === 'number-pad' || keyboardType === 'phone-pad' ? 'none' : 'words'
+        }
       />
     </View>
   );
@@ -252,11 +257,11 @@ function ZoneOption({
         <Text style={s.zoneLabel}>{label}</Text>
         {description ? <Text style={s.zoneDesc}>{description}</Text> : null}
       </View>
-      {selected ? (
-        <Feather name="check-circle" size={20} color={colors.primary} />
-      ) : (
-        <Feather name="circle" size={20} color={colors.textFaint} />
-      )}
+      <Feather
+        name={selected ? 'check-circle' : 'circle'}
+        size={18}
+        color={selected ? colors.primary : colors.textMuted}
+      />
     </TouchableOpacity>
   );
 }
@@ -265,80 +270,91 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.xxl, paddingTop: 60, paddingBottom: 60 },
 
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: radius.md,
-    backgroundColor: colors.bgElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  eyebrow: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.primary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
+    fontFamily: fontFamily.serif,
+    fontSize: 26,
+    fontWeight: '500',
+    color: colors.ink,
+    letterSpacing: -0.4,
+    lineHeight: 30,
   },
   subtitle: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginTop: spacing.sm,
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 13.5,
+    color: colors.textSecondary,
+    marginTop: 6,
     marginBottom: spacing.xl,
-    fontWeight: '500',
+    lineHeight: 19,
   },
 
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textMuted,
-    letterSpacing: 0.8,
+    fontFamily: fontFamily.sansBold,
+    fontSize: 11,
+    color: colors.textSecondary,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     marginTop: spacing.md,
   },
 
   card: {
-    backgroundColor: colors.bgElevated,
-    borderRadius: radius.lg,
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
     paddingHorizontal: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
     marginBottom: spacing.md,
   },
 
   field: { paddingVertical: spacing.md },
   fieldLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textMuted,
-    letterSpacing: 1,
+    fontFamily: fontFamily.sansBold,
+    fontSize: 10.5,
+    color: colors.textSecondary,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   input: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: '500',
+    fontFamily: fontFamily.sansMedium,
+    fontSize: 14,
+    color: colors.ink,
     paddingVertical: 4,
   },
-  separator: {
-    height: 1,
-    backgroundColor: colors.borderSoft,
-  },
+  separator: { height: 1, backgroundColor: colors.borderSoft },
 
   zoneHelp: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 12.5,
+    color: colors.textSecondary,
     marginBottom: spacing.md,
     lineHeight: 18,
   },
-  zoneList: { gap: spacing.sm, marginBottom: spacing.xl },
+  zoneList: { gap: spacing.xs, marginBottom: spacing.xl },
   zoneEmpty: {
+    fontFamily: fontFamily.sansRegular,
     fontSize: 13,
-    color: colors.textMuted,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingVertical: spacing.xl,
   },
@@ -346,30 +362,27 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: colors.bg,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
   },
   zoneItemSelected: {
-    borderColor: colors.primaryBorder,
+    borderColor: colors.primary,
     backgroundColor: colors.primarySoft,
   },
-  zoneDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
+  zoneDot: { width: 9, height: 9, borderRadius: 4.5 },
   zoneLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13.5,
+    color: colors.ink,
   },
   zoneDesc: {
+    fontFamily: fontFamily.sansRegular,
     fontSize: 12,
-    color: colors.textMuted,
+    color: colors.textSecondary,
     marginTop: 2,
   },
 
@@ -379,25 +392,25 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     backgroundColor: colors.primary,
-    paddingVertical: 14,
+    paddingVertical: 13,
     borderRadius: radius.md,
     marginTop: spacing.lg,
   },
-  saveBtnDisabled: { opacity: 0.7 },
+  saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: {
     color: '#FFFFFF',
-    fontWeight: '800',
+    fontFamily: fontFamily.sansSemibold,
     fontSize: 14,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   cancelBtn: {
     alignItems: 'center',
     paddingVertical: spacing.md,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   cancelBtnText: {
+    fontFamily: fontFamily.sansMedium,
     fontSize: 13,
-    color: colors.textMuted,
-    fontWeight: '600',
+    color: colors.textSecondary,
   },
 });
