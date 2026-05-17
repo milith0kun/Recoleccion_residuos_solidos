@@ -114,8 +114,8 @@ export default function OperatorTabsLayout() {
       <Tabs.Screen
         name="jornada"
         options={{
-          title: 'Jornada',
-          tabBarIcon: ({ color }) => <Feather name="clipboard" size={20} color={color} />,
+          title: 'Inicio',
+          tabBarIcon: ({ color }) => <Feather name="home" size={20} color={color} />,
         }}
       />
       <Tabs.Screen

@@ -24,8 +24,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "pe.gob.cusco.srss",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para mostrarte las rutas de recolección cercanas",
-        "NSLocationAlwaysUsageDescription": "Necesitamos tu ubicación para el tracking GPS de la ruta"
+        "NSLocationWhenInUseUsageDescription": "SRSS Cusco usa tu ubicación para mostrar las rutas y camiones de recolección cercanos."
       }
     },
     "android": {
@@ -38,7 +37,7 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -51,7 +50,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "SRSS Cusco necesita acceder a tu ubicación para el seguimiento de rutas."
+          "locationWhenInUsePermission": "SRSS Cusco usa tu ubicación para mostrar las rutas y camiones cercanos."
         }
       ],
       "expo-font",
