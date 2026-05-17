@@ -22,7 +22,9 @@ import {
   BarChart3,
   User as UserIcon,
   HelpCircle,
-  Settings,
+  Briefcase,
+  UserPlus,
+  Grid3x3,
 } from 'lucide-react';
 import AccessRestricted from '@/components/AccessRestricted';
 
@@ -327,37 +329,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Desktop Header */}
         <header className="dash-header">
           <div className="dash-breadcrumb">
-            <div className="bc-segment">
+            <button type="button" className="bc-segment">
               <span className="bc-label">ORGANIZACIÓN</span>
-              <span className="bc-value">Municipalidad Cusco</span>
-            </div>
-            <ChevronRight style={{ width: 14, height: 14, color: '#D1D0CC', flexShrink: 0 }} />
-            <div className="bc-segment">
+              <span className="bc-value-row">
+                <span className="bc-value">Municipalidad Cusco</span>
+                <ChevronDown style={{ width: 13, height: 13, color: '#5C6C75', flexShrink: 0 }} />
+              </span>
+            </button>
+            <ChevronRight style={{ width: 13, height: 13, color: '#C5C8CB', flexShrink: 0 }} />
+            <button type="button" className="bc-segment">
               <span className="bc-label">SECCIÓN</span>
-              <span className="bc-value bc-page">{pageTitles[pathname] ?? 'Panel'}</span>
-            </div>
+              <span className="bc-value-row">
+                <span className="bc-value bc-page">{pageTitles[pathname] ?? 'Panel'}</span>
+                <ChevronDown style={{ width: 13, height: 13, color: '#5C6C75', flexShrink: 0 }} />
+              </span>
+            </button>
           </div>
           <div className="dash-header-right">
             <button className="header-icon-btn" aria-label="Ayuda" title="Ayuda">
               <HelpCircle style={{ width: 17, height: 17 }} />
             </button>
+            <button className="header-icon-btn" aria-label="Documentación" title="Documentación">
+              <Briefcase style={{ width: 17, height: 17 }} />
+            </button>
+            <button className="header-icon-btn" aria-label="Invitar usuario" title="Invitar usuario">
+              <UserPlus style={{ width: 17, height: 17 }} />
+            </button>
             <button className="header-icon-btn" aria-label="Notificaciones" title="Notificaciones">
               <Bell style={{ width: 17, height: 17 }} />
               <span className="bell-dot" />
             </button>
-            <button className="header-icon-btn" aria-label="Configuración" title="Configuración">
-              <Settings style={{ width: 17, height: 17 }} />
+            <button className="header-icon-btn" aria-label="Apps" title="Apps">
+              <Grid3x3 style={{ width: 17, height: 17 }} />
             </button>
-            <div className="header-sep" />
-            <div className="header-avatar">
-              <div className="avatar-circle">
-                {user.firstName[0]}{user.lastName[0]}
-              </div>
-              <div className="avatar-info">
-                <div className="avatar-name">{user.firstName} {user.lastName}</div>
-                <div className="avatar-role">{roleLabels[user.role]}</div>
-              </div>
-            </div>
+            <button className="header-avatar-btn" title={`${user.firstName} ${user.lastName} · ${roleLabels[user.role]}`}>
+              {user.firstName[0]}{user.lastName[0]}
+            </button>
           </div>
         </header>
 
@@ -706,7 +713,7 @@ const dashStyles = `
   .dash-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.6rem;
     min-width: 0;
   }
   .bc-segment {
@@ -714,6 +721,17 @@ const dashStyles = `
     flex-direction: column;
     gap: 1px;
     min-width: 0;
+    padding: 4px 8px 4px 6px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    text-align: left;
+  }
+  .bc-segment:hover {
+    background: #F4F6F4;
+    border-color: #E8EDEB;
   }
   .bc-label {
     font-family: 'Geist', 'Outfit', sans-serif;
@@ -722,6 +740,12 @@ const dashStyles = `
     color: #889397;
     text-transform: uppercase;
     letter-spacing: 0.12em;
+  }
+  .bc-value-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
   }
   .bc-value {
     font-family: 'Geist', 'Outfit', sans-serif;
@@ -740,13 +764,13 @@ const dashStyles = `
   .dash-header-right {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 2px;
   }
   .header-icon-btn {
     position: relative;
     width: 36px;
     height: 36px;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid transparent;
     background: transparent;
     color: #5C6C75;
@@ -767,59 +791,28 @@ const dashStyles = `
     border-radius: 50%;
     background: #DC2626;
     border: 2px solid #FFFFFF;
-    box-shadow: 0 0 0 1px rgba(220,38,38,0.25);
   }
-  .header-sep {
-    width: 1px;
-    height: 22px;
-    background: #F0EEEB;
-    margin: 0 0.35rem;
-  }
-  .header-avatar {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    padding: 0.3rem 0.85rem 0.3rem 0.35rem;
-    border-radius: 10px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
-  }
-  .header-avatar:hover {
-    background: #FAFAF8;
-    border-color: #F0EEEB;
-  }
-  .avatar-circle {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+  .header-avatar-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: none;
     background: linear-gradient(135deg, #00A35C, #00684A);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     color: #FFFFFF;
-    font-size: 0.68rem;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.02em;
-    box-shadow: 0 2px 6px rgba(0,104,74,0.25);
-    font-family: 'Geist', 'Outfit', sans-serif;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    margin-left: 8px;
+    box-shadow: 0 2px 6px rgba(0,104,74,0.22);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
-  .avatar-info { display: none; }
-  @media (min-width: 1280px) {
-    .avatar-info { display: block; }
-  }
-  .avatar-name {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #1A1A1A;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-  }
-  .avatar-role {
-    font-size: 0.65rem;
-    font-weight: 500;
-    color: #B0ADA8;
-    margin-top: 1px;
+  .header-avatar-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0,104,74,0.3);
   }
 
   /* Mobile header */
