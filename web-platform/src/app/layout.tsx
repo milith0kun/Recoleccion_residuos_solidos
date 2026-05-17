@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     description: DEFAULT_DESCRIPTION,
     images: [
       {
-        url: "/opengraph-image",
+        url: "/opengraph-image?v=2",
         width: 1200,
         height: 630,
         alt: "SRSS Cusco — Sistema de Recolección de Residuos Sólidos Segregados",
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
-    images: ["/opengraph-image"],
+    images: ["/opengraph-image?v=2"],
   },
   robots: {
     index: true,
