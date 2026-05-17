@@ -1,4 +1,5 @@
 import User from '@/lib/models/User';
+import Notification, { type NotificationKind } from '@/lib/models/Notification';
 import mongoose from 'mongoose';
 
 /**
@@ -15,10 +16,39 @@ const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 export interface PushMessage {
   title: string;
   body: string;
-  /** Datos arbitrarios — la app móvil lee `data.url` para deep-link. */
+  /** Datos arbitrarios — la app móvil lee `data.url` para deep-link.
+   *  Si incluye `kind`, se usa para persistir la notificación en DB. */
   data?: Record<string, unknown>;
   /** Sonido del dispositivo (default | null). */
   sound?: 'default' | null;
+}
+
+/**
+ * Persiste registros de Notification en DB para que el destinatario los vea
+ * en la pantalla de historial aunque el push del SO no haya llegado.
+ * Falla silencioso — la mensajería ya se intentó por Expo.
+ */
+async function persistNotifications(
+  userIds: (string | mongoose.Types.ObjectId)[],
+  message: PushMessage
+) {
+  if (userIds.length === 0) return;
+  const kind = ((message.data?.kind as string) || 'system') as NotificationKind;
+  try {
+    await Notification.insertMany(
+      userIds.map((uid) => ({
+        recipient: uid,
+        kind,
+        title: message.title,
+        body: message.body,
+        data: message.data ?? {},
+        read: false,
+      })),
+      { ordered: false }
+    );
+  } catch (err) {
+    console.warn('[push] no se pudo persistir Notification:', err);
+  }
 }
 
 interface ExpoPushPayload extends PushMessage {
@@ -105,11 +135,18 @@ export async function pushToZone(
   const users = await User.find({
     zone: zoneId,
     role: 'citizen',
-    pushToken: { $ne: null },
     isActive: true,
   })
-    .select('pushToken')
-    .lean<{ pushToken?: string }[]>();
+    .select('_id pushToken')
+    .lean<{ _id: mongoose.Types.ObjectId; pushToken?: string }[]>();
+
+  // Persistir para todos los destinatarios (incluso si no tienen pushToken
+  // ahora — el día que se logueen lo verán en su historial).
+  await persistNotifications(
+    users.map((u) => u._id),
+    message
+  );
+
   return sendExpoPush(
     users.map((u) => u.pushToken),
     message
@@ -123,6 +160,7 @@ export async function pushToUser(
   userId: string | mongoose.Types.ObjectId,
   message: PushMessage
 ): Promise<{ sent: number; failed: number }> {
+  await persistNotifications([userId], message);
   const user = await User.findById(userId).select('pushToken').lean<{ pushToken?: string }>();
   return sendExpoPush([user?.pushToken], message);
 }

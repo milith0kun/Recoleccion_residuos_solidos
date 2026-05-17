@@ -18,6 +18,7 @@ import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { BrandMark } from '../branding/BrandMark';
 import { colors, fontFamily, radius, spacing } from '../../theme/tokens';
+import api from '../../api/client';
 
 // Estado compartido del operador (jornada activa o no) para que el AppHeader
 // pueda mostrar el badge "EN RUTA / FUERA DE SERVICIO" en todas las pantallas.
@@ -25,6 +26,19 @@ interface OperatorStatusContextValue {
   onRoute: boolean;
 }
 const OperatorStatusContext = createContext<OperatorStatusContextValue>({ onRoute: false });
+
+// Estado global de notificaciones no leídas para el badge del header.
+interface NotificationsContextValue {
+  unreadCount: number;
+  refresh: () => Promise<void>;
+}
+const NotificationsContext = createContext<NotificationsContextValue>({
+  unreadCount: 0,
+  refresh: async () => {},
+});
+export function useNotifications() {
+  return useContext(NotificationsContext);
+}
 
 type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
 
@@ -114,8 +128,9 @@ export function AppShell({ children, role }: AppShellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const slide = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlay = useRef(new Animated.Value(0)).current;
-  const { getActiveExecutionId } = useAuth();
+  const { getActiveExecutionId, user } = useAuth();
   const [onRoute, setOnRoute] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Poll del estado de jornada solo si rol = operator.
   useEffect(() => {
@@ -132,6 +147,33 @@ export function AppShell({ children, role }: AppShellProps) {
       clearInterval(t);
     };
   }, [role, getActiveExecutionId]);
+
+  // Poll de notificaciones no leídas cada 30s mientras haya sesión.
+  const refreshNotifs = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data } = await api.get('/notifications', { params: { limit: 1 } });
+      const count = data?.data?.unreadCount ?? 0;
+      setUnreadCount(typeof count === 'number' ? count : 0);
+    } catch (e) {
+      if (__DEV__) console.warn('[notif] poll fail', e);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+    refreshNotifs();
+    const t = setInterval(refreshNotifs, 30_000);
+    return () => clearInterval(t);
+  }, [user, refreshNotifs]);
+
+  const notifsValue = useMemo<NotificationsContextValue>(
+    () => ({ unreadCount, refresh: refreshNotifs }),
+    [unreadCount, refreshNotifs]
+  );
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
@@ -164,6 +206,7 @@ export function AppShell({ children, role }: AppShellProps) {
   return (
     <DrawerContext.Provider value={ctxValue}>
     <OperatorStatusContext.Provider value={{ onRoute }}>
+    <NotificationsContext.Provider value={notifsValue}>
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         {children}
 
@@ -188,6 +231,7 @@ export function AppShell({ children, role }: AppShellProps) {
           </View>
         </Modal>
       </View>
+    </NotificationsContext.Provider>
     </OperatorStatusContext.Provider>
     </DrawerContext.Provider>
   );
@@ -345,7 +389,11 @@ interface AppHeaderProps {
 export function AppHeader({ title, section, onBack }: AppHeaderProps) {
   const { toggle } = useDrawer();
   const { user } = useAuth();
+  const router = useRouter();
+  const { unreadCount } = useNotifications();
   const isOperator = user?.role === 'operator' || user?.role === 'admin';
+  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
+  const profileRoute = isOperator ? '/(operator)/profile' : '/(tabs)/profile';
   return (
     <View style={s.header}>
       <View style={s.headerInner}>
@@ -366,7 +414,32 @@ export function AppHeader({ title, section, onBack }: AppHeaderProps) {
           </View>
         </View>
 
-        {isOperator ? <OperatorStatusPill /> : <View style={s.headerSpacer} />}
+        <View style={s.headerRight}>
+          {isOperator ? <OperatorStatusPill /> : null}
+          <TouchableOpacity
+            style={s.headerIconBtn}
+            onPress={() => router.push('/notifications' as never)}
+            activeOpacity={0.75}
+            hitSlop={6}
+            accessibilityLabel="Notificaciones"
+          >
+            <Feather name="bell" size={18} color={colors.ink} />
+            {unreadCount > 0 ? (
+              <View style={s.notifDot}>
+                <Text style={s.notifDotText}>{unreadCount > 9 ? '9+' : String(unreadCount)}</Text>
+              </View>
+            ) : null}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.avatarBtn}
+            onPress={() => router.push(profileRoute as never)}
+            activeOpacity={0.75}
+            hitSlop={6}
+            accessibilityLabel="Mi perfil"
+          >
+            <Text style={s.avatarBtnText}>{initials || 'U'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={s.breadcrumb}>
@@ -419,6 +492,48 @@ const s = StyleSheet.create({
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  notifDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 14,
+    height: 14,
+    paddingHorizontal: 3,
+    borderRadius: 7,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.bg,
+  },
+  notifDotText: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 9,
+    color: '#FFFFFF',
+    lineHeight: 10,
+  },
+  avatarBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
+  },
+  avatarBtnText: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 11.5,
+    color: colors.primaryDark,
+    letterSpacing: 0.3,
+  },
   opPill: {
     flexDirection: 'row',
     alignItems: 'center',

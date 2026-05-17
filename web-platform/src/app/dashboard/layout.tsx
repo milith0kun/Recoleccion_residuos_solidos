@@ -98,6 +98,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard/incidents': 'Incidentes',
   '/dashboard/reports': 'Reportes',
   '/dashboard/tracking': 'Seguimiento GPS',
+  '/dashboard/notifications': 'Notificaciones',
   '/dashboard/profile': 'Mi Perfil',
 };
 
@@ -619,10 +620,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Mobile Header */}
         <header className="dash-header-mobile">
-          <span className="mobile-brand">SRSS Cusco</span>
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="mobile-menu-btn">
-            {mobileMenuOpen ? <X style={{ width: 22, height: 22 }} /> : <Menu style={{ width: 22, height: 22 }} />}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="mobile-menu-btn"
+            aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          >
+            {mobileMenuOpen ? <X style={{ width: 20, height: 20 }} /> : <Menu style={{ width: 20, height: 20 }} />}
           </button>
+
+          <span className="mobile-brand-row">
+            <BrandMark size={22} />
+            <span className="mobile-brand">SRSS</span>
+          </span>
+
+          <div className="mobile-actions">
+            <button
+              type="button"
+              className="mobile-icon-btn"
+              onClick={() => router.push('/dashboard/notifications')}
+              aria-label="Notificaciones"
+            >
+              <Bell style={{ width: 17, height: 17 }} />
+              <span className="bell-dot" />
+            </button>
+            <button
+              type="button"
+              className="mobile-avatar-btn"
+              onClick={() => router.push('/dashboard/profile')}
+              aria-label="Mi perfil"
+            >
+              {user.firstName[0]}{user.lastName[0]}
+            </button>
+          </div>
         </header>
 
         <main className="dash-content">
@@ -1640,6 +1669,13 @@ const dashStyles = `
   @media (min-width: 1024px) {
     .dash-header-mobile { display: none; }
   }
+  .mobile-brand-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+  }
   .mobile-brand {
     font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
     font-size: 1.05rem;
@@ -1655,10 +1691,55 @@ const dashStyles = `
     color: #00684A;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
+    flex-shrink: 0;
   }
   .mobile-menu-btn:hover {
     background: #E3FCEF;
     color: #00513A;
+  }
+  .mobile-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .mobile-icon-btn {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #5C6C75;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .mobile-icon-btn:hover {
+    background: #F1F4F2;
+    color: #00684A;
+  }
+  .mobile-avatar-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1px solid #C1F1D6;
+    background: #E3FCEF;
+    color: #00513A;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .mobile-avatar-btn:hover {
+    background: #C1F1D6;
   }
 
   /* Content — uses available space generously (Atlas-style) */
