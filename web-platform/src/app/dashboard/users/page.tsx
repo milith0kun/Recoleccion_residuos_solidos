@@ -10,6 +10,10 @@ import {
   Edit2,
   Compass,
   Trash2,
+  ChevronsUpDown,
+  ChevronUp,
+  ChevronDown,
+  Info,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'sonner';
@@ -107,6 +111,17 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'email' | 'dni' | 'role' | 'createdAt'>('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const toggleSort = (col: typeof sortBy) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(col);
+      setSortDir('asc');
+    }
+  };
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>(emptyCreate);
@@ -198,6 +213,48 @@ export default function UsersPage() {
     }),
     [users]
   );
+
+  const sortedUsers = useMemo(() => {
+    const arr = [...users];
+    const dir = sortDir === 'asc' ? 1 : -1;
+    arr.sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+      switch (sortBy) {
+        case 'name':
+          av = `${a.firstName} ${a.lastName}`.toLowerCase();
+          bv = `${b.firstName} ${b.lastName}`.toLowerCase();
+          break;
+        case 'email':
+          av = (a.email ?? '').toLowerCase();
+          bv = (b.email ?? '').toLowerCase();
+          break;
+        case 'dni':
+          av = a.dni ?? '';
+          bv = b.dni ?? '';
+          break;
+        case 'role':
+          av = a.role;
+          bv = b.role;
+          break;
+        case 'createdAt':
+          av = new Date(a.createdAt).getTime();
+          bv = new Date(b.createdAt).getTime();
+          break;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return arr;
+  }, [users, sortBy, sortDir]);
+
+  const activeFilters = [
+    roleFilter && `Rol: ${roleFilter === 'admin' ? 'Administradores' : roleFilter === 'operator' ? 'Operadores' : 'Ciudadanos'}`,
+    zoneFilter && `Zona: ${zones.find((z) => z._id === zoneFilter)?.name ?? '...'}`,
+    statusFilter && `Estado: ${statusFilter === 'active' ? 'Activos' : 'Inactivos'}`,
+    search && `Búsqueda: "${search}"`,
+  ].filter(Boolean) as string[];
 
   const openCreate = () => {
     setCreateForm(emptyCreate);
@@ -375,6 +432,31 @@ export default function UsersPage() {
         </div>
       </div>
 
+      {activeFilters.length > 0 && (
+        <div className="up-banner-info" role="status">
+          <span className="up-banner-info-icon" aria-hidden>
+            <Info size={14} />
+          </span>
+          <span className="up-banner-info-text">
+            Mostrando <strong>{users.length}</strong> usuario{users.length === 1 ? '' : 's'}{' '}
+            con {activeFilters.length} filtro{activeFilters.length === 1 ? '' : 's'} aplicado{activeFilters.length === 1 ? '' : 's'}:{' '}
+            {activeFilters.join(' · ')}
+          </span>
+          <button
+            type="button"
+            className="up-banner-info-clear"
+            onClick={() => {
+              setSearch('');
+              setRoleFilter('');
+              setZoneFilter('');
+              setStatusFilter('');
+            }}
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      )}
+
       <div className="up-table-wrap">
         {loading ? (
           <div className="up-state">
@@ -393,18 +475,58 @@ export default function UsersPage() {
           <table className="up-table">
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>DNI</th>
-                <th>Rol</th>
+                <th>
+                  <SortableHeader
+                    label="Nombre"
+                    col="name"
+                    activeCol={sortBy}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                </th>
+                <th>
+                  <SortableHeader
+                    label="Email"
+                    col="email"
+                    activeCol={sortBy}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                </th>
+                <th>
+                  <SortableHeader
+                    label="DNI"
+                    col="dni"
+                    activeCol={sortBy}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                </th>
+                <th>
+                  <SortableHeader
+                    label="Rol"
+                    col="role"
+                    activeCol={sortBy}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                </th>
                 <th>Zona</th>
                 <th>Estado</th>
-                <th>Creado</th>
+                <th>
+                  <SortableHeader
+                    label="Creado"
+                    col="createdAt"
+                    activeCol={sortBy}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                </th>
                 <th className="up-th-actions" />
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => {
+              {sortedUsers.map((u) => {
                 const badge = roleBadge[u.role] ?? roleBadge.citizen;
                 const initials = `${u.firstName?.[0] ?? ''}${u.lastName?.[0] ?? ''}`.toUpperCase();
                 return (
@@ -814,6 +936,43 @@ export default function UsersPage() {
   );
 }
 
+type SortCol = 'name' | 'email' | 'dni' | 'role' | 'createdAt';
+
+function SortableHeader({
+  label,
+  col,
+  activeCol,
+  dir,
+  onSort,
+}: {
+  label: string;
+  col: SortCol;
+  activeCol: SortCol;
+  dir: 'asc' | 'desc';
+  onSort: (c: SortCol) => void;
+}) {
+  const isActive = activeCol === col;
+  return (
+    <button
+      type="button"
+      className={`up-th-sortable ${isActive ? 'up-th-sortable--active' : ''}`}
+      onClick={() => onSort(col)}
+      aria-sort={isActive ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <span>{label}</span>
+      {isActive ? (
+        dir === 'asc' ? (
+          <ChevronUp size={12} />
+        ) : (
+          <ChevronDown size={12} />
+        )
+      ) : (
+        <ChevronsUpDown size={12} className="up-th-sort-idle" />
+      )}
+    </button>
+  );
+}
+
 const upStyles = `
   .up { display: flex; flex-direction: column; gap: 20px; }
 
@@ -1140,6 +1299,88 @@ const upStyles = `
   .up-edit-mono {
     font-family: 'Geist Mono', ui-monospace, monospace;
     font-size: 12px;
+  }
+
+  /* Sortable column header */
+  .up-th-sortable {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    transition: color 0.12s ease;
+  }
+  .up-th-sortable:hover {
+    color: #001E2B;
+  }
+  .up-th-sortable--active {
+    color: #00513A;
+  }
+  .up-th-sort-idle {
+    opacity: 0.45;
+    transition: opacity 0.12s ease;
+  }
+  .up-th-sortable:hover .up-th-sort-idle {
+    opacity: 0.9;
+  }
+
+  /* Banner info (filtros activos) */
+  .up-banner-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #E3EEF9;
+    border: 1px solid rgba(30,81,128,0.18);
+    border-left: 3px solid #1E5180;
+    border-radius: 6px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12.5px;
+    color: #143661;
+  }
+  .up-banner-info-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #1E5180;
+    color: #FFFFFF;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .up-banner-info-text {
+    flex: 1;
+    line-height: 1.4;
+  }
+  .up-banner-info-text strong {
+    color: #001E2B;
+    font-weight: 700;
+  }
+  .up-banner-info-clear {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid rgba(30,81,128,0.35);
+    color: #143661;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+  .up-banner-info-clear:hover {
+    background: #FFFFFF;
+    border-color: #1E5180;
   }
 
   .up-table-foot {
