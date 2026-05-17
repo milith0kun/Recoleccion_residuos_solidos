@@ -4,14 +4,12 @@ import { useApi } from '@/hooks/useApi';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Search,
-  Filter,
   UserPlus,
   UserCheck,
   UserX,
   MapPin,
   Users,
   Edit2,
-  Layers,
   Compass,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
@@ -242,9 +240,17 @@ export default function UsersPage() {
     if (!editingUser || !editForm || editSubmitting) return;
     setEditSubmitting(true);
     try {
+      const payload = {
+        firstName: editForm.firstName.trim(),
+        lastName: editForm.lastName.trim(),
+        phone: editForm.phone.trim(),
+        address: editForm.address.trim(),
+        role: editForm.role,
+        isActive: editForm.isActive,
+      };
       await apiFetch(`/api/v1/users/${editingUser._id}`, {
         method: 'PATCH',
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(payload),
       });
       toast.success('Usuario actualizado');
       setEditOpen(false);
@@ -304,276 +310,192 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="space-y-10 animate-fade-in pb-10">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <div className="up animate-fade-in">
+      <style>{upStyles}</style>
+
+      <header className="up-header">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-            Gestión de Usuarios
-          </h1>
-          <p className="text-slate-500 mt-2 font-medium text-lg">
+          <h1 className="up-title">Usuarios</h1>
+          <p className="up-sub">
             Administra ciudadanos, operadores y administradores del sistema.
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-emerald-600/20 active:scale-95"
-        >
-          <UserPlus className="w-5 h-5" />
-          <span>Nuevo Operador</span>
-        </button>
-      </div>
+        <div className="up-header-actions">
+          <button onClick={openCreate} className="up-btn-primary">
+            <UserPlus size={15} />
+            <span>Invitar al proyecto</span>
+          </button>
+        </div>
+      </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Total', value: stats.total, color: 'text-slate-600', bg: 'bg-slate-50' },
-          { label: 'Admins', value: stats.admin, color: 'text-rose-600', bg: 'bg-rose-50' },
-          {
-            label: 'Operadores',
-            value: stats.operator,
-            color: 'text-amber-600',
-            bg: 'bg-amber-50',
-          },
-          {
-            label: 'Ciudadanos',
-            value: stats.citizen,
-            color: 'text-emerald-600',
-            bg: 'bg-emerald-50',
-          },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className={`p-4 rounded-3xl ${s.bg} border border-slate-100 flex flex-col items-center justify-center text-center transition-transform hover:scale-105`}
-          >
-            <span className={`text-2xl font-black ${s.color}`}>{s.value}</span>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
-              {s.label}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row gap-5">
-        <div className="relative flex-1 group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+      <div className="up-toolbar">
+        <div className="up-search">
+          <Search size={14} className="up-search-icon" />
           <input
             type="text"
-            placeholder="Buscar por nombre, email o DNI..."
+            placeholder="Buscar usuario"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-14 pr-6 py-4 rounded-2xl bg-slate-50 border-2 border-transparent text-sm font-bold text-slate-700 focus:bg-white focus:border-emerald-500/20 transition-all placeholder:text-slate-300"
           />
         </div>
-        <div className="flex flex-wrap gap-4">
-          <div className="relative">
-            <Filter className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="pl-12 pr-10 py-4 rounded-2xl bg-slate-50 border-2 border-transparent text-xs font-black text-slate-600 focus:bg-white focus:border-emerald-500/20 appearance-none transition-all cursor-pointer uppercase tracking-widest"
-            >
-              <option value="">Todos los roles</option>
-              <option value="admin">Administradores</option>
-              <option value="operator">Operadores</option>
-              <option value="citizen">Ciudadanos</option>
-            </select>
-          </div>
-          <div className="relative">
-            <Layers className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            <select
-              value={zoneFilter}
-              onChange={(e) => setZoneFilter(e.target.value)}
-              className="pl-12 pr-10 py-4 rounded-2xl bg-slate-50 border-2 border-transparent text-xs font-black text-slate-600 focus:bg-white focus:border-emerald-500/20 appearance-none transition-all cursor-pointer uppercase tracking-widest"
-            >
-              <option value="">Todas las zonas</option>
-              {zones.map((z) => (
-                <option key={z._id} value={z._id}>
-                  {z.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <select
+          className="up-filter"
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+        >
+          <option value="">Todos los roles</option>
+          <option value="admin">Administradores</option>
+          <option value="operator">Operadores</option>
+          <option value="citizen">Ciudadanos</option>
+        </select>
+        <select
+          className="up-filter"
+          value={zoneFilter}
+          onChange={(e) => setZoneFilter(e.target.value)}
+        >
+          <option value="">Todas las zonas</option>
+          {zones.map((z) => (
+            <option key={z._id} value={z._id}>
+              {z.name}
+            </option>
+          ))}
+        </select>
+        <div className="up-stat-pills">
+          <span className="up-stat-pill"><strong>{stats.total}</strong> total</span>
+          <span className="up-stat-pill up-stat-pill--admin"><strong>{stats.admin}</strong> admin</span>
+          <span className="up-stat-pill up-stat-pill--op"><strong>{stats.operator}</strong> oper.</span>
+          <span className="up-stat-pill up-stat-pill--cit"><strong>{stats.citizen}</strong> ciud.</span>
         </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden relative">
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-32 gap-6">
-              <div className="w-16 h-16 border-4 border-slate-100 border-t-emerald-500 rounded-full animate-spin" />
-              <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">
-                Sincronizando Usuarios...
-              </p>
+      <div className="up-table-wrap">
+        {loading ? (
+          <div className="up-state">
+            <span className="up-spinner" />
+            <p>Cargando usuarios…</p>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="up-state">
+            <div className="up-state-icon">
+              <Users size={22} />
             </div>
-          ) : (
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  {['Usuario', 'Identificación', 'Rol', 'Zona Asignada', 'Estado', 'Acciones'].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="px-8 py-6 text-left text-[11px] font-black uppercase tracking-widest text-slate-400"
-                      >
-                        {h}
-                      </th>
-                    )
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {users.map((u) => {
-                  const badge = roleBadge[u.role] ?? roleBadge.citizen;
-                  return (
-                    <tr
-                      key={u._id}
-                      className="hover:bg-slate-50/50 transition-all duration-300 group"
-                    >
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 font-black text-sm border border-white shadow-sm transition-transform group-hover:scale-110">
-                            {u.firstName?.[0]}
-                            {u.lastName?.[0]}
-                          </div>
-                          <div>
-                            <div className="text-[15px] font-black text-slate-900 leading-none tracking-tight">
-                              {u.firstName} {u.lastName}
-                            </div>
-                            <div className="text-xs font-bold text-slate-400 mt-1.5">
-                              {u.email}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            DNI
-                          </span>
-                          <span className="text-sm font-bold text-slate-700 tabular-nums">
-                            {u.dni}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <span
-                          className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${badge.bg} ${badge.color} ${badge.border}`}
-                        >
-                          {badge.label}
+            <p className="up-state-title">Sin resultados</p>
+            <p className="up-state-desc">No hay usuarios que coincidan con tus filtros.</p>
+          </div>
+        ) : (
+          <table className="up-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>DNI</th>
+                <th>Rol</th>
+                <th>Zona</th>
+                <th>Estado</th>
+                <th>Creado</th>
+                <th className="up-th-actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => {
+                const badge = roleBadge[u.role] ?? roleBadge.citizen;
+                const initials = `${u.firstName?.[0] ?? ''}${u.lastName?.[0] ?? ''}`.toUpperCase();
+                return (
+                  <tr key={u._id}>
+                    <td>
+                      <div className="up-user-cell">
+                        <span className="up-user-avatar">{initials}</span>
+                        <span className="up-user-name">
+                          {u.firstName} {u.lastName}
                         </span>
-                      </td>
-                      <td className="px-8 py-6">
-                        {u.zone ? (
-                          <button
-                            onClick={() => openZoneModal(u)}
-                            className="flex items-center gap-2 group/zone hover:opacity-80 transition"
-                          >
-                            <span
-                              className="w-3 h-3 rounded-full shadow-[0_0_8px] transition-transform group-hover/zone:scale-125"
-                              style={{
-                                background: u.zone.color || '#10B981',
-                                color: u.zone.color || '#10B981',
-                              }}
-                            />
-                            <div className="text-left">
-                              <span className="text-sm font-bold text-slate-700 block leading-none">
-                                {u.zone.name}
-                              </span>
-                              {u.zone.district && (
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1 block">
-                                  {u.zone.district}
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => openZoneModal(u)}
-                            className="flex items-center gap-2 text-slate-400 hover:text-emerald-600 transition group/none"
-                          >
-                            <div className="w-8 h-8 rounded-full border border-dashed border-slate-200 flex items-center justify-center group-hover/none:border-emerald-300">
-                              <Compass className="w-4 h-4" />
-                            </div>
-                            <span className="text-xs font-bold italic">Asignar zona</span>
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-8 py-6">
-                        <div
-                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-xl border ${
-                            u.isActive
-                              ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                              : 'bg-rose-50 border-rose-100 text-rose-500'
+                      </div>
+                    </td>
+                    <td className="up-cell-muted">{u.email}</td>
+                    <td className="up-cell-mono">{u.dni || '—'}</td>
+                    <td>
+                      <span className={`up-role-pill up-role-pill--${u.role}`}>
+                        {badge.label}
+                      </span>
+                    </td>
+                    <td>
+                      {u.zone ? (
+                        <button
+                          onClick={() => openZoneModal(u)}
+                          className="up-zone-btn"
+                          title={u.zone.district || u.zone.name}
+                        >
+                          <span
+                            className="up-zone-dot"
+                            style={{ background: u.zone.color || '#00684A' }}
+                          />
+                          <span>{u.zone.name}</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => openZoneModal(u)}
+                          className="up-zone-btn up-zone-btn--empty"
+                        >
+                          <Compass size={13} />
+                          <span>Asignar</span>
+                        </button>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        className={`up-status ${
+                          u.isActive ? 'up-status--active' : 'up-status--inactive'
+                        }`}
+                      >
+                        <span className="up-status-dot" />
+                        {u.isActive ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="up-cell-muted up-cell-mono">
+                      {new Date(u.createdAt).toLocaleDateString('es-PE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: '2-digit',
+                      })}
+                    </td>
+                    <td className="up-td-actions">
+                      <div className="up-actions">
+                        <button
+                          onClick={() => openEdit(u)}
+                          title="Editar"
+                          className="up-icon-btn"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => openZoneModal(u)}
+                          title="Asignar zona"
+                          className="up-icon-btn"
+                        >
+                          <MapPin size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleToggleActive(u)}
+                          title={u.isActive ? 'Desactivar' : 'Activar'}
+                          className={`up-icon-btn ${
+                            !u.isActive ? 'up-icon-btn--success' : ''
                           }`}
                         >
-                          <div
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              u.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-rose-400'
-                            }`}
-                          />
-                          <span className="text-[10px] font-black uppercase tracking-widest">
-                            {u.isActive ? 'Activo' : 'Inactivo'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => openEdit(u)}
-                            title="Editar"
-                            className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-all"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => openZoneModal(u)}
-                            title="Asignar zona"
-                            className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-all"
-                          >
-                            <MapPin className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleToggleActive(u)}
-                            title={u.isActive ? 'Desactivar' : 'Activar'}
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                              u.isActive
-                                ? 'bg-amber-50 text-amber-600 hover:bg-amber-100'
-                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                            }`}
-                          >
-                            {u.isActive ? (
-                              <UserX className="w-4 h-4" />
-                            ) : (
-                              <UserCheck className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-32">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="w-20 h-20 rounded-[2rem] bg-slate-50 flex items-center justify-center text-slate-200">
-                          <Users className="w-10 h-10" />
-                        </div>
-                        <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
-                          Sin resultados encontrados
-                        </p>
+                          {u.isActive ? (
+                            <UserX size={14} />
+                          ) : (
+                            <UserCheck size={14} />
+                          )}
+                        </button>
                       </div>
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        <div className="px-10 py-6 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            Total registros: {users.length}
-          </p>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        <div className="up-table-foot">
+          {users.length} usuario{users.length !== 1 ? 's' : ''}
         </div>
       </div>
 
@@ -833,3 +755,333 @@ export default function UsersPage() {
     </div>
   );
 }
+
+const upStyles = `
+  .up { display: flex; flex-direction: column; gap: 20px; }
+
+  .up-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .up-title {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: clamp(28px, 4vw, 36px);
+    font-weight: 500;
+    color: #001E2B;
+    letter-spacing: -0.018em;
+    line-height: 1.1;
+    font-variation-settings: "opsz" 36;
+  }
+  .up-sub {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 14px;
+    color: #5C6C75;
+    margin-top: 6px;
+  }
+  .up-header-actions { display: flex; gap: 8px; }
+  .up-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    background: #00684A;
+    color: #FFFFFF;
+    border: 1px solid #00684A;
+    border-radius: 6px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .up-btn-primary:hover { background: #00513A; border-color: #00513A; }
+
+  /* Toolbar */
+  .up-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .up-search {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+    max-width: 320px;
+  }
+  .up-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #889397;
+  }
+  .up-search input {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    background: #FFFFFF;
+    border: 1px solid #E8EDEB;
+    border-radius: 6px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 13.5px;
+    color: #001E2B;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .up-search input::placeholder { color: #889397; }
+  .up-search input:focus {
+    border-color: #00684A;
+    box-shadow: 0 0 0 3px rgba(0,104,74,0.12);
+  }
+  .up-filter {
+    padding: 8px 12px;
+    background: #FFFFFF;
+    border: 1px solid #E8EDEB;
+    border-radius: 6px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 13px;
+    color: #001E2B;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .up-filter:focus {
+    outline: none;
+    border-color: #00684A;
+    box-shadow: 0 0 0 3px rgba(0,104,74,0.12);
+  }
+  .up-stat-pills {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  .up-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    background: #F4F6F4;
+    color: #5C6C75;
+    border-radius: 999px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .up-stat-pill strong { color: #001E2B; font-weight: 700; }
+  .up-stat-pill--admin { background: #FCE9E9; color: #8B3030; }
+  .up-stat-pill--admin strong { color: #6B2424; }
+  .up-stat-pill--op { background: #FFF5D6; color: #8C6300; }
+  .up-stat-pill--op strong { color: #6E4D00; }
+  .up-stat-pill--cit { background: #E3FCEF; color: #00513A; }
+  .up-stat-pill--cit strong { color: #003A29; }
+
+  /* Table */
+  .up-table-wrap {
+    background: #FFFFFF;
+    border: 1px solid #E8EDEB;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .up-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Geist', 'Outfit', sans-serif;
+  }
+  .up-table thead tr {
+    background: #F9FBFA;
+    border-bottom: 1px solid #E8EDEB;
+  }
+  .up-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #5C6C75;
+  }
+  .up-th-actions { width: 132px; }
+  .up-table tbody tr {
+    border-bottom: 1px solid #F0F2F0;
+    transition: background 0.12s ease;
+  }
+  .up-table tbody tr:last-child { border-bottom: none; }
+  .up-table tbody tr:hover { background: #F9FBFA; }
+  .up-table td {
+    padding: 12px 16px;
+    font-size: 13.5px;
+    color: #001E2B;
+    vertical-align: middle;
+  }
+  .up-cell-muted { color: #5C6C75; }
+  .up-cell-mono {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 12.5px;
+  }
+  .up-td-actions { text-align: right; }
+
+  .up-user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .up-user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: #E8EDEB;
+    color: #001E2B;
+    border: 1px solid #DCE2E0;
+    display: grid;
+    place-items: center;
+    font-size: 11.5px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .up-user-name {
+    font-weight: 600;
+    color: #001E2B;
+  }
+
+  .up-role-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .up-role-pill--admin { background: #FCE9E9; color: #8B3030; }
+  .up-role-pill--operator { background: #FFF5D6; color: #8C6300; }
+  .up-role-pill--citizen { background: #E3FCEF; color: #00513A; }
+
+  .up-zone-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #001E2B;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+  .up-zone-btn:hover {
+    background: #F4F6F4;
+    border-color: #E8EDEB;
+  }
+  .up-zone-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .up-zone-btn--empty {
+    color: #889397;
+    border-style: dashed;
+    border-color: #DCE2E0;
+  }
+
+  .up-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .up-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .up-status--active { background: #E3FCEF; color: #00513A; }
+  .up-status--inactive { background: #F4F6F4; color: #5C6C75; }
+
+  .up-actions {
+    display: inline-flex;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+  .up-icon-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #E8EDEB;
+    background: #FFFFFF;
+    color: #5C6C75;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+  .up-icon-btn:hover {
+    background: #F4F6F4;
+    border-color: #DCE2E0;
+    color: #001E2B;
+  }
+  .up-icon-btn--success:hover {
+    background: #E3FCEF;
+    border-color: #C1F1D6;
+    color: #00513A;
+  }
+
+  .up-table-foot {
+    padding: 10px 16px;
+    background: #F9FBFA;
+    border-top: 1px solid #E8EDEB;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12px;
+    color: #5C6C75;
+  }
+
+  .up-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 60px 24px;
+    text-align: center;
+    font-family: 'Geist', 'Outfit', sans-serif;
+  }
+  .up-state-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    background: #F4F6F4;
+    color: #5C6C75;
+    display: grid;
+    place-items: center;
+    margin-bottom: 6px;
+  }
+  .up-state-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #001E2B;
+    margin: 0;
+  }
+  .up-state-desc {
+    font-size: 12.5px;
+    color: #5C6C75;
+    margin: 0;
+  }
+  .up-spinner {
+    width: 28px;
+    height: 28px;
+    border: 2.5px solid #E8EDEB;
+    border-top-color: #00684A;
+    border-radius: 50%;
+    animation: up-spin 0.8s linear infinite;
+  }
+  @keyframes up-spin { to { transform: rotate(360deg); } }
+`;
