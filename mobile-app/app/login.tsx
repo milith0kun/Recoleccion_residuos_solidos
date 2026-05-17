@@ -16,12 +16,19 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../src/context/AuthContext';
 import { useGoogleAuth } from '../src/hooks/useGoogleAuth';
 import { BrandMark } from '../src/components/branding/BrandMark';
 import { colors, fontFamily, radius, spacing } from '../src/theme/tokens';
 
 type FocusedField = 'email' | 'password' | null;
+
+// Clave para precargar el último correo usado. Solo guardamos el email,
+// no la contraseña — la contraseña es responsabilidad del password manager
+// del sistema (autoComplete=current-password ya está activo).
+const LAST_EMAIL_KEY = 'srss.lastLoginEmail';
+const REMEMBER_EMAIL_KEY = 'srss.rememberEmail';
 
 export default function LoginScreen() {
   const { login, loginWithGoogle } = useAuth();
@@ -33,6 +40,7 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [focused, setFocused] = useState<FocusedField>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberEmail, setRememberEmail] = useState(true);
 
   const fade = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(10)).current;
@@ -55,6 +63,23 @@ export default function LoginScreen() {
     ]).start();
   }, [fade, slide]);
 
+  // Precargar el último email + preferencia "recordar" al montar.
+  useEffect(() => {
+    (async () => {
+      try {
+        const [storedEmail, storedRemember] = await Promise.all([
+          SecureStore.getItemAsync(LAST_EMAIL_KEY),
+          SecureStore.getItemAsync(REMEMBER_EMAIL_KEY),
+        ]);
+        const remember = storedRemember !== '0';
+        setRememberEmail(remember);
+        if (remember && storedEmail) setEmail(storedEmail);
+      } catch {
+        // SecureStore no disponible (Expo Go en algunos casos) — ignorar.
+      }
+    })();
+  }, []);
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Datos incompletos', 'Ingresa correo y contraseña');
@@ -63,6 +88,18 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email, password);
+      // Persistir email para precargarlo la próxima vez. No guardamos la
+      // contraseña — eso lo maneja el password manager del sistema.
+      try {
+        await SecureStore.setItemAsync(REMEMBER_EMAIL_KEY, rememberEmail ? '1' : '0');
+        if (rememberEmail) {
+          await SecureStore.setItemAsync(LAST_EMAIL_KEY, email.trim());
+        } else {
+          await SecureStore.deleteItemAsync(LAST_EMAIL_KEY);
+        }
+      } catch {
+        /* ignorar fallos de SecureStore */
+      }
       router.replace('/');
     } catch (err: unknown) {
       const message =
@@ -216,6 +253,21 @@ export default function LoginScreen() {
               />
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            onPress={() => setRememberEmail((v) => !v)}
+            activeOpacity={0.7}
+            style={s.rememberRow}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: rememberEmail }}
+          >
+            <View style={[s.checkbox, rememberEmail && s.checkboxChecked]}>
+              {rememberEmail ? (
+                <Feather name="check" size={13} color="#FFFFFF" strokeWidth={3} />
+              ) : null}
+            </View>
+            <Text style={s.rememberLabel}>Recordar mi correo</Text>
+          </TouchableOpacity>
 
           <Animated.View style={[s.btnWrap, { transform: [{ scale: pressScale }] }]}>
             <Pressable
@@ -404,6 +456,34 @@ const s = StyleSheet.create({
   eyeBtn: {
     paddingHorizontal: 6,
     paddingVertical: 6,
+  },
+
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.md,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  rememberLabel: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 12.5,
+    color: colors.textSecondary,
   },
 
   btnWrap: { marginTop: spacing.md },

@@ -1037,6 +1037,7 @@ button:active:not(:disabled) {
 }
 .adm-role-pill--admin { background: #FCE9E9; color: #8B3030; }
 .adm-role-pill--operator { background: #FFF5D6; color: #8C6300; }
+.adm-role-pill--driver { background: #E3EEF9; color: #143661; }
 .adm-role-pill--citizen { background: #E3FCEF; color: #00513A; }
 
 /* Inline alert banner (success / error / info) */

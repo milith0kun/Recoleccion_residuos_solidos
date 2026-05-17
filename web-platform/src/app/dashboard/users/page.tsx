@@ -31,7 +31,7 @@ interface UserData {
   lastName: string;
   email: string;
   dni: string;
-  role: 'admin' | 'operator' | 'citizen';
+  role: 'admin' | 'operator' | 'driver' | 'citizen';
   phone?: string;
   address?: string;
   isActive: boolean;
@@ -63,6 +63,12 @@ const roleBadge: Record<
     bg: 'bg-amber-50',
     border: 'border-amber-100',
   },
+  driver: {
+    label: 'Conductor',
+    color: 'text-sky-700',
+    bg: 'bg-sky-50',
+    border: 'border-sky-100',
+  },
   citizen: {
     label: 'Ciudadano',
     color: 'text-emerald-600',
@@ -79,7 +85,7 @@ interface CreateForm {
   phone: string;
   address: string;
   password: string;
-  role: 'operator' | 'admin';
+  role: 'driver' | 'operator' | 'admin';
 }
 
 interface EditForm {
@@ -87,7 +93,7 @@ interface EditForm {
   lastName: string;
   phone: string;
   address: string;
-  role: 'citizen' | 'operator' | 'admin';
+  role: 'citizen' | 'driver' | 'operator' | 'admin';
   isActive: boolean;
 }
 
@@ -99,7 +105,7 @@ const emptyCreate: CreateForm = {
   phone: '',
   address: '',
   password: '',
-  role: 'operator',
+  role: 'driver',
 };
 
 export default function UsersPage() {
@@ -209,6 +215,7 @@ export default function UsersPage() {
       total: users.length,
       admin: users.filter((u) => u.role === 'admin').length,
       operator: users.filter((u) => u.role === 'operator').length,
+      driver: users.filter((u) => u.role === 'driver').length,
       citizen: users.filter((u) => u.role === 'citizen').length,
     }),
     [users]
@@ -249,8 +256,14 @@ export default function UsersPage() {
     return arr;
   }, [users, sortBy, sortDir]);
 
+  const roleLabelFilter: Record<string, string> = {
+    admin: 'Administradores',
+    operator: 'Operadores',
+    driver: 'Conductores',
+    citizen: 'Ciudadanos',
+  };
   const activeFilters = [
-    roleFilter && `Rol: ${roleFilter === 'admin' ? 'Administradores' : roleFilter === 'operator' ? 'Operadores' : 'Ciudadanos'}`,
+    roleFilter && `Rol: ${roleLabelFilter[roleFilter] ?? roleFilter}`,
     zoneFilter && `Zona: ${zones.find((z) => z._id === zoneFilter)?.name ?? '...'}`,
     statusFilter && `Estado: ${statusFilter === 'active' ? 'Activos' : 'Inactivos'}`,
     search && `Búsqueda: "${search}"`,
@@ -270,11 +283,17 @@ export default function UsersPage() {
         method: 'POST',
         body: JSON.stringify(createForm),
       });
-      toast.success('Operador creado exitosamente');
+      const roleLabel =
+        createForm.role === 'admin'
+          ? 'Administrador'
+          : createForm.role === 'operator'
+            ? 'Operador'
+            : 'Conductor';
+      toast.success(`${roleLabel} creado exitosamente`);
       setCreateOpen(false);
       load();
     } catch (err) {
-      toast.error((err as Error).message || 'No se pudo crear el operador');
+      toast.error((err as Error).message || 'No se pudo crear el usuario');
     } finally {
       setCreateSubmitting(false);
     }
@@ -401,6 +420,7 @@ export default function UsersPage() {
           <option value="">Todos los roles</option>
           <option value="admin">Administradores</option>
           <option value="operator">Operadores</option>
+          <option value="driver">Conductores</option>
           <option value="citizen">Ciudadanos</option>
         </select>
         <select
@@ -428,6 +448,7 @@ export default function UsersPage() {
           <span className="up-stat-pill"><strong>{stats.total}</strong> total</span>
           <span className="up-stat-pill up-stat-pill--admin"><strong>{stats.admin}</strong> admin</span>
           <span className="up-stat-pill up-stat-pill--op"><strong>{stats.operator}</strong> oper.</span>
+          <span className="up-stat-pill up-stat-pill--drv"><strong>{stats.driver}</strong> cond.</span>
           <span className="up-stat-pill up-stat-pill--cit"><strong>{stats.citizen}</strong> ciud.</span>
         </div>
       </div>
@@ -626,7 +647,7 @@ export default function UsersPage() {
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Invitar al proyecto"
-        description="Creá una cuenta para un operador o administrador del sistema."
+        description="Creá una cuenta para un conductor, operador o administrador del sistema."
         size="md"
       >
         <form onSubmit={submitCreate} className="adm-form">
@@ -720,10 +741,11 @@ export default function UsersPage() {
                 onChange={(e) =>
                   setCreateForm({
                     ...createForm,
-                    role: e.target.value as 'operator' | 'admin',
+                    role: e.target.value as CreateForm['role'],
                   })
                 }
               >
+                <option value="driver">Conductor</option>
                 <option value="operator">Operador</option>
                 <option value="admin">Administrador</option>
               </select>
@@ -824,6 +846,7 @@ export default function UsersPage() {
                   }
                 >
                   <option value="citizen">Ciudadano</option>
+                  <option value="driver">Conductor</option>
                   <option value="operator">Operador</option>
                   <option value="admin">Administrador</option>
                 </select>
@@ -1102,6 +1125,8 @@ const upStyles = `
   .up-stat-pill--admin strong { color: #6B2424; }
   .up-stat-pill--op { background: #FFF5D6; color: #8C6300; }
   .up-stat-pill--op strong { color: #6E4D00; }
+  .up-stat-pill--drv { background: #E3EEF9; color: #143661; }
+  .up-stat-pill--drv strong { color: #0F2A4A; }
   .up-stat-pill--cit { background: #E3FCEF; color: #00513A; }
   .up-stat-pill--cit strong { color: #003A29; }
 
