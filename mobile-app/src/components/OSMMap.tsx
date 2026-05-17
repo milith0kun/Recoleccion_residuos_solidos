@@ -1,0 +1,294 @@
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from 'react';
+import { StyleSheet, View } from 'react-native';
+import WebView, { WebViewMessageEvent } from 'react-native-webview';
+import { colors } from '../theme/tokens';
+
+export interface MapMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  /** Color del marker (hex). */
+  color?: string;
+  /** Etiqueta corta dentro del marker (ej. número de waypoint). */
+  label?: string;
+  /** Texto del popup al tocar. */
+  popup?: string;
+  /** Tipo visual: pin (gota tradicional), dot (círculo lleno), pulse (pulsante). */
+  variant?: 'pin' | 'dot' | 'pulse';
+}
+
+export interface MapPolyline {
+  id: string;
+  /** Coords en orden: [[lat,lng], ...]. */
+  points: [number, number][];
+  color?: string;
+  width?: number;
+  /** Si true, línea punteada. */
+  dashed?: boolean;
+}
+
+export interface OSMMapRef {
+  /** Centra y hace zoom suave hacia una coordenada. */
+  animateTo: (lat: number, lng: number, zoom?: number) => void;
+  /** Ajusta el viewport para que entren todos los puntos. */
+  fitBounds: (points: [number, number][]) => void;
+}
+
+interface OSMMapProps {
+  /** Coordenada inicial. */
+  center: { lat: number; lng: number };
+  zoom?: number;
+  markers?: MapMarker[];
+  polylines?: MapPolyline[];
+  /** Si true, muestra un marker para la posición del usuario (azul). */
+  showUserLocation?: boolean;
+  userLocation?: { lat: number; lng: number } | null;
+  /** Disparado al tocar un marker (recibe id del marker). */
+  onMarkerPress?: (id: string) => void;
+  /** Disparado cuando el mapa terminó de inicializarse. */
+  onReady?: () => void;
+  style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
+}
+
+const TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const TILE_ATTRIB = '&copy; OpenStreetMap';
+
+/**
+ * Mapa basado en Leaflet + OpenStreetMap dentro de un WebView. Sin API key.
+ *
+ * Funcionamiento:
+ *   - Al montar, el WebView carga un HTML inline con leaflet desde CDN.
+ *   - El componente envía comandos por postMessage cuando cambian props
+ *     (setMarkers, setPolylines, animateTo).
+ *   - El WebView emite eventos hacia React Native con
+ *     `window.ReactNativeWebView.postMessage(JSON.stringify({ type, ... }))`.
+ */
+export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
+  {
+    center,
+    zoom = 14,
+    markers = [],
+    polylines = [],
+    showUserLocation = false,
+    userLocation = null,
+    onMarkerPress,
+    onReady,
+    style,
+  },
+  ref
+) {
+  const webRef = useRef<WebView>(null);
+  const isReadyRef = useRef(false);
+
+  const sendCommand = useCallback((cmd: object) => {
+    if (!webRef.current || !isReadyRef.current) return;
+    webRef.current.injectJavaScript(`window.osmHandle(${JSON.stringify(cmd)}); true;`);
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    animateTo: (lat, lng, z = 16) => sendCommand({ type: 'animateTo', lat, lng, zoom: z }),
+    fitBounds: (pts) => sendCommand({ type: 'fitBounds', points: pts }),
+  }));
+
+  // Re-sync de markers / polylines / user location cuando cambian.
+  useEffect(() => {
+    sendCommand({ type: 'setMarkers', markers });
+  }, [markers, sendCommand]);
+
+  useEffect(() => {
+    sendCommand({ type: 'setPolylines', polylines });
+  }, [polylines, sendCommand]);
+
+  useEffect(() => {
+    sendCommand({ type: 'setUser', enabled: showUserLocation, location: userLocation });
+  }, [showUserLocation, userLocation, sendCommand]);
+
+  const html = useMemo(() => buildHtml(center, zoom), [center.lat, center.lng, zoom]);
+
+  const handleMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      try {
+        const data = JSON.parse(event.nativeEvent.data) as { type: string; id?: string };
+        if (data.type === 'ready') {
+          isReadyRef.current = true;
+          // Aplicar el estado inicial completo apenas el mapa esté listo.
+          sendCommand({ type: 'setMarkers', markers });
+          sendCommand({ type: 'setPolylines', polylines });
+          sendCommand({ type: 'setUser', enabled: showUserLocation, location: userLocation });
+          onReady?.();
+        } else if (data.type === 'markerPress' && data.id) {
+          onMarkerPress?.(data.id);
+        }
+      } catch (e) {
+        if (__DEV__) console.warn('[OSMMap] bad message', e);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onReady, onMarkerPress]
+  );
+
+  return (
+    <View style={[styles.root, style]}>
+      <WebView
+        ref={webRef}
+        originWhitelist={['*']}
+        source={{ html }}
+        onMessage={handleMessage}
+        javaScriptEnabled
+        domStorageEnabled
+        scalesPageToFit={false}
+        androidLayerType="hardware"
+        startInLoadingState
+        style={styles.web}
+        // En Android sin esto los gestos en mapa se pelean con el scroll.
+        nestedScrollEnabled
+      />
+    </View>
+  );
+});
+
+function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
+  const accent = colors.primary;
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <style>
+    html, body, #map { margin:0; padding:0; height:100%; width:100%; background:#FFFFFF; }
+    .leaflet-control-attribution { font-size: 10px; }
+    .pin {
+      width: 24px; height: 24px; border-radius: 12px;
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 2px 4px rgba(0,30,43,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, sans-serif; font-size: 11px; font-weight: 700;
+      color: #FFFFFF;
+    }
+    .me {
+      width: 16px; height: 16px; border-radius: 8px;
+      background: #00684A; border: 3px solid #FFFFFF;
+      box-shadow: 0 0 0 6px rgba(0,104,74,0.22), 0 2px 4px rgba(0,30,43,0.3);
+    }
+    .pulse-wrap { display:flex; align-items:center; justify-content:center; width:36px; height:36px; }
+    .pulse-halo {
+      position: absolute; width: 14px; height: 14px; border-radius: 7px;
+      background: ${accent}; opacity: 0.4;
+      animation: pulse 1.4s ease-out infinite;
+    }
+    .pulse-core {
+      width: 14px; height: 14px; border-radius: 7px;
+      border: 3px solid ${accent}; background: #FFFFFF;
+      box-shadow: 0 2px 4px rgba(0,30,43,0.25);
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.45; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  var map = L.map('map', { zoomControl: false, attributionControl: true })
+    .setView([${center.lat}, ${center.lng}], ${zoom});
+  L.tileLayer('${TILE_URL}', { attribution: '${TILE_ATTRIB}', maxZoom: 19 }).addTo(map);
+  L.control.zoom({ position: 'topright' }).addTo(map);
+
+  var markerLayer = L.layerGroup().addTo(map);
+  var polylineLayer = L.layerGroup().addTo(map);
+  var userMarker = null;
+
+  function send(msg) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+    }
+  }
+
+  function buildMarkerIcon(m) {
+    var color = m.color || '${accent}';
+    var label = m.label || '';
+    if (m.variant === 'pulse') {
+      return L.divIcon({
+        className: '',
+        html: '<div class="pulse-wrap"><div class="pulse-halo" style="background:' + color + '"></div>'
+            + '<div class="pulse-core" style="border-color:' + color + '"></div></div>',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+    }
+    if (m.variant === 'dot') {
+      return L.divIcon({
+        className: '',
+        html: '<div class="pin" style="background:' + color + ';width:18px;height:18px;border-radius:9px;font-size:0">' + '</div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+      });
+    }
+    return L.divIcon({
+      className: '',
+      html: '<div class="pin" style="background:' + color + '">' + label + '</div>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+  }
+
+  window.osmHandle = function(cmd) {
+    if (!cmd) return;
+    if (cmd.type === 'setMarkers') {
+      markerLayer.clearLayers();
+      (cmd.markers || []).forEach(function(m) {
+        var marker = L.marker([m.lat, m.lng], { icon: buildMarkerIcon(m) });
+        marker.on('click', function() { send({ type: 'markerPress', id: m.id }); });
+        if (m.popup) marker.bindPopup(m.popup);
+        marker.addTo(markerLayer);
+      });
+    } else if (cmd.type === 'setPolylines') {
+      polylineLayer.clearLayers();
+      (cmd.polylines || []).forEach(function(p) {
+        var opts = {
+          color: p.color || '${accent}',
+          weight: p.width || 4,
+          opacity: 0.9,
+        };
+        if (p.dashed) opts.dashArray = '8,8';
+        L.polyline((p.points || []).map(function(pt){ return [pt[0], pt[1]]; }), opts).addTo(polylineLayer);
+      });
+    } else if (cmd.type === 'setUser') {
+      if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+      if (cmd.enabled && cmd.location) {
+        var icon = L.divIcon({ className: '', html: '<div class="me"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+        userMarker = L.marker([cmd.location.lat, cmd.location.lng], { icon: icon, interactive: false }).addTo(map);
+      }
+    } else if (cmd.type === 'animateTo') {
+      map.flyTo([cmd.lat, cmd.lng], cmd.zoom || map.getZoom(), { duration: 0.6 });
+    } else if (cmd.type === 'fitBounds') {
+      var pts = (cmd.points || []).map(function(p){ return [p[0], p[1]]; });
+      if (pts.length) {
+        map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 16 });
+      }
+    }
+  };
+
+  // Notificar a RN cuando todo está listo.
+  setTimeout(function() { send({ type: 'ready' }); }, 60);
+</script>
+</body>
+</html>`;
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
+  web: { flex: 1, backgroundColor: 'transparent' },
+});

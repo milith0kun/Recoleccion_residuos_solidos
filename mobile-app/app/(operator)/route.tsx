@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -18,6 +17,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useGpsTracker } from '../../src/hooks/useGpsTracker';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 import { AppHeader } from '../../src/components/layout/AppShell';
+import { OSMMap, type MapMarker, type MapPolyline, type OSMMapRef } from '../../src/components/OSMMap';
 
 interface Waypoint {
   order: number;
@@ -55,10 +55,11 @@ function haversineMeters(
 }
 
 const AVG_SPEED_MS = 5;
+const CUSCO_CENTER = { lat: -13.52264, lng: -71.96734 };
 
 export default function RouteMapScreen() {
   const { getActiveExecutionId } = useAuth();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<OSMMapRef>(null);
 
   const [loading, setLoading] = useState(true);
   const [execution, setExecution] = useState<Execution | null>(null);
@@ -85,11 +86,8 @@ export default function RouteMapScreen() {
         return;
       }
       const { data } = await api.get(`/route-executions/${id}`);
-      if (data?.success) {
-        setExecution(data.data);
-      } else {
-        setExecution(null);
-      }
+      if (data?.success) setExecution(data.data);
+      else setExecution(null);
     } catch (e) {
       setExecution(null);
     }
@@ -150,14 +148,45 @@ export default function RouteMapScreen() {
   }, []);
 
   const waypoints = execution?.route?.waypoints || [];
-  const polylineCoords = useMemo(
+  const polylineCoords = useMemo<[number, number][]>(
     () =>
-      execution?.route?.path?.coordinates?.map((c) => ({
-        latitude: c[1],
-        longitude: c[0],
-      })) || [],
+      (execution?.route?.path?.coordinates || []).map((c) => [c[1], c[0]] as [number, number]),
     [execution?.route?.path?.coordinates]
   );
+
+  const polylines = useMemo<MapPolyline[]>(() => {
+    if (polylineCoords.length > 1) {
+      return [
+        {
+          id: 'route',
+          points: polylineCoords,
+          color: colors.primary,
+          width: 4,
+        },
+      ];
+    }
+    return [];
+  }, [polylineCoords]);
+
+  const markers = useMemo<MapMarker[]>(() => {
+    const items: MapMarker[] = waypoints.map((wp) => {
+      const visited = visitedSet.get(wp.order);
+      const color = visited
+        ? visited.skipped
+          ? colors.danger
+          : colors.primary
+        : colors.textMuted;
+      return {
+        id: `wp-${wp.order}`,
+        lat: wp.location.coordinates[1],
+        lng: wp.location.coordinates[0],
+        color,
+        label: String(wp.order),
+        popup: `${wp.order}. ${wp.name}`,
+      };
+    });
+    return items;
+  }, [waypoints, visitedSet]);
 
   const nextWaypoint = useMemo(() => {
     const sorted = [...waypoints].sort((a, b) => a.order - b.order);
@@ -178,12 +207,7 @@ export default function RouteMapScreen() {
 
   const centerOnUser = () => {
     if (myLocation && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: myLocation.latitude,
-        longitude: myLocation.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
+      mapRef.current.animateTo(myLocation.latitude, myLocation.longitude, 17);
     }
   };
 
@@ -230,9 +254,12 @@ export default function RouteMapScreen() {
 
   if (loading) {
     return (
-      <View style={s.loading}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={s.loadingText}>Cargando ruta...</Text>
+      <View style={s.container}>
+        <AppHeader title="Mi ruta" section="Operador" />
+        <View style={s.loading}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={s.loadingText}>Cargando ruta...</Text>
+        </View>
       </View>
     );
   }
@@ -240,77 +267,41 @@ export default function RouteMapScreen() {
   if (!execution) {
     return (
       <View style={s.container}>
-      <AppHeader title="Mi ruta" section="Operador" />
-      <View style={s.empty}>
-        <View style={s.emptyIcon}>
-          <Feather name="map" size={28} color={colors.primary} />
+        <AppHeader title="Mi ruta" section="Operador" />
+        <View style={s.empty}>
+          <View style={s.emptyIcon}>
+            <Feather name="map" size={28} color={colors.primary} />
+          </View>
+          <Text style={s.emptyTitle}>Sin jornada activa</Text>
+          <Text style={s.emptyDesc}>
+            Iniciá una jornada desde "Inicio" para ver tu ruta.
+          </Text>
         </View>
-        <Text style={s.emptyTitle}>Sin jornada activa</Text>
-        <Text style={s.emptyDesc}>
-          Iniciá una jornada desde "Inicio" para ver tu ruta.
-        </Text>
-      </View>
       </View>
     );
   }
 
-  const initialLat = waypoints[0]?.location.coordinates[1] || myLocation?.latitude || -13.52264;
-  const initialLng = waypoints[0]?.location.coordinates[0] || myLocation?.longitude || -71.96734;
+  const initialCenter = {
+    lat: waypoints[0]?.location.coordinates[1] || myLocation?.latitude || CUSCO_CENTER.lat,
+    lng: waypoints[0]?.location.coordinates[0] || myLocation?.longitude || CUSCO_CENTER.lng,
+  };
+
+  const userLoc = myLocation ? { lat: myLocation.latitude, lng: myLocation.longitude } : null;
 
   return (
     <View style={s.container}>
       <AppHeader title="Mi ruta" section="Operador" />
-      <MapView
+
+      <OSMMap
         ref={mapRef}
+        center={initialCenter}
+        zoom={15}
+        markers={markers}
+        polylines={polylines}
+        showUserLocation
+        userLocation={userLoc}
         style={s.map}
-        provider={PROVIDER_DEFAULT}
-        initialRegion={{
-          latitude: initialLat,
-          longitude: initialLng,
-          latitudeDelta: 0.03,
-          longitudeDelta: 0.03,
-        }}
-        showsUserLocation={false}
-      >
-        {polylineCoords.length > 1 ? (
-          <Polyline coordinates={polylineCoords} strokeColor={colors.primary} strokeWidth={4} />
-        ) : null}
-
-        {waypoints.map((wp) => {
-          const visited = visitedSet.get(wp.order);
-          const color = visited
-            ? visited.skipped
-              ? colors.danger
-              : colors.primary
-            : colors.textMuted;
-          return (
-            <Marker
-              key={wp.order}
-              coordinate={{
-                latitude: wp.location.coordinates[1],
-                longitude: wp.location.coordinates[0],
-              }}
-              title={`${wp.order}. ${wp.name}`}
-              description={
-                visited ? (visited.skipped ? 'Saltada' : 'Visitada') : 'Pendiente'
-              }
-            >
-              <View style={[s.wpMarker, { backgroundColor: color }]}>
-                <Text style={s.wpMarkerText}>{wp.order}</Text>
-              </View>
-            </Marker>
-          );
-        })}
-
-        {myLocation ? (
-          <Marker coordinate={myLocation} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={s.meWrap}>
-              <View style={s.meHalo} />
-              <View style={s.meDot} />
-            </View>
-          </Marker>
-        ) : null}
-      </MapView>
+      />
 
       <View style={s.bottomCard}>
         {nextWaypoint ? (
@@ -364,7 +355,7 @@ export default function RouteMapScreen() {
             <Feather name="award" size={24} color={colors.primary} />
             <Text style={s.allDoneText}>¡Todas las paradas registradas!</Text>
             <Text style={s.allDoneDesc}>
-              Podés finalizar la jornada desde la pestaña Jornada.
+              Podés finalizar la jornada desde "Inicio".
             </Text>
           </View>
         )}
@@ -464,42 +455,6 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
 
-  wpMarker: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: colors.ink,
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  wpMarkerText: {
-    color: '#FFFFFF',
-    fontFamily: fontFamily.sansBold,
-    fontSize: 11,
-  },
-
-  meWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  meHalo: {
-    position: 'absolute',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,104,74,0.22)',
-  },
-  meDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-
   bottomCard: {
     position: 'absolute',
     left: 16,
@@ -549,16 +504,8 @@ const s = StyleSheet.create({
     marginTop: 2,
     letterSpacing: -0.2,
   },
-  bottomMeta: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: 4,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
+  bottomMeta: { flexDirection: 'row', gap: spacing.md, marginTop: 4 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: {
     fontFamily: fontFamily.sansSemibold,
     color: colors.textSecondary,

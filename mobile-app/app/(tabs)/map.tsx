@@ -5,18 +5,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Animated,
   ScrollView,
-  Easing,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 import { getZoneId } from '../../src/utils/zone';
 import { AppHeader } from '../../src/components/layout/AppShell';
+import { OSMMap, type MapMarker, type MapPolyline, type OSMMapRef } from '../../src/components/OSMMap';
 
 type RouteStatus = 'active' | 'completed' | 'pending' | 'planned' | 'cancelled' | 'inactive';
 
@@ -65,49 +63,7 @@ function minutesAgo(iso: string | null): string {
   return `${hrs} h atrás`;
 }
 
-function PulsingTruckMarker({ stale }: { stale: boolean }) {
-  const pulse = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 1400,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, { toValue: 0, duration: 0, useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
-
-  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.4] });
-  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] });
-  const color = stale ? colors.warn : colors.primary;
-
-  return (
-    <View style={mStyles.wrap}>
-      <Animated.View
-        style={[mStyles.halo, { backgroundColor: color, opacity, transform: [{ scale }] }]}
-      />
-      <View style={[mStyles.core, { borderColor: color }]} />
-    </View>
-  );
-}
-
-const mStyles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36 },
-  halo: { position: 'absolute', width: 22, height: 22, borderRadius: 11 },
-  core: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 3,
-    backgroundColor: '#FFFFFF',
-  },
-});
+const CUSCO_CENTER = { lat: -13.52264, lng: -71.96734 };
 
 export default function MapScreen() {
   const { user } = useAuth();
@@ -116,7 +72,7 @@ export default function MapScreen() {
   const [executions, setExecutions] = useState<ActiveExecution[]>([]);
   const [trail, setTrail] = useState<{
     executionId: string;
-    points: { latitude: number; longitude: number }[];
+    points: [number, number][];
   } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(true);
@@ -126,7 +82,7 @@ export default function MapScreen() {
     pending: false,
   });
   const [selectedExecution, setSelectedExecution] = useState<ActiveExecution | null>(null);
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<OSMMapRef>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadRoutes = async () => {
@@ -153,7 +109,6 @@ export default function MapScreen() {
 
   useEffect(() => {
     let mounted = true;
-
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -166,21 +121,85 @@ export default function MapScreen() {
       } catch (e) {
         if (__DEV__) console.warn('[map] location request failed', e);
       }
-
       await Promise.all([loadRoutes(), loadActive()]);
       if (mounted) setLoading(false);
     })();
-
-    intervalRef.current = setInterval(() => {
-      loadActive();
-    }, 5000);
-
+    intervalRef.current = setInterval(() => loadActive(), 5000);
     return () => {
       mounted = false;
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.zone]);
+
+  const filteredRoutes = useMemo(() => {
+    return routes.filter((r) => {
+      const status = (r.status || 'pending') as RouteStatus;
+      if (status === 'active') return filters.active;
+      if (status === 'completed') return filters.completed;
+      if (status === 'pending' || status === 'planned' || status === 'inactive')
+        return filters.pending;
+      return false;
+    });
+  }, [routes, filters]);
+
+  const polylines = useMemo<MapPolyline[]>(() => {
+    const items: MapPolyline[] = [];
+    filteredRoutes.forEach((r) => {
+      const coords = r.path?.coordinates;
+      if (!coords || coords.length === 0) return;
+      const status = (r.status || 'pending') as RouteStatus;
+      const color =
+        status === 'active'
+          ? colors.primary
+          : status === 'completed'
+          ? '#1E5180'
+          : '#5C6C75';
+      items.push({
+        id: r._id,
+        points: coords.map((c) => [c[1], c[0]]),
+        color,
+        width: status === 'active' ? 5 : 3,
+        dashed: status !== 'active',
+      });
+    });
+    if (trail && trail.points.length > 1) {
+      items.push({
+        id: 'trail-' + trail.executionId,
+        points: trail.points,
+        color: 'rgba(0,104,74,0.55)',
+        width: 3,
+      });
+    }
+    return items;
+  }, [filteredRoutes, trail]);
+
+  const markers = useMemo<MapMarker[]>(() => {
+    const items: MapMarker[] = [];
+    filteredRoutes.forEach((r) => {
+      (r.waypoints || []).forEach((wp) => {
+        items.push({
+          id: `wp-${r._id}-${wp.order}`,
+          lat: wp.location.coordinates[1],
+          lng: wp.location.coordinates[0],
+          color: '#1E5180',
+          label: String(wp.order),
+          popup: wp.name || `Punto ${wp.order}`,
+        });
+      });
+    });
+    executions.forEach((exec) => {
+      if (!exec.lastLocation) return;
+      items.push({
+        id: `exec-${exec.executionId}`,
+        lat: exec.lastLocation.lat,
+        lng: exec.lastLocation.lng,
+        color: exec.isStale ? colors.warn : colors.primary,
+        variant: 'pulse',
+      });
+    });
+    return items;
+  }, [filteredRoutes, executions]);
 
   const onTrackExecution = async (exec: ActiveExecution) => {
     setSelectedExecution(exec);
@@ -194,43 +213,37 @@ export default function MapScreen() {
         lng?: number;
       }>;
       const points = raw
-        .map((p) => {
+        .map((p): [number, number] | null => {
           if (p.location?.coordinates && p.location.coordinates.length >= 2) {
-            return {
-              latitude: p.location.coordinates[1],
-              longitude: p.location.coordinates[0],
-            };
+            return [p.location.coordinates[1], p.location.coordinates[0]];
           }
           if (typeof p.lat === 'number' && typeof p.lng === 'number') {
-            return { latitude: p.lat, longitude: p.lng };
+            return [p.lat, p.lng];
           }
           return null;
         })
-        .filter((p): p is { latitude: number; longitude: number } => p !== null)
+        .filter((p): p is [number, number] => p !== null)
         .slice(-20);
       setTrail({ executionId: exec.executionId, points });
-
       if (exec.lastLocation && mapRef.current) {
-        mapRef.current.animateToRegion({
-          latitude: exec.lastLocation.lat,
-          longitude: exec.lastLocation.lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
+        mapRef.current.animateTo(exec.lastLocation.lat, exec.lastLocation.lng, 16);
       }
     } catch (e) {
       if (__DEV__) console.warn('[map] /gps/track failed', e);
     }
   };
 
+  const handleMarkerPress = (id: string) => {
+    if (id.startsWith('exec-')) {
+      const execId = id.replace('exec-', '');
+      const exec = executions.find((e) => e.executionId === execId);
+      if (exec) onTrackExecution(exec);
+    }
+  };
+
   const centerOnUser = () => {
     if (location && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
+      mapRef.current.animateTo(location.coords.latitude, location.coords.longitude, 16);
     }
   };
 
@@ -242,115 +255,51 @@ export default function MapScreen() {
     setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const filteredRoutes = useMemo(() => {
-    return routes.filter((r) => {
-      const status = (r.status || 'pending') as RouteStatus;
-      if (status === 'active') return filters.active;
-      if (status === 'completed') return filters.completed;
-      if (status === 'pending' || status === 'planned' || status === 'inactive')
-        return filters.pending;
-      return false;
-    });
-  }, [routes, filters]);
-
-  const polylineStyleFor = (status: RouteStatus | undefined) => {
-    if (status === 'active') {
-      return { color: colors.primary, width: 5, dash: undefined as number[] | undefined };
-    }
-    if (status === 'completed') {
-      return { color: 'rgba(30,81,128,0.55)', width: 3, dash: [8, 8] as number[] | undefined };
-    }
-    return { color: 'rgba(92,108,117,0.35)', width: 2, dash: [2, 6] as number[] | undefined };
-  };
-
   if (loading) {
     return (
-      <View style={s.loadingBox}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={s.loadingText}>Cargando mapa y rutas...</Text>
+      <View style={s.container}>
+        <AppHeader title="Mapa en vivo" section="Ciudadano" />
+        <View style={s.loadingBox}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={s.loadingText}>Cargando mapa y rutas...</Text>
+        </View>
       </View>
     );
   }
 
   if (errorMsg) {
     return (
-      <View style={s.loadingBox}>
-        <Text style={s.errorTitle}>Sin acceso a tu ubicación</Text>
-        <Text style={s.loadingText}>{errorMsg}</Text>
-        <TouchableOpacity style={s.retryBtn} onPress={handleRefresh} activeOpacity={0.85}>
-          <Text style={s.retryBtnText}>Reintentar</Text>
-        </TouchableOpacity>
+      <View style={s.container}>
+        <AppHeader title="Mapa en vivo" section="Ciudadano" />
+        <View style={s.loadingBox}>
+          <Text style={s.errorTitle}>Sin acceso a tu ubicación</Text>
+          <Text style={s.loadingText}>{errorMsg}</Text>
+          <TouchableOpacity style={s.retryBtn} onPress={handleRefresh} activeOpacity={0.85}>
+            <Text style={s.retryBtnText}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   const activeTrucks = executions.length;
+  const userLoc = location ? { lat: location.coords.latitude, lng: location.coords.longitude } : null;
 
   return (
     <View style={s.container}>
       <AppHeader title="Mapa en vivo" section="Ciudadano" />
-      <MapView
+
+      <OSMMap
         ref={mapRef}
+        center={userLoc ?? CUSCO_CENTER}
+        zoom={14}
+        markers={markers}
+        polylines={polylines}
+        showUserLocation
+        userLocation={userLoc}
+        onMarkerPress={handleMarkerPress}
         style={s.map}
-        initialRegion={{
-          latitude: location?.coords.latitude || -13.52264,
-          longitude: location?.coords.longitude || -71.96734,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
-        showsUserLocation
-        showsMyLocationButton={false}
-      >
-        {filteredRoutes.map((r) => {
-          const coords = r.path?.coordinates;
-          if (!coords || coords.length === 0) return null;
-          const style = polylineStyleFor(r.status);
-          return (
-            <Polyline
-              key={r._id}
-              coordinates={coords.map((c) => ({ latitude: c[1], longitude: c[0] }))}
-              strokeColor={style.color}
-              strokeWidth={style.width}
-              lineDashPattern={style.dash}
-            />
-          );
-        })}
-
-        {filteredRoutes.flatMap((r) =>
-          (r.waypoints || []).map((wp) => (
-            <Marker
-              key={`${r._id}-${wp.order}`}
-              coordinate={{
-                latitude: wp.location.coordinates[1],
-                longitude: wp.location.coordinates[0],
-              }}
-              title={wp.name || `Punto ${wp.order}`}
-              description={
-                wp.estimatedArrival ? `Llegada estimada: ${wp.estimatedArrival}` : undefined
-              }
-              pinColor={colors.info}
-            />
-          ))
-        )}
-
-        {trail && trail.points.length > 1 && (
-          <Polyline coordinates={trail.points} strokeColor="rgba(0,104,74,0.55)" strokeWidth={3} />
-        )}
-
-        {executions.map((exec) =>
-          exec.lastLocation ? (
-            <Marker
-              key={exec.executionId}
-              coordinate={{ latitude: exec.lastLocation.lat, longitude: exec.lastLocation.lng }}
-              onPress={() => onTrackExecution(exec)}
-              anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={false}
-            >
-              <PulsingTruckMarker stale={exec.isStale} />
-            </Marker>
-          ) : null
-        )}
-      </MapView>
+      />
 
       <View style={s.overlay}>
         <View style={s.card}>
