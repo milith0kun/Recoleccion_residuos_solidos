@@ -25,6 +25,8 @@ import {
   Briefcase,
   UserPlus,
   Grid3x3,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import AccessRestricted from '@/components/AccessRestricted';
 
@@ -105,9 +107,13 @@ interface SidebarContentProps {
   onLogout: () => void;
   collapsedGroups: Set<string>;
   onToggleGroup: (label: string) => void;
+  sbCollapsed: boolean;
+  onToggleSidebar: () => void;
+  isMobile?: boolean;
 }
 
 const COLLAPSED_STORAGE_KEY = 'srss-sidebar-collapsed-groups';
+const SIDEBAR_COLLAPSED_KEY = 'srss-sidebar-collapsed';
 
 function BrandMark() {
   return (
@@ -147,10 +153,16 @@ function SidebarContent({
   onLogout,
   collapsedGroups,
   onToggleGroup,
+  sbCollapsed,
+  onToggleSidebar,
+  isMobile = false,
 }: SidebarContentProps) {
+  let stagger = 0;
+  const stagStep = (i: number) => ({ '--sb-stagger': `${i * 22}ms` } as React.CSSProperties);
+
   return (
     <>
-      <div className="sb-brand">
+      <div className="sb-brand" style={stagStep(stagger++)}>
         <BrandMark />
         <div className="sb-brand-text">
           <span className="sb-brand-name">SRSS Cusco</span>
@@ -173,12 +185,11 @@ function SidebarContent({
                   onClick={() => onToggleGroup(group.label!)}
                   aria-expanded={!isCollapsed}
                   aria-controls={`sb-group-items-${gi}`}
+                  style={stagStep(stagger++)}
+                  title={group.label}
                 >
-                  <GroupIcon style={{ width: 16, height: 16, flexShrink: 0 }} />
+                  <GroupIcon className="sb-group-icon" style={{ width: 16, height: 16, flexShrink: 0 }} />
                   <span className="sb-group-label">{group.label}</span>
-                  {groupContainsActive && isCollapsed && (
-                    <span className="sb-group-active-dot" aria-hidden />
-                  )}
                   <ChevronDown
                     className="sb-group-chevron"
                     style={{ width: 13, height: 13, flexShrink: 0 }}
@@ -187,24 +198,33 @@ function SidebarContent({
               ) : null}
               <div
                 id={`sb-group-items-${gi}`}
-                className="sb-group-items"
-                hidden={isCollapsed}
+                className={`sb-group-items ${isCollapsed ? 'sb-group-items--collapsed' : ''}`}
+                aria-hidden={isCollapsed}
               >
-                {group.items.map((item) => {
-                  const isActive = pathname === item.href;
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onNavigate}
-                      className={`sb-link ${indented ? 'sb-link--indented' : ''} ${isActive ? 'sb-link--active' : ''}`}
-                    >
-                      {!indented && <Icon style={{ width: 16, height: 16, flexShrink: 0 }} />}
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
+                <div className="sb-group-items-inner">
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.href;
+                    const Icon = item.icon;
+                    const myStagger = stagger++;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={onNavigate}
+                        tabIndex={isCollapsed ? -1 : 0}
+                        className={`sb-link ${indented ? 'sb-link--indented' : ''} ${isActive ? 'sb-link--active' : ''}`}
+                        style={stagStep(myStagger)}
+                        title={item.label}
+                      >
+                        <Icon
+                          className={`sb-link-icon ${indented ? 'sb-link-icon--indented' : ''}`}
+                          style={{ width: 16, height: 16, flexShrink: 0 }}
+                        />
+                        <span className="sb-link-text">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           );
@@ -212,9 +232,9 @@ function SidebarContent({
       </nav>
 
       <div className="sb-footer">
-        <div className="sb-user">
+        <div className="sb-user" style={stagStep(stagger++)}>
           <div className="sb-user-top">
-            <div className="sb-user-avatar">
+            <div className="sb-user-avatar" title={`${user.firstName} ${user.lastName}`}>
               {user.firstName[0]}{user.lastName[0]}
             </div>
             <div className="sb-user-meta">
@@ -227,10 +247,34 @@ function SidebarContent({
             <span>En línea</span>
           </div>
         </div>
-        <button onClick={onLogout} className="sb-logout" title="Cerrar sesión">
-          <LogOut style={{ width: 16, height: 16 }} />
-          <span>Cerrar sesión</span>
+        <button
+          onClick={onLogout}
+          className="sb-logout"
+          title="Cerrar sesión"
+          style={stagStep(stagger++)}
+        >
+          <LogOut className="sb-logout-icon" style={{ width: 16, height: 16 }} />
+          <span className="sb-logout-text">Cerrar sesión</span>
         </button>
+        {!isMobile && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            className="sb-rail-toggle"
+            title={sbCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
+            aria-label={sbCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
+            aria-pressed={sbCollapsed}
+          >
+            {sbCollapsed ? (
+              <PanelLeftOpen style={{ width: 15, height: 15 }} />
+            ) : (
+              <PanelLeftClose style={{ width: 15, height: 15 }} />
+            )}
+            <span className="sb-rail-toggle-text">
+              {sbCollapsed ? 'Expandir' : 'Contraer'}
+            </span>
+          </button>
+        )}
       </div>
     </>
   );
@@ -242,6 +286,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [sbCollapsed, setSbCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<'help' | 'bell' | 'apps' | 'avatar' | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
@@ -276,7 +321,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (Array.isArray(arr)) setCollapsedGroups(new Set(arr));
       }
     } catch {}
+    try {
+      const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (stored === '1') setSbCollapsed(true);
+    } catch {}
   }, []);
+
+  const toggleSidebar = () => {
+    setSbCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
+      } catch {}
+      return next;
+    });
+  };
 
   const toggleGroup = (label: string) => {
     setCollapsedGroups((prev) => {
@@ -317,10 +376,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
-    <div className="dash-root">
+    <div className={`dash-root ${sbCollapsed ? 'dash-root--sb-collapsed' : ''}`}>
       <style>{dashStyles}</style>
 
-      <aside className="sb">
+      <div className="sb-spacer" aria-hidden />
+      <aside className={`sb ${sbCollapsed ? 'sb--collapsed' : ''}`}>
         <SidebarContent
           groups={filteredGroups}
           pathname={pathname}
@@ -329,6 +389,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           onLogout={logout}
           collapsedGroups={collapsedGroups}
           onToggleGroup={toggleGroup}
+          sbCollapsed={sbCollapsed}
+          onToggleSidebar={toggleSidebar}
         />
       </aside>
 
@@ -345,6 +407,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           onLogout={logout}
           collapsedGroups={collapsedGroups}
           onToggleGroup={toggleGroup}
+          sbCollapsed={false}
+          onToggleSidebar={toggleSidebar}
+          isMobile
         />
       </aside>
 
@@ -586,26 +651,56 @@ const dashStyles = `
   }
 
   .dash-root {
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     background: #FAFAF8;
     color: #1A1A1A;
     font-family: 'Outfit', 'DM Sans', -apple-system, sans-serif;
+    overflow: hidden;
   }
 
   /* ═══ SIDEBAR ═══ */
+  /* Spacer reserves layout width — it does NOT change when the sidebar is hover-expanded */
+  .sb-spacer {
+    flex-shrink: 0;
+    display: none;
+    width: 248px;
+    transition: width 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (min-width: 1024px) {
+    .sb-spacer { display: block; }
+  }
+  .dash-root--sb-collapsed .sb-spacer {
+    width: 64px;
+  }
+
+  /* The sidebar itself is fixed so it can overlay when hover-expanded */
   .sb {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
     width: 248px;
     display: none;
     flex-direction: column;
     background: #FFFFFF;
     border-right: 1px solid #E8EDEB;
-    position: relative;
     z-index: 30;
+    overflow: hidden;
+    transform-origin: top left;
+    transition: width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.32s ease;
   }
 
   @media (min-width: 1024px) {
     .sb { display: flex; }
+  }
+
+  .sb--collapsed { width: 64px; }
+  .sb--collapsed:hover {
+    width: 248px;
+    box-shadow: 0 16px 40px -12px rgba(0, 30, 43, 0.18),
+                0 4px 14px -4px rgba(0, 30, 43, 0.08);
   }
 
   .sb-brand {
@@ -616,6 +711,11 @@ const dashStyles = `
     gap: 0.6rem;
     border-bottom: 1px solid #E8EDEB;
     flex-shrink: 0;
+    transition: padding 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .sb--collapsed:not(:hover) .sb-brand {
+    padding: 0 14px;
+    justify-content: center;
   }
   .sb-brand-mark {
     width: 36px;
@@ -634,6 +734,18 @@ const dashStyles = `
     display: flex;
     align-items: baseline;
     min-width: 0;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.18s ease, transform 0.22s ease;
+    transition-delay: var(--sb-stagger, 0ms);
+  }
+  .sb--collapsed:not(:hover) .sb-brand-text {
+    opacity: 0;
+    transform: translateX(-8px);
+    transition-delay: 0ms;
+    pointer-events: none;
+    width: 0;
+    overflow: hidden;
   }
   .sb-brand-name {
     font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
@@ -643,11 +755,12 @@ const dashStyles = `
     letter-spacing: -0.012em;
     font-variation-settings: "opsz" 36;
     line-height: 1.1;
+    white-space: nowrap;
   }
 
   .sb-nav {
     flex: 1;
-    padding: 10px 0 14px;
+    padding: 12px 0 16px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -656,12 +769,16 @@ const dashStyles = `
   .sb-group {
     display: flex;
     flex-direction: column;
-    padding: 2px 0 6px;
+    padding: 2px 0 4px;
   }
+  /* Atlas-style: groups separated by whitespace, no border lines */
   .sb-group:not(:first-child) {
+    margin-top: 14px;
+    padding-top: 2px;
+  }
+  .sb--collapsed:not(:hover) .sb-group:not(:first-child) {
     margin-top: 8px;
-    padding-top: 10px;
-    border-top: 1px solid #F5F5F2;
+    padding-top: 4px;
   }
   .sb-group--collapsed {
     padding-bottom: 2px;
@@ -669,21 +786,21 @@ const dashStyles = `
   .sb-group-header {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
+    gap: 0.65rem;
     width: 100%;
-    padding: 0.5rem 0.9rem 0.5rem 1.1rem;
+    padding: 0.55rem 0.9rem 0.55rem 1.15rem;
     border: 0;
     background: transparent;
-    color: #889397;
+    color: #00684A;
     font-family: 'Geist', 'Outfit', sans-serif;
     cursor: pointer;
     user-select: none;
     text-align: left;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease, padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .sb-group-header:hover {
-    background: #F6F7F5;
-    color: #001E2B;
+    background: #F1F4F2;
+    color: #003D2A;
   }
   .sb-group-header:focus-visible {
     outline: 2px solid #00A35C;
@@ -692,81 +809,91 @@ const dashStyles = `
   .sb-group-header--has-active {
     color: #00513A;
   }
+  /* In collapsed sidebar (no hover), group headers disappear — the items themselves act as the rail */
+  .sb--collapsed:not(:hover) .sb-group-header {
+    display: none;
+  }
+  .sb-group-icon {
+    color: inherit;
+    opacity: 0.95;
+  }
   .sb-group-label {
-    font-size: 0.62rem;
+    font-size: 0.68rem;
     font-weight: 700;
     color: inherit;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.13em;
+    white-space: nowrap;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.18s ease, transform 0.22s ease;
+    transition-delay: var(--sb-stagger, 0ms);
   }
-  .sb-group-active-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #00A35C;
-    box-shadow: 0 0 0 3px rgba(0,163,92,0.16);
-    flex-shrink: 0;
-    margin-left: 0.4rem;
-  }
+  /* Atlas-style: chevron points UP (▲) when expanded, DOWN (▼) when collapsed */
   .sb-group-chevron {
     margin-left: auto;
-    color: #B2BAC0;
-    opacity: 0.85;
-    transition: transform 0.22s ease, opacity 0.15s ease, color 0.15s ease;
+    color: inherit;
+    opacity: 0.7;
+    transform: rotate(180deg);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
   }
-  .sb-group-header:hover .sb-group-chevron,
-  .sb-group-header--has-active .sb-group-chevron {
-    color: #00513A;
+  .sb-group-header:hover .sb-group-chevron {
     opacity: 1;
   }
   .sb-group--collapsed .sb-group-chevron {
-    transform: rotate(-90deg);
+    transform: rotate(0deg);
   }
   .sb-group-items {
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr;
+    margin-top: 2px;
+    transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sb-group-items--collapsed {
+    grid-template-rows: 0fr;
+    margin-top: 0;
+  }
+  /* When sidebar is fully collapsed (no hover), force-show all items (rail acts as flat list) */
+  .sb--collapsed:not(:hover) .sb-group-items--collapsed {
+    grid-template-rows: 1fr;
+    margin-top: 2px;
+  }
+  .sb-group-items-inner {
+    min-height: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    position: relative;
-    margin-top: 2px;
-    overflow: hidden;
-  }
-  .sb-group-items::before {
-    content: '';
-    position: absolute;
-    left: calc(1.1rem + 7.5px);
-    top: 4px;
-    bottom: 4px;
-    width: 1px;
-    background: #EEF0EC;
-  }
-  .sb-group-items[hidden] {
-    display: none;
   }
 
   .sb-link {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 0.5rem 1.1rem 0.5rem 1.1rem;
+    gap: 0.7rem;
+    padding: 0.55rem 1.15rem;
     border-radius: 0;
     font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 0.84rem;
-    font-weight: 500;
-    color: #5C6C75;
+    font-size: 0.875rem;
+    font-weight: 450;
+    color: #1A1A1A;
     text-decoration: none;
-    transition: background 0.12s ease, color 0.12s ease;
+    transition: background 0.15s ease, color 0.15s ease, padding 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    overflow: hidden;
   }
+  /* Atlas-style: indented items align with where the category LABEL starts (after the group icon) */
   .sb-link--indented {
-    padding-left: 2.6rem;
-    font-size: 0.825rem;
+    padding-left: 2.7rem;
+    font-size: 0.865rem;
   }
   .sb-link:hover:not(.sb-link--active) {
-    background: #F6F7F5;
+    background: #F1F4F2;
     color: #001E2B;
   }
   .sb-link--active {
     background: #E3FCEF;
-    color: #00513A !important;
+    color: #00684A !important;
     font-weight: 600;
   }
   .sb-link--active::before {
@@ -776,27 +903,88 @@ const dashStyles = `
     top: 4px;
     bottom: 4px;
     width: 3px;
-    border-radius: 0 3px 3px 0;
+    border-radius: 0 2px 2px 0;
     background: #00684A;
+  }
+
+  /* Icon visibility:
+   * - Expanded sidebar: top-level icons show, indented icons hide (group icon is the visual anchor)
+   * - Collapsed sidebar: ALL icons show (each item gets its own glyph) */
+  .sb-link-icon {
+    color: inherit;
+    flex-shrink: 0;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .sb-link-icon--indented {
+    display: none;
+  }
+  .sb--collapsed:not(:hover) .sb-link-icon,
+  .sb--collapsed:not(:hover) .sb-link-icon--indented {
+    display: block;
+  }
+
+  /* Link text — appears with staggered fade-in when expanding */
+  .sb-link-text {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.2s ease, transform 0.24s ease;
+    transition-delay: var(--sb-stagger, 0ms);
+  }
+  .sb--collapsed:not(:hover) .sb-link-text {
+    opacity: 0;
+    transform: translateX(-10px);
+    transition-delay: 0ms;
+    pointer-events: none;
+    width: 0;
+    overflow: hidden;
+  }
+
+  /* Collapsed link: icon centered in 64px rail */
+  .sb--collapsed:not(:hover) .sb-link,
+  .sb--collapsed:not(:hover) .sb-link--indented {
+    padding: 0.62rem 0;
+    justify-content: center;
+    gap: 0;
+  }
+  .sb--collapsed:not(:hover) .sb-link--active::before {
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
   }
 
   .sb-footer {
     padding: 0.85rem 0.75rem 1rem;
     margin-top: auto;
-    border-top: 1px solid #F7F6F4;
+    border-top: 1px solid #E8EDEB;
+    transition: padding 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .sb--collapsed:not(:hover) .sb-footer {
+    padding: 0.6rem 0.5rem 0.9rem;
   }
   .sb-user {
     padding: 0.85rem;
-    border-radius: 11px;
-    background: #FAFAF8;
-    border: 1px solid #F0EEEB;
+    border-radius: 10px;
+    background: #F9FAFA;
+    border: 1px solid #E8EDEB;
     margin-bottom: 0.55rem;
+    transition: padding 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease;
+  }
+  .sb--collapsed:not(:hover) .sb-user {
+    padding: 0.4rem;
+    background: transparent;
+    border-color: transparent;
   }
   .sb-user-top {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     margin-bottom: 0.55rem;
+    transition: margin 0.25s ease;
+  }
+  .sb--collapsed:not(:hover) .sb-user-top {
+    margin-bottom: 0;
+    justify-content: center;
   }
   .sb-user-avatar {
     width: 32px;
@@ -816,6 +1004,18 @@ const dashStyles = `
   .sb-user-meta {
     min-width: 0;
     flex: 1;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.18s ease, transform 0.22s ease;
+    transition-delay: var(--sb-stagger, 0ms);
+  }
+  .sb--collapsed:not(:hover) .sb-user-meta {
+    opacity: 0;
+    transform: translateX(-8px);
+    transition-delay: 0ms;
+    width: 0;
+    overflow: hidden;
+    pointer-events: none;
   }
   .sb-user-name {
     font-size: 0.78rem;
@@ -829,7 +1029,7 @@ const dashStyles = `
   .sb-user-role {
     font-size: 0.65rem;
     font-weight: 500;
-    color: #B0ADA8;
+    color: #5C6C75;
     margin-top: 1px;
   }
   .sb-user-status {
@@ -837,19 +1037,25 @@ const dashStyles = `
     align-items: center;
     gap: 0.4rem;
     padding-top: 0.5rem;
-    border-top: 1px solid #F0EEEB;
+    border-top: 1px solid #E8EDEB;
+    opacity: 1;
+    transition: opacity 0.18s ease;
+    transition-delay: var(--sb-stagger, 0ms);
+  }
+  .sb--collapsed:not(:hover) .sb-user-status {
+    display: none;
   }
   .sb-user-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #10B981;
-    box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+    background: #00A35C;
+    box-shadow: 0 0 0 3px rgba(0,163,92,0.15);
   }
   .sb-user-status span:last-child {
     font-size: 0.6rem;
     font-weight: 700;
-    color: #059669;
+    color: #00684A;
     text-transform: uppercase;
     letter-spacing: 0.1em;
   }
@@ -860,21 +1066,94 @@ const dashStyles = `
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.65rem;
-    border-radius: 9px;
-    border: 1px solid #F0EEEB;
+    padding: 0.6rem;
+    border-radius: 8px;
+    border: 1px solid #E8EDEB;
     background: #FFFFFF;
-    color: #8A8780;
+    color: #5C6C75;
     font-family: inherit;
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    overflow: hidden;
   }
   .sb-logout:hover {
-    background: #FEF2F2;
-    border-color: #FECACA;
-    color: #DC2626;
+    background: #FCEEEE;
+    border-color: #F5C9C9;
+    color: #B23A3A;
+  }
+  .sb-logout-icon { flex-shrink: 0; }
+  .sb-logout-text {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.18s ease, transform 0.22s ease;
+    transition-delay: var(--sb-stagger, 0ms);
+  }
+  .sb--collapsed:not(:hover) .sb-logout {
+    padding: 0.55rem 0;
+    border-color: transparent;
+    background: transparent;
+    gap: 0;
+  }
+  .sb--collapsed:not(:hover) .sb-logout-text {
+    opacity: 0;
+    transform: translateX(-8px);
+    transition-delay: 0ms;
+    width: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Rail toggle (collapse/expand the sidebar entirely) */
+  .sb-rail-toggle {
+    margin-top: 0.4rem;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #6B7682;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    overflow: hidden;
+    letter-spacing: 0.01em;
+  }
+  .sb-rail-toggle:hover {
+    background: #F0F7F2;
+    color: #00513A;
+    border-color: #DCEBE2;
+  }
+  .sb-rail-toggle:focus-visible {
+    outline: 2px solid #00A35C;
+    outline-offset: 1px;
+  }
+  .sb-rail-toggle-text {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.18s ease, transform 0.22s ease;
+    transition-delay: var(--sb-stagger, 0ms);
+  }
+  .sb--collapsed:not(:hover) .sb-rail-toggle {
+    padding: 0.55rem 0;
+    gap: 0;
+  }
+  .sb--collapsed:not(:hover) .sb-rail-toggle-text {
+    opacity: 0;
+    transform: translateX(-8px);
+    transition-delay: 0ms;
+    width: 0;
+    overflow: hidden;
+    pointer-events: none;
   }
 
   /* Mobile sidebar */
@@ -947,14 +1226,14 @@ const dashStyles = `
     text-align: left;
   }
   .bc-segment:hover {
-    background: #F4F6F4;
+    background: #F1F4F2;
     border-color: #E8EDEB;
   }
   .bc-label {
     font-family: 'Geist', 'Outfit', sans-serif;
     font-size: 0.58rem;
     font-weight: 700;
-    color: #889397;
+    color: #5C6C75;
     text-transform: uppercase;
     letter-spacing: 0.12em;
   }
@@ -975,7 +1254,7 @@ const dashStyles = `
     text-overflow: ellipsis;
   }
   .bc-page {
-    color: #00513A;
+    color: #00684A;
   }
 
   .dash-header-right {
@@ -992,14 +1271,14 @@ const dashStyles = `
     background: transparent;
     color: #5C6C75;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .header-icon-btn:hover {
-    background: #F4F6F4;
-    color: #001E2B;
+    background: #F1F4F2;
+    color: #00684A;
   }
   .bell-dot {
     position: absolute;
@@ -1014,8 +1293,8 @@ const dashStyles = `
     height: 32px;
     border-radius: 999px;
     border: 1px solid #E8EDEB;
-    background: #F4F6F4;
-    color: #001E2B;
+    background: #F1F4F2;
+    color: #00684A;
     font-family: 'Geist', 'Outfit', sans-serif;
     font-size: 0.72rem;
     font-weight: 700;
@@ -1024,20 +1303,21 @@ const dashStyles = `
     place-items: center;
     cursor: pointer;
     margin-left: 8px;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
   .header-avatar-btn:hover,
   .header-avatar-btn--active {
-    background: #E8EDEB;
-    border-color: #D4D9D7;
+    background: #E3FCEF;
+    border-color: #C1F1D6;
+    color: #00513A;
   }
   .header-icon-btn--active {
-    background: #F4F6F4;
-    color: #001E2B;
+    background: #F1F4F2;
+    color: #00684A;
     border-color: #E8EDEB;
   }
   .bc-segment--active {
-    background: #F4F6F4;
+    background: #F1F4F2;
     border-color: #E8EDEB;
   }
 
@@ -1120,23 +1400,23 @@ const dashStyles = `
     font-family: inherit;
   }
   .dropdown-item:hover {
-    background: #F4F6F4;
-    color: #00513A;
+    background: #F1F4F2;
+    color: #00684A;
   }
   .dropdown-item--danger:hover {
-    background: #FCE9E9;
+    background: #FCEEEE;
     color: #B23A3A;
   }
   .dropdown-divider {
     height: 1px;
-    background: #F0F2F0;
+    background: #E8EDEB;
     margin: 6px -8px;
   }
   .dropdown-foot {
     font-size: 0.68rem;
-    color: #889397;
+    color: #5C6C75;
     padding: 8px 12px 4px;
-    border-top: 1px solid #F0F2F0;
+    border-top: 1px solid #E8EDEB;
     margin-top: 6px;
     text-align: center;
   }
@@ -1154,8 +1434,8 @@ const dashStyles = `
     width: 44px;
     height: 44px;
     border-radius: 999px;
-    background: #F4F6F4;
-    color: #5C6C75;
+    background: #F1F4F2;
+    color: #00684A;
     display: grid;
     place-items: center;
     margin-bottom: 4px;
@@ -1205,7 +1485,7 @@ const dashStyles = `
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    background: #F4F6F4;
+    background: #F1F4F2;
     color: #00684A;
     display: grid;
     place-items: center;
@@ -1227,22 +1507,22 @@ const dashStyles = `
     align-items: center;
     gap: 12px;
     padding: 10px 12px 14px;
-    border-bottom: 1px solid #F0F2F0;
+    border-bottom: 1px solid #E8EDEB;
     margin-bottom: 6px;
   }
   .avatar-dropdown-circle {
     width: 40px;
     height: 40px;
     border-radius: 999px;
-    background: #E8EDEB;
-    color: #001E2B;
+    background: #F1F4F2;
+    color: #00684A;
     display: grid;
     place-items: center;
     font-family: 'Geist', 'Outfit', sans-serif;
     font-size: 0.88rem;
     font-weight: 700;
     flex-shrink: 0;
-    border: 1px solid #DCE2E0;
+    border: 1px solid #E8EDEB;
   }
   .avatar-dropdown-name {
     font-size: 0.85rem;
@@ -1266,7 +1546,7 @@ const dashStyles = `
     margin-top: 6px;
     font-size: 0.62rem;
     font-weight: 700;
-    color: #00513A;
+    color: #00684A;
     background: #E3FCEF;
     padding: 2px 8px;
     border-radius: 999px;
@@ -1278,7 +1558,7 @@ const dashStyles = `
     display: flex;
     height: 56px;
     background: #FFFFFF;
-    border-bottom: 1px solid #F0EEEB;
+    border-bottom: 1px solid #E8EDEB;
     align-items: center;
     justify-content: space-between;
     padding: 0 1.25rem;
@@ -1288,17 +1568,24 @@ const dashStyles = `
     .dash-header-mobile { display: none; }
   }
   .mobile-brand {
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: #1A1A1A;
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #001E2B;
+    letter-spacing: -0.012em;
   }
   .mobile-menu-btn {
     padding: 0.4rem;
     border-radius: 6px;
-    border: none;
-    background: #FAFAF8;
-    color: #5A5750;
+    border: 1px solid #E8EDEB;
+    background: #F1F4F2;
+    color: #00684A;
     cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .mobile-menu-btn:hover {
+    background: #E3FCEF;
+    color: #00513A;
   }
 
   /* Content */
