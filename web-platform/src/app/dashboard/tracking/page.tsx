@@ -4,7 +4,6 @@ import { useApi } from '@/hooks/useApi';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
-  Radio,
   Truck,
   Navigation,
   Activity,
@@ -12,6 +11,7 @@ import {
   Wifi,
   WifiOff,
   AlertTriangle,
+  Radio,
 } from 'lucide-react';
 import type { Map as LeafletMap } from 'leaflet';
 
@@ -77,13 +77,11 @@ export default function TrackingPage() {
     async (executionId: string): Promise<TrailPoint[]> => {
       const res = await apiFetch(`/api/v1/gps/track?routeExecution=${executionId}`);
       const points: { lat: number; lng: number; timestamp: string }[] = res.data?.points ?? [];
-      // API returns newest-first; reverse for chronological polyline
       return points.slice(0, 20).reverse();
     },
     [apiFetch]
   );
 
-  // Polling for active executions
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
@@ -104,7 +102,6 @@ export default function TrackingPage() {
     };
   }, [fetchActiveData]);
 
-  // Tick clock for "hace Xs" labels
   useEffect(() => {
     tickRef.current = setInterval(() => setNow(Date.now()), 1000);
     return () => {
@@ -112,7 +109,6 @@ export default function TrackingPage() {
     };
   }, []);
 
-  // Refetch trail when selection changes & periodically
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
@@ -167,38 +163,36 @@ export default function TrackingPage() {
   const liveCount = vehicles.filter(v => !staleNow(v.lastSeenAt)).length;
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+    <div className="adm-page animate-fade-in">
+      <style>{trackingStyles}</style>
+
+      <header className="adm-header">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-            <Radio className={`w-8 h-8 ${liveCount > 0 ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
-            Seguimiento en Tiempo Real
+          <h1 className="adm-title">
+            Seguimiento <em style={{ color: '#00684A', fontStyle: 'italic', fontWeight: 500 }}>en vivo</em>.
           </h1>
-          <p className="text-slate-500 font-medium">
-            Monitoreo GPS de la flota de recolección · actualización cada 5s
+          <p className="adm-sub">
+            Monitoreo GPS de la flota de recolección · actualización cada {POLL_INTERVAL_MS / 1000}s.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border border-slate-100 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-600">
-              {liveCount} en línea
-            </span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border border-slate-100 shadow-sm">
-            <Truck className="w-4 h-4 text-slate-400" />
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-600">
-              {vehicles.length} activas
-            </span>
-          </div>
+        <div className="adm-header-actions">
+          <span className={`adm-stat-pill ${liveCount > 0 ? 'adm-stat-pill--green' : ''}`}>
+            <span className="adm-status-dot" />
+            <strong>{liveCount}</strong>
+            <span>en línea</span>
+          </span>
+          <span className="adm-stat-pill">
+            <Truck size={12} style={{ marginRight: 2 }} />
+            <strong>{vehicles.length}</strong>
+            <span>activas</span>
+          </span>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Map Card */}
-        <div className="lg:col-span-8 bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100 relative overflow-hidden">
-          <div className="relative h-[600px] w-full rounded-[1.5rem] overflow-hidden border border-slate-50">
+      <div className="trk-grid">
+        {/* Mapa */}
+        <section className="adm-section trk-map-card">
+          <div className="trk-map-wrap">
             {leafletLoaded && !loading ? (
               <MapContainer
                 center={mapCenter}
@@ -211,80 +205,75 @@ export default function TrackingPage() {
                   attribution='&copy; <a href="https://carto.com/">CARTO</a>'
                 />
 
-                {/* Trail for selected execution */}
                 {trail.length > 1 && (
                   <Polyline
                     positions={trail.map(p => [p.lat, p.lng] as [number, number])}
-                    pathOptions={{ color: '#10B981', weight: 4, opacity: 0.45 }}
+                    pathOptions={{ color: '#00684A', weight: 4, opacity: 0.55 }}
                   />
                 )}
 
-                {/* Vehicle markers */}
                 {vehicles.map(v => {
                   if (!v.lastLocation) return null;
                   const stale = staleNow(v.lastSeenAt);
                   const isSelected = v.executionId === selectedExecId;
-                  const color = stale ? '#F59E0B' : '#10B981';
+                  const color = stale ? '#D97706' : '#00A35C';
                   return (
                     <CircleMarker
                       key={v.executionId}
                       center={[v.lastLocation.lat, v.lastLocation.lng]}
-                      radius={isSelected ? 14 : 11}
+                      radius={isSelected ? 13 : 10}
                       pathOptions={{
-                        color: '#fff',
+                        color: '#FFFFFF',
                         fillColor: color,
                         fillOpacity: 1,
-                        weight: isSelected ? 5 : 4,
+                        weight: isSelected ? 4 : 3,
                       }}
-                      eventHandlers={{
-                        click: () => handleSelect(v),
-                      }}
+                      eventHandlers={{ click: () => handleSelect(v) }}
                     >
                       <Popup>
-                        <div className="p-2 font-sans min-w-[220px]">
-                          <div className="flex items-center justify-between mb-3">
-                            <strong className="text-slate-900 text-base">
-                              {v.vehicle?.plate ?? 'Sin vehículo'}
-                            </strong>
+                        <div className="trk-popup">
+                          <div className="trk-popup-head">
+                            <strong>{v.vehicle?.plate ?? 'Sin vehículo'}</strong>
                             <span
-                              className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
-                                stale
-                                  ? 'bg-amber-50 text-amber-700'
-                                  : 'bg-emerald-50 text-emerald-700'
+                              className={`adm-status ${
+                                stale ? 'adm-status--amber' : 'adm-status--green'
                               }`}
                             >
+                              <span className="adm-status-dot" />
                               {stale ? 'Sin señal' : 'En vivo'}
                             </span>
                           </div>
-                          <div className="space-y-1.5 border-t border-slate-50 pt-2">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2">
-                              <Navigation className="w-3 h-3" />
-                              Ruta: <span className="text-slate-700">{v.routeName}</span>
-                            </p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2">
-                              <User className="w-3 h-3" />
-                              Op: <span className="text-slate-700">{v.operatorName}</span>
-                            </p>
+                          <div className="trk-popup-body">
+                            <div className="trk-popup-row">
+                              <Navigation size={12} />
+                              <span className="trk-popup-label">Ruta</span>
+                              <span className="trk-popup-value">{v.routeName}</span>
+                            </div>
+                            <div className="trk-popup-row">
+                              <User size={12} />
+                              <span className="trk-popup-label">Operador</span>
+                              <span className="trk-popup-value">{v.operatorName}</span>
+                            </div>
                             {typeof v.lastLocation.speed === 'number' && (
-                              <p className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2">
-                                <Activity className="w-3 h-3" />
-                                Vel:{' '}
-                                <span className="text-slate-700">
+                              <div className="trk-popup-row">
+                                <Activity size={12} />
+                                <span className="trk-popup-label">Velocidad</span>
+                                <span className="trk-popup-value">
                                   {v.lastLocation.speed.toFixed(0)} km/h
                                 </span>
-                              </p>
+                              </div>
                             )}
-                            <p className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2">
+                            <div className="trk-popup-row">
                               {stale ? (
-                                <WifiOff className="w-3 h-3 text-amber-500" />
+                                <WifiOff size={12} style={{ color: '#D97706' }} />
                               ) : (
-                                <Wifi className="w-3 h-3 text-emerald-500" />
+                                <Wifi size={12} style={{ color: '#00A35C' }} />
                               )}
-                              Última señal:{' '}
-                              <span className="text-slate-700">
+                              <span className="trk-popup-label">Última señal</span>
+                              <span className="trk-popup-value">
                                 {formatSecondsAgo(v.lastSeenAt)}
                               </span>
-                            </p>
+                            </div>
                           </div>
                         </div>
                       </Popup>
@@ -293,138 +282,105 @@ export default function TrackingPage() {
                 })}
               </MapContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full gap-4 bg-slate-50">
-                <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
-                  Cargando Mapa de Tracking...
-                </p>
+              <div className="trk-loading">
+                <div className="adm-spinner" />
+                <p>Cargando mapa de tracking…</p>
               </div>
             )}
-          </div>
 
-          {/* Legend */}
-          <div className="absolute top-10 right-10 z-[1000] bg-white/90 backdrop-blur-md px-6 py-4 rounded-3xl border border-white/50 shadow-2xl space-y-3">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
-              Estado GPS
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-tighter">
-                En vivo
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-amber-500" />
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-tighter">
-                Sin señal &gt;30s
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-1 bg-emerald-500 opacity-60 rounded-full" />
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-tighter">
-                Trail seleccionado
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Side panel */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                Vehículos Activos
-              </h3>
-              <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-xs font-black text-slate-400">
-                {vehicles.length}
+            {/* Leyenda flotante */}
+            <div className="trk-legend">
+              <span className="adm-eyebrow" style={{ margin: 0 }}>Estado GPS</span>
+              <div className="trk-legend-row">
+                <span className="trk-legend-dot" style={{ background: '#00A35C' }} />
+                <span>En vivo</span>
+              </div>
+              <div className="trk-legend-row">
+                <span className="trk-legend-dot" style={{ background: '#D97706' }} />
+                <span>Sin señal &gt; 30s</span>
+              </div>
+              <div className="trk-legend-row">
+                <span className="trk-legend-line" />
+                <span>Trail seleccionado</span>
               </div>
             </div>
+          </div>
+        </section>
 
-            <div className="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+        {/* Panel lateral */}
+        <aside className="trk-aside">
+          <section className="adm-section trk-vehicles">
+            <div className="adm-section-header" style={{ marginBottom: 14 }}>
+              <div>
+                <h3 className="adm-section-title">Vehículos activos</h3>
+                <p className="adm-section-sub">
+                  Selecciona uno para ver su trail en el mapa.
+                </p>
+              </div>
+              <span className="trk-count">{vehicles.length}</span>
+            </div>
+
+            <div className="trk-vehicles-list">
               {vehicles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-                  <div className="p-6 rounded-full bg-slate-50 text-slate-200">
-                    <Truck className="w-12 h-12" />
+                <div className="adm-state">
+                  <div className="adm-state-icon">
+                    <Truck size={22} strokeWidth={2} />
                   </div>
-                  <p className="text-sm font-bold text-slate-400 leading-relaxed uppercase tracking-tighter px-6">
+                  <p className="adm-state-title">
                     No hay camiones operando ahora
                   </p>
-                  <p className="text-xs font-medium text-slate-300 leading-relaxed px-6 normal-case">
-                    Cuando un operador inicie su ruta desde la app móvil, aparecerá aquí en tiempo real.
+                  <p className="adm-state-desc">
+                    Cuando un operador inicie su ruta desde la app móvil aparecerá acá en tiempo real.
                   </p>
                 </div>
               ) : (
                 vehicles.map(v => {
                   const stale = staleNow(v.lastSeenAt);
                   const isSelected = v.executionId === selectedExecId;
+                  const Icon = stale ? AlertTriangle : Radio;
                   return (
                     <button
                       type="button"
                       key={v.executionId}
                       onClick={() => handleSelect(v)}
-                      className={`w-full text-left group p-5 rounded-3xl border transition-all duration-300 ${
-                        isSelected
-                          ? 'bg-white border-emerald-200 shadow-md ring-2 ring-emerald-100'
-                          : 'border-slate-50 bg-slate-50/50 hover:bg-white hover:border-emerald-100 hover:shadow-md'
-                      }`}
+                      className={`adm-tile trk-vehicle ${isSelected ? 'trk-vehicle--selected' : ''}`}
                     >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`p-2 rounded-xl bg-white shadow-sm ${
-                              stale ? 'text-amber-600' : 'text-emerald-600'
-                            }`}
-                          >
-                            <Truck className="w-5 h-5" />
-                          </div>
-                          <span className="text-sm font-black text-slate-900 tracking-tight uppercase">
+                      <span className={`adm-tile-icon ${stale ? 'trk-vehicle-icon--stale' : ''}`}>
+                        <Icon size={18} strokeWidth={2} />
+                      </span>
+                      <span className="adm-tile-body">
+                        <span className="trk-vehicle-row">
+                          <span className="adm-tile-title">
                             {v.vehicle?.plate ?? '—'}
                           </span>
-                        </div>
-                        <span
-                          className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest flex items-center gap-1 ${
-                            stale
-                              ? 'bg-amber-50 text-amber-700'
-                              : 'bg-emerald-50 text-emerald-700'
-                          }`}
-                        >
-                          {stale ? (
-                            <>
-                              <AlertTriangle className="w-3 h-3" /> sin señal
-                            </>
-                          ) : (
-                            <>
-                              <Wifi className="w-3 h-3" /> en vivo
-                            </>
-                          )}
+                          <span
+                            className={`adm-status ${
+                              stale ? 'adm-status--amber' : 'adm-status--green'
+                            }`}
+                            style={{ fontSize: 10 }}
+                          >
+                            <span className="adm-status-dot" />
+                            {stale ? 'Sin señal' : 'En vivo'}
+                          </span>
                         </span>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Navigation className="w-3 h-3 text-slate-300" />
-                          <span className="text-[11px] font-bold text-slate-600 truncate">
-                            {v.routeName}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <User className="w-3 h-3 text-slate-300" />
-                          <span className="text-[11px] font-bold text-slate-500 truncate">
-                            {v.operatorName}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                            {formatSecondsAgo(v.lastSeenAt)}
-                          </span>
+                        <span className="trk-vehicle-meta">
+                          <Navigation size={11} />
+                          <span>{v.routeName}</span>
+                        </span>
+                        <span className="trk-vehicle-meta">
+                          <User size={11} />
+                          <span>{v.operatorName}</span>
+                        </span>
+                        <span className="trk-vehicle-foot">
+                          <span>{formatSecondsAgo(v.lastSeenAt)}</span>
                           {v.lastLocation && typeof v.lastLocation.speed === 'number' && (
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter flex items-center gap-1">
-                              <Activity className="w-3 h-3" />
+                            <span className="trk-speed">
+                              <Activity size={10} />
                               {v.lastLocation.speed.toFixed(0)} km/h
                             </span>
                           )}
-                        </div>
-                      </div>
+                        </span>
+                      </span>
                     </button>
                   );
                 })
@@ -432,21 +388,278 @@ export default function TrackingPage() {
             </div>
 
             {vehicles.length > 0 && (
-              <div className="mt-8 p-6 rounded-[1.5rem] bg-emerald-50 border border-emerald-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
-                  <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
-                    Polling activo
-                  </span>
-                </div>
-                <p className="text-[11px] font-bold text-emerald-800 leading-relaxed">
-                  Recibiendo coordenadas cada {POLL_INTERVAL_MS / 1000}s. Selecciona un vehículo para ver su trail.
+              <div className="trk-polling">
+                <span className="adm-status adm-status--green">
+                  <span className="adm-status-dot" />
+                  Polling activo
+                </span>
+                <p className="adm-sub" style={{ margin: 0, fontSize: 12 }}>
+                  Coordenadas cada {POLL_INTERVAL_MS / 1000}s · tocá un vehículo para enfocar el mapa.
                 </p>
               </div>
             )}
-          </div>
-        </div>
+          </section>
+        </aside>
       </div>
     </div>
   );
 }
+
+const trackingStyles = `
+  .trk-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  @media (min-width: 1100px) {
+    .trk-grid { grid-template-columns: minmax(0, 1fr) 360px; }
+  }
+
+  /* Map card */
+  .trk-map-card {
+    padding: 14px;
+    overflow: hidden;
+  }
+  .trk-map-wrap {
+    position: relative;
+    height: clamp(380px, 60vh, 620px);
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #E8EDEB;
+    background: #F1F4F2;
+  }
+  @media (max-width: 767px) {
+    .trk-map-wrap { height: clamp(320px, 55vh, 460px); }
+    .trk-vehicles { padding: 16px; }
+    .trk-legend {
+      top: 10px;
+      right: 10px;
+      padding: 10px 12px;
+      min-width: 150px;
+      font-size: 11.5px;
+    }
+  }
+  .leaflet-container {
+    background: #FAFBFA;
+  }
+  .trk-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 14px;
+  }
+  .trk-loading p {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #5C6C75;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Legend overlay */
+  .trk-legend {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 1000;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid #E8EDEB;
+    border-radius: 10px;
+    padding: 12px 14px;
+    box-shadow: 0 4px 14px rgba(0, 30, 43, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 180px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+  }
+  .trk-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #001E2B;
+  }
+  .trk-legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.9);
+  }
+  .trk-legend-line {
+    width: 18px;
+    height: 2px;
+    background: #00684A;
+    opacity: 0.55;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Aside */
+  .trk-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .trk-vehicles {
+    display: flex;
+    flex-direction: column;
+    padding: 22px;
+    height: 100%;
+  }
+  .trk-count {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: #F1F4F2;
+    border: 1px solid #E8EDEB;
+    color: #00684A;
+    display: grid;
+    place-items: center;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .trk-vehicles-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    margin: 0 -4px;
+    padding: 0 4px;
+  }
+
+  /* Vehicle tile */
+  .trk-vehicle {
+    align-items: flex-start;
+    padding: 14px 14px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .trk-vehicle--selected {
+    background: #FAFEFC;
+    border-color: #C1F1D6;
+    box-shadow: 0 0 0 3px rgba(0, 104, 74, 0.06);
+  }
+  .trk-vehicle-icon--stale {
+    background: #FFF1D6 !important;
+    color: #8C5A00 !important;
+    box-shadow: inset 0 0 0 1px #F0DCA5 !important;
+  }
+  .trk-vehicle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .trk-vehicle-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #5C6C75;
+    margin-top: 3px;
+  }
+  .trk-vehicle-meta svg {
+    color: #889397;
+    flex-shrink: 0;
+  }
+  .trk-vehicle-meta span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .trk-vehicle-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #F1F3F0;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #5C6C75;
+    letter-spacing: 0.02em;
+  }
+  .trk-speed {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #00513A;
+  }
+
+  /* Polling banner (usa .adm-status--green + .adm-sub) */
+  .trk-polling {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: #F9FBFA;
+    border: 1px solid #E8EDEB;
+  }
+
+  /* Popup container (overrides Leaflet ya viven en globals.css) */
+  .trk-popup {
+    min-width: 220px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+  }
+  .trk-popup-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #E8EDEB;
+  }
+  .trk-popup-head strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: #001E2B;
+    letter-spacing: -0.005em;
+  }
+  .trk-popup-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .trk-popup-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #5C6C75;
+  }
+  .trk-popup-row svg {
+    color: #889397;
+    flex-shrink: 0;
+  }
+  .trk-popup-label {
+    font-weight: 600;
+    color: #5C6C75;
+    flex-shrink: 0;
+  }
+  .trk-popup-value {
+    color: #001E2B;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;

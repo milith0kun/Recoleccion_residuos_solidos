@@ -3,13 +3,27 @@
 import { useEffect, useState } from 'react';
 import { useAuth, type User } from '@/context/AuthContext';
 import { useApi } from '@/hooks/useApi';
-import { User as UserIcon, Save } from 'lucide-react';
+import {
+  User as UserIcon,
+  Mail,
+  MapPin,
+  Save,
+  ShieldCheck,
+  IdCard,
+  Phone,
+} from 'lucide-react';
 
 interface Zone {
   _id: string;
   name: string;
   district?: string;
 }
+
+const roleLabel: Record<string, string> = {
+  admin: 'Administrador',
+  operator: 'Operador',
+  citizen: 'Ciudadano',
+};
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -48,7 +62,7 @@ export default function ProfilePage() {
     setSuccess('');
 
     if (dni && !/^\d{8}$/.test(dni)) {
-      setError('El DNI debe tener exactamente 8 dígitos');
+      setError('El DNI debe tener exactamente 8 dígitos.');
       return;
     }
 
@@ -81,9 +95,9 @@ export default function ProfilePage() {
         profileComplete: updated.profileComplete as boolean | undefined,
       };
       setUser(nextUser);
-      setSuccess('Perfil actualizado correctamente');
+      setSuccess('Perfil actualizado correctamente.');
     } catch (err) {
-      setError((err as Error).message || 'Error al guardar');
+      setError((err as Error).message || 'No se pudieron guardar los cambios.');
     } finally {
       setLoading(false);
     }
@@ -91,101 +105,248 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
+  const initials =
+    `${(firstName || user.firstName || '?')[0] ?? ''}${(lastName || user.lastName || '')[0] ?? ''}`.toUpperCase();
+  const fullName =
+    `${firstName || user.firstName} ${lastName || user.lastName}`.trim() || user.email;
+  const currentZoneName =
+    zones.find((z) => z._id === zoneId)?.name ?? 'Sin asignar';
+
   return (
-    <div className="profile-root">
-      <style>{styles}</style>
+    <div className="adm-page animate-fade-in">
+      <style>{pageStyles}</style>
 
-      <div className="profile-header">
-        <div className="profile-icon">
-          <UserIcon style={{ width: 22, height: 22 }} />
-        </div>
+      <header className="adm-header">
         <div>
-          <h1 className="profile-title">Mi Perfil</h1>
-          <p className="profile-subtitle">Gestioná tus datos personales</p>
+          <h1 className="adm-title">
+            Tu <em style={{ color: '#00684A', fontStyle: 'italic', fontWeight: 500 }}>perfil</em>.
+          </h1>
+          <p className="adm-sub">
+            Actualizá tus datos personales y la zona donde operás.
+          </p>
         </div>
-      </div>
+        <div className="adm-header-actions">
+          <span className="adm-stat-pill adm-stat-pill--green">
+            <ShieldCheck size={12} />
+            <strong>{roleLabel[user.role] ?? user.role}</strong>
+          </span>
+        </div>
+      </header>
 
-      <form onSubmit={handleSubmit} className="profile-card">
-        <div className="profile-grid">
-          <div className="profile-field">
-            <label>Correo</label>
-            <input value={user.email} disabled className="profile-input profile-input--disabled" />
-            <span className="profile-hint">No se puede modificar</span>
+      <form onSubmit={handleSubmit} className="prf-form">
+        <div className="prf-grid">
+          {/* ─── Columna principal: 3 secciones diferenciadas ─── */}
+          <div className="prf-main">
+            {/* Identidad */}
+            <section className="adm-section">
+              <div className="adm-section-header" style={{ marginBottom: 12 }}>
+                <div className="adm-section-title-with-icon">
+                  <span className="adm-tile-icon adm-tile-icon--sm">
+                    <UserIcon size={18} strokeWidth={2} />
+                  </span>
+                  <div>
+                    <h2 className="adm-section-title">Identidad</h2>
+                    <p className="adm-section-sub">
+                      Cómo te identificás dentro del sistema.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="adm-form-grid">
+                <div className="adm-form-field">
+                  <label className="adm-form-label">Nombre</label>
+                  <input
+                    className="adm-form-input"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="adm-form-field">
+                  <label className="adm-form-label">Apellido</label>
+                  <input
+                    className="adm-form-input"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="adm-form-field adm-form-field--full">
+                  <label className="adm-form-label">DNI</label>
+                  <input
+                    className="adm-form-input"
+                    value={dni}
+                    onChange={(e) => setDni(e.target.value)}
+                    inputMode="numeric"
+                    maxLength={8}
+                    placeholder="8 dígitos (opcional)"
+                  />
+                  <span className="adm-form-hint">
+                    Usá tu DNI peruano sin guiones ni espacios.
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            {/* Contacto */}
+            <section className="adm-section">
+              <div className="adm-section-header" style={{ marginBottom: 12 }}>
+                <div className="adm-section-title-with-icon">
+                  <span className="adm-tile-icon adm-tile-icon--sm">
+                    <Mail size={18} strokeWidth={2} />
+                  </span>
+                  <div>
+                    <h2 className="adm-section-title">Contacto</h2>
+                    <p className="adm-section-sub">
+                      Por dónde te contactamos para notificaciones y soporte.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="adm-form-grid">
+                <div className="adm-form-field adm-form-field--full">
+                  <label className="adm-form-label">Correo</label>
+                  <input
+                    className="adm-form-input"
+                    value={user.email}
+                    disabled
+                  />
+                  <span className="adm-form-hint">
+                    Vinculado a tu cuenta · no se puede modificar.
+                  </span>
+                </div>
+                <div className="adm-form-field adm-form-field--full">
+                  <label className="adm-form-label">Teléfono</label>
+                  <input
+                    className="adm-form-input"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="Opcional"
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* Asignación */}
+            <section className="adm-section">
+              <div className="adm-section-header" style={{ marginBottom: 12 }}>
+                <div className="adm-section-title-with-icon">
+                  <span className="adm-tile-icon adm-tile-icon--sm">
+                    <MapPin size={18} strokeWidth={2} />
+                  </span>
+                  <div>
+                    <h2 className="adm-section-title">Asignación</h2>
+                    <p className="adm-section-sub">
+                      Rol y zona operativa definidos por administración.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="adm-form-grid">
+                <div className="adm-form-field">
+                  <label className="adm-form-label">Rol</label>
+                  <input
+                    className="adm-form-input"
+                    value={roleLabel[user.role] ?? user.role}
+                    disabled
+                  />
+                </div>
+                <div className="adm-form-field">
+                  <label className="adm-form-label">Zona</label>
+                  <select
+                    className="adm-form-select"
+                    value={zoneId}
+                    onChange={(e) => setZoneId(e.target.value)}
+                  >
+                    <option value="">— Sin asignar —</option>
+                    {zones.map((z) => (
+                      <option key={z._id} value={z._id}>
+                        {z.name}
+                        {z.district ? ` · ${z.district}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </section>
           </div>
 
-          <div className="profile-field">
-            <label>Rol</label>
-            <input value={user.role} disabled className="profile-input profile-input--disabled" />
-            <span className="profile-hint">Asignado por administración</span>
-          </div>
+          {/* ─── Aside: resumen + estado ─── */}
+          <aside className="prf-aside">
+            <section className="adm-section prf-summary">
+              <div className="prf-avatar">{initials || '—'}</div>
+              <div className="prf-summary-name">{fullName}</div>
+              <span className="prf-summary-role">
+                <ShieldCheck size={11} />
+                {roleLabel[user.role] ?? user.role}
+              </span>
 
-          <div className="profile-field">
-            <label>Nombre</label>
-            <input
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="profile-input"
-              required
-            />
-          </div>
+              <div className="prf-summary-divider" />
 
-          <div className="profile-field">
-            <label>Apellido</label>
-            <input
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="profile-input"
-              required
-            />
-          </div>
+              <div className="prf-summary-row">
+                <Mail size={13} className="prf-summary-row-icon" />
+                <div className="prf-summary-row-body">
+                  <span className="prf-summary-row-label">Correo</span>
+                  <span className="prf-summary-row-value" title={user.email}>
+                    {user.email}
+                  </span>
+                </div>
+              </div>
+              <div className="prf-summary-row">
+                <IdCard size={13} className="prf-summary-row-icon" />
+                <div className="prf-summary-row-body">
+                  <span className="prf-summary-row-label">DNI</span>
+                  <span className="prf-summary-row-value">
+                    {dni || '—'}
+                  </span>
+                </div>
+              </div>
+              <div className="prf-summary-row">
+                <Phone size={13} className="prf-summary-row-icon" />
+                <div className="prf-summary-row-body">
+                  <span className="prf-summary-row-label">Teléfono</span>
+                  <span className="prf-summary-row-value">
+                    {phone || '—'}
+                  </span>
+                </div>
+              </div>
+              <div className="prf-summary-row">
+                <MapPin size={13} className="prf-summary-row-icon" />
+                <div className="prf-summary-row-body">
+                  <span className="prf-summary-row-label">Zona</span>
+                  <span className="prf-summary-row-value">
+                    {currentZoneName}
+                  </span>
+                </div>
+              </div>
+            </section>
 
-          <div className="profile-field">
-            <label>Teléfono</label>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="profile-input"
-              inputMode="numeric"
-              placeholder="Opcional"
-            />
-          </div>
-
-          <div className="profile-field">
-            <label>DNI</label>
-            <input
-              value={dni}
-              onChange={(e) => setDni(e.target.value)}
-              className="profile-input"
-              inputMode="numeric"
-              maxLength={8}
-              placeholder="8 dígitos (opcional)"
-            />
-          </div>
-
-          <div className="profile-field profile-field--full">
-            <label>Zona</label>
-            <select
-              value={zoneId}
-              onChange={(e) => setZoneId(e.target.value)}
-              className="profile-input"
-            >
-              <option value="">— Sin asignar —</option>
-              {zones.map((z) => (
-                <option key={z._id} value={z._id}>
-                  {z.name}
-                  {z.district ? ` · ${z.district}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="adm-system-status" style={{ paddingLeft: 4 }}>
+              <span className="adm-system-status-dot" />
+              <span>
+                Sesión: <strong>verificada</strong>
+              </span>
+            </div>
+          </aside>
         </div>
 
-        {error && <div className="profile-msg profile-msg--error">{error}</div>}
-        {success && <div className="profile-msg profile-msg--ok">{success}</div>}
-
-        <div className="profile-actions">
-          <button type="submit" disabled={loading} className="profile-btn">
-            <Save style={{ width: 16, height: 16 }} />
+        {/* Footer fijo con acciones + alertas */}
+        <div className="prf-footer">
+          <div className="prf-footer-msg">
+            {error && (
+              <div className="adm-alert adm-alert--error">{error}</div>
+            )}
+            {success && !error && (
+              <div className="adm-alert adm-alert--success">{success}</div>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="adm-btn-primary"
+          >
+            <Save size={14} strokeWidth={2} />
             <span>{loading ? 'Guardando…' : 'Guardar cambios'}</span>
           </button>
         </div>
@@ -194,70 +355,142 @@ export default function ProfilePage() {
   );
 }
 
-const styles = `
-  .profile-root { max-width: 760px; }
+const pageStyles = `
+  .prf-form { display: flex; flex-direction: column; gap: 14px; }
 
-  .profile-header {
-    display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1.75rem;
+  .prf-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
-  .profile-icon {
-    width: 44px; height: 44px; border-radius: 12px;
-    background: linear-gradient(135deg, #059669, #047857);
-    color: #FFFFFF; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 6px 14px rgba(5,150,105,0.22);
-  }
-  .profile-title { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
-  .profile-subtitle { font-size: 0.85rem; color: #8A8780; margin-top: 2px; }
-
-  .profile-card {
-    background: #FFFFFF; border: 1px solid #F0EEEB; border-radius: 16px;
-    padding: 1.75rem; box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+  @media (min-width: 1024px) {
+    .prf-grid { grid-template-columns: minmax(0, 1fr) 300px; }
   }
 
-  .profile-grid {
-    display: grid; grid-template-columns: 1fr; gap: 1.1rem;
+  .prf-main {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
   }
-  @media (min-width: 640px) {
-    .profile-grid { grid-template-columns: 1fr 1fr; }
+  .prf-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
-  .profile-field--full { grid-column: 1 / -1; }
 
-  .profile-field { display: flex; flex-direction: column; gap: 0.4rem; }
-  .profile-field label {
-    font-size: 0.7rem; font-weight: 700; color: #6B6862;
-    text-transform: uppercase; letter-spacing: 0.08em;
+  /* Summary card */
+  .prf-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px 20px 18px;
   }
-  .profile-input {
-    width: 100%; padding: 0.7rem 0.9rem; border-radius: 10px;
-    border: 1.5px solid #ECEAE6; background: #FAFAF8; color: #1A1A1A;
-    font-family: inherit; font-size: 0.88rem; font-weight: 500;
-    outline: none; transition: border-color 0.2s ease, background 0.2s ease;
+  .prf-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: #DBF5E5;
+    color: #00513A;
+    border: 1px solid #A7E0BD;
+    display: grid;
+    place-items: center;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    box-shadow: 0 1px 0 rgba(0, 104, 74, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    margin-bottom: 12px;
   }
-  .profile-input:focus {
-    border-color: #059669; background: #FFFFFF;
-    box-shadow: 0 0 0 4px rgba(5,150,105,0.08);
+  .prf-summary-name {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: 19px;
+    font-weight: 500;
+    color: #001E2B;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    font-variation-settings: "opsz" 36;
   }
-  .profile-input--disabled { background: #F7F6F4; color: #8A8780; cursor: not-allowed; }
-  .profile-hint { font-size: 0.7rem; color: #B0ADA8; }
+  .prf-summary-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #00684A;
+    background: #E3FCEF;
+    padding: 3px 8px;
+    border-radius: 999px;
+    align-self: flex-start;
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .prf-summary-divider {
+    height: 1px;
+    background: #ECEEEB;
+    margin: 14px -20px;
+  }
+  .prf-summary-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 5px 0;
+  }
+  .prf-summary-row-icon {
+    color: #889397;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .prf-summary-row-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+  .prf-summary-row-label {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #889397;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .prf-summary-row-value {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #001E2B;
+    margin-top: 1px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
 
-  .profile-msg {
-    margin-top: 1rem; padding: 0.7rem 0.95rem; border-radius: 10px;
-    font-size: 0.82rem; font-weight: 600;
+  /* Sticky footer with save + alerts */
+  .prf-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 16px;
+    background: #FFFFFF;
+    border: 1px solid #E8EDEB;
+    border-radius: 10px;
+    position: sticky;
+    bottom: 14px;
+    z-index: 5;
+    box-shadow: 0 6px 22px -10px rgba(0, 30, 43, 0.12);
   }
-  .profile-msg--error { background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; }
-  .profile-msg--ok { background: #ECFDF5; border: 1px solid #A7F3D0; color: #047857; }
-
-  .profile-actions { display: flex; justify-content: flex-end; margin-top: 1.5rem; }
-  .profile-btn {
-    display: inline-flex; align-items: center; gap: 0.5rem;
-    padding: 0.75rem 1.4rem; border-radius: 10px; border: none;
-    background: #059669; color: #FFFFFF;
-    font-family: inherit; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.02em;
-    cursor: pointer; transition: background 0.2s ease, transform 0.15s ease;
-    box-shadow: 0 4px 12px rgba(5,150,105,0.22);
+  .prf-footer-msg { flex: 1; min-width: 0; }
+  .prf-footer-msg:empty { display: none; }
+  .prf-footer-msg .adm-alert {
+    margin-top: 0;
+    padding: 6px 10px;
+    font-size: 12px;
   }
-  .profile-btn:hover:not(:disabled) {
-    background: #047857; transform: translateY(-1px);
+  @media (max-width: 640px) {
+    .prf-footer { flex-direction: column; align-items: stretch; }
+    .prf-footer .adm-btn-primary { justify-content: center; }
   }
-  .profile-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 `;

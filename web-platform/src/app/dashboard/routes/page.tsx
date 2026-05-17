@@ -111,6 +111,9 @@ export default function RoutesPage() {
   const [addingMode, setAddingMode] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // Active tab for details panel
+  const [detailsTab, setDetailsTab] = useState<'schedule' | 'waste' | 'zone'>('schedule');
+
   useEffect(() => {
     import('leaflet/dist/leaflet.css').then(() => setLeafletLoaded(true));
   }, []);
@@ -285,9 +288,13 @@ export default function RoutesPage() {
   /* ============================ RENDER ============================ */
   return (
     <div className="adm-page animate-fade-in">
+      <style>{routeStyles}</style>
+
       <header className="adm-header">
         <div>
-          <h1 className="adm-title">Rutas de recolección</h1>
+          <h1 className="adm-title">
+            Rutas <em style={{ color: '#00684A', fontStyle: 'italic', fontWeight: 500 }}>de recolección</em>.
+          </h1>
           <p className="adm-sub">
             Planificación de itinerarios y control de operadores asignados.
           </p>
@@ -295,84 +302,15 @@ export default function RoutesPage() {
         <div className="adm-header-actions">
           <button
             onClick={() => setShowInactive((s) => !s)}
-            className={`adm-btn-secondary ${showInactive ? 'rt-toggle--on' : ''}`}
-            style={
-              showInactive
-                ? { background: '#FCE9E9', color: '#8B3030', borderColor: '#F7CFCF' }
-                : undefined
-            }
+            className={showInactive ? 'adm-btn-secondary rt-toggle--on' : 'adm-btn-secondary'}
           >
-            {showInactive ? <Eye size={15} /> : <EyeOff size={15} />}
+            {showInactive ? <Eye size={14} /> : <EyeOff size={14} />}
             <span>{showInactive ? 'Ocultar inactivas' : 'Ver inactivas'}</span>
           </button>
         </div>
       </header>
 
-      <div
-        className="rt-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          gap: 20,
-          alignItems: 'start',
-        }}
-      >
-        <style>{`
-          @media (min-width: 1024px) {
-            .rt-grid { grid-template-columns: 360px minmax(0, 1fr) !important; }
-          }
-          .rt-list {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            max-height: 860px;
-            overflow-y: auto;
-            padding-right: 4px;
-          }
-          .rt-list-head {
-            position: sticky;
-            top: 0;
-            background: rgba(249, 251, 250, 0.92);
-            backdrop-filter: blur(8px);
-            z-index: 20;
-            padding-bottom: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-          }
-          .rt-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 10px;
-            background: #FFFFFF;
-            border: 1px solid #E8EDEB;
-            border-radius: 999px;
-            font-family: 'Geist', 'Outfit', sans-serif;
-            font-size: 11.5px;
-            font-weight: 600;
-            color: #5C6C75;
-            cursor: pointer;
-            transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
-          }
-          .rt-chip:hover {
-            background: #F4F6F4;
-            border-color: #DCE2E0;
-            color: #001E2B;
-          }
-          .rt-chip--active {
-            background: #001E2B;
-            border-color: #001E2B;
-            color: #FFFFFF;
-          }
-          .rt-chip-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: currentColor;
-          }
-        `}</style>
-
+      <div className="rt-grid">
         {/* Sidebar - Route list */}
         <div className="rt-list">
           <div className="rt-list-head">
@@ -387,7 +325,7 @@ export default function RoutesPage() {
             </div>
 
             {/* Status chips */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div className="rt-chips">
               <button
                 type="button"
                 onClick={() => setStatusFilter('all')}
@@ -403,9 +341,9 @@ export default function RoutesPage() {
                     key={s}
                     type="button"
                     onClick={() => setStatusFilter(active ? 'all' : s)}
-                    className={`rt-chip ${active ? 'rt-chip--active' : ''}`}
+                    className={`rt-chip rt-chip--${s} ${active ? 'rt-chip--active' : ''}`}
                   >
-                    <span className={`rt-chip-dot ${active ? '' : m.dotBg}`} />
+                    <span className="rt-chip-dot" />
                     {m.label} · {counts[s]}
                   </button>
                 );
@@ -414,137 +352,165 @@ export default function RoutesPage() {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <div className="w-12 h-12 border-4 border-slate-100 border-t-emerald-500 rounded-full animate-spin" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sincronizando itinerarios...</p>
+            <div className="rt-state">
+              <div className="adm-spinner" />
+              <p className="rt-state-text">Sincronizando itinerarios…</p>
             </div>
           ) : filteredRoutes.length === 0 ? (
-            <div className="bg-white rounded-[2rem] p-10 border border-slate-100 text-center">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin resultados</p>
+            <div className="adm-section rt-empty">
+              <p>Sin resultados</p>
             </div>
-          ) : filteredRoutes.map((route, idx) => {
+          ) : filteredRoutes.map((route) => {
             const m = statusMeta[route.status];
             const isSelected = selectedRoute === route._id;
             return (
-              <div
+              <button
                 key={route._id}
-                className={`w-full text-left rounded-[2rem] transition-all duration-500 border-2 group relative overflow-hidden ${
-                  isSelected
-                    ? 'bg-white border-emerald-500 shadow-xl shadow-emerald-500/10 ring-8 ring-emerald-500/5 translate-x-2'
-                    : 'bg-white border-white hover:border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1'
-                }`}
-                style={{ animationDelay: `${idx * 50}ms` }}
+                onClick={() => { if (!editMode) setSelectedRoute(route._id); }}
+                className={`rt-card rt-card--${route.status} ${isSelected ? 'rt-card--selected' : ''}`}
+                type="button"
               >
-                <button
-                  onClick={() => { if (!editMode) setSelectedRoute(route._id); }}
-                  className="w-full text-left p-6 pb-2"
-                >
-                  {isSelected && (
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500 rounded-full -mr-12 -mt-12 opacity-5" />
-                  )}
-
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className={`font-black text-sm tracking-tight ${isSelected ? 'text-emerald-700' : 'text-slate-900'}`}>
-                      {route.name}
-                    </h3>
-                    <span className={`text-[9px] font-black px-3 py-1 rounded-xl uppercase tracking-widest border ${m.badgeBg} ${m.badgeText} ${m.ring} flex items-center gap-1.5`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${m.dotBg} ${m.pulse ? 'animate-pulse' : ''}`} />
-                      {m.label}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 mb-5">
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <div className="p-1.5 rounded-lg bg-slate-50">
-                        <Truck className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">{route.vehicle?.plate}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <div className="p-1.5 rounded-lg bg-slate-50">
-                        <User className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">
-                        {route.operator?.firstName?.[0]}. {route.operator?.lastName}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                    <div className="flex items-center gap-1.5">
-                      {route.schedule.dayOfWeek.map(d => (
-                        <span key={d} className="text-[9px] font-black w-7 h-6 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400 border border-transparent">
-                          {dayLabels[d]}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2 text-emerald-600">
-                      <span className="text-[11px] font-black tracking-widest">{route.schedule.startTime}</span>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Quick state actions */}
-                <div className="px-6 pb-5 pt-2 flex flex-wrap gap-2 border-t border-slate-50">
-                  {route.status === 'draft' || route.status === 'pending' ? (
-                    <button
-                      disabled={busy}
-                      onClick={() => patchStatus(route._id, 'active')}
-                      className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <Play className="w-3 h-3" /> Iniciar
-                    </button>
-                  ) : null}
-                  {route.status === 'active' ? (
-                    <>
-                      <button
-                        disabled={busy}
-                        onClick={() => patchStatus(route._id, 'completed')}
-                        className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-sky-500 text-white hover:bg-sky-600 transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                      >
-                        <Flag className="w-3 h-3" /> Completada
-                      </button>
-                      <button
-                        disabled={busy}
-                        onClick={() => patchStatus(route._id, 'inactive')}
-                        className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                      >
-                        <Pause className="w-3 h-3" /> Pausar
-                      </button>
-                    </>
-                  ) : null}
-                  {route.status === 'completed' ? (
-                    <button
-                      disabled={busy}
-                      onClick={() => patchStatus(route._id, 'draft')}
-                      className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-50"
-                    >
-                      Reabrir
-                    </button>
-                  ) : null}
-                  {route.status === 'inactive' ? (
-                    <button
-                      disabled={busy}
-                      onClick={() => patchStatus(route._id, 'draft')}
-                      className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-50"
-                    >
-                      Reactivar
-                    </button>
-                  ) : null}
+                <div className="rt-card-head">
+                  <h3 className="rt-card-title">{route.name}</h3>
+                  <span className={`rt-status rt-status--${route.status}`}>
+                    <span className={`rt-status-dot ${m.pulse ? 'rt-status-dot--pulse' : ''}`} />
+                    {m.label}
+                  </span>
                 </div>
-              </div>
+
+                <div className="rt-card-row">
+                  <span className="rt-card-row-icon">
+                    <Truck size={11} />
+                  </span>
+                  <span className="rt-card-row-value">
+                    {route.vehicle?.plate ?? '—'}
+                  </span>
+                  <span className="rt-card-row-sep" />
+                  <span className="rt-card-row-value rt-card-row-value--muted">
+                    {route.operator?.firstName?.[0]}. {route.operator?.lastName}
+                  </span>
+                </div>
+
+                <div className="rt-card-foot">
+                  <div className="rt-days">
+                    {route.schedule.dayOfWeek.map(d => (
+                      <span key={d} className="rt-day">{dayLabels[d]}</span>
+                    ))}
+                  </div>
+                  <span className="rt-time">{route.schedule.startTime}</span>
+                </div>
+              </button>
             );
           })}
         </div>
 
-        {/* Main - Map + details */}
-        <div className="space-y-8" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Main - Action bar + Map + details */}
+        <div className="rt-main">
+          {/* Context action bar (only when a route is selected) */}
+          {activeRoute && (
+            <section className="adm-section rt-actionbar">
+              <div className="rt-actionbar-info">
+                <div className="rt-actionbar-name-row">
+                  <h2 className="rt-actionbar-name">{activeRoute.name}</h2>
+                  <span className={`rt-status rt-status--${activeRoute.status}`}>
+                    <span className={`rt-status-dot ${statusMeta[activeRoute.status].pulse ? 'rt-status-dot--pulse' : ''}`} />
+                    {statusMeta[activeRoute.status].label}
+                  </span>
+                </div>
+                <div className="rt-actionbar-meta">
+                  <span className="rt-actionbar-meta-chip">
+                    <Truck size={11} />
+                    {activeRoute.vehicle?.plate ?? '—'}
+                  </span>
+                  <span className="rt-actionbar-meta-chip">
+                    <User size={11} />
+                    {activeRoute.operator?.firstName} {activeRoute.operator?.lastName}
+                  </span>
+                  <span className="rt-actionbar-meta-chip">
+                    <Calendar size={11} />
+                    {activeRoute.schedule.dayOfWeek.map(d => dayLabels[d]).join(' · ')}
+                  </span>
+                  <span className="rt-actionbar-meta-chip">
+                    <Clock size={11} />
+                    {activeRoute.schedule.startTime} · {activeRoute.schedule.estimatedDuration} min
+                  </span>
+                </div>
+              </div>
+              <div className="rt-actionbar-actions">
+                {(activeRoute.status === 'draft' || activeRoute.status === 'pending') && (
+                  <button
+                    disabled={busy}
+                    onClick={() => patchStatus(activeRoute._id, 'active')}
+                    className="adm-btn-primary"
+                  >
+                    <Play size={13} /> Iniciar ruta
+                  </button>
+                )}
+                {activeRoute.status === 'active' && (
+                  <>
+                    <button
+                      disabled={busy}
+                      onClick={() => patchStatus(activeRoute._id, 'completed')}
+                      className="adm-btn-primary"
+                    >
+                      <Flag size={13} /> Marcar completada
+                    </button>
+                    <button
+                      disabled={busy}
+                      onClick={() => patchStatus(activeRoute._id, 'inactive')}
+                      className="adm-btn-ghost"
+                      style={{ color: '#B23A3A' }}
+                    >
+                      <Pause size={13} /> Pausar
+                    </button>
+                  </>
+                )}
+                {activeRoute.status === 'completed' && (
+                  <button
+                    disabled={busy}
+                    onClick={() => patchStatus(activeRoute._id, 'draft')}
+                    className="adm-btn-secondary"
+                  >
+                    Reabrir ruta
+                  </button>
+                )}
+                {activeRoute.status === 'inactive' && (
+                  <button
+                    disabled={busy}
+                    onClick={() => patchStatus(activeRoute._id, 'draft')}
+                    className="adm-btn-secondary"
+                  >
+                    Reactivar ruta
+                  </button>
+                )}
+                {!editMode ? (
+                  <button onClick={enterEdit} className="adm-btn-secondary">
+                    <Plus size={13} /> Editar paradas
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={saveWaypoints}
+                      disabled={busy}
+                      className="adm-btn-primary"
+                    >
+                      <Save size={13} /> Guardar paradas
+                    </button>
+                    <button onClick={cancelEdit} className="adm-btn-ghost">
+                      <X size={13} /> Cancelar
+                    </button>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Map Card */}
-          <div className="bg-white rounded-[2.5rem] p-5 shadow-sm border border-slate-100 overflow-hidden relative">
-            <div className={`relative h-[560px] w-full rounded-[2rem] overflow-hidden border border-slate-50 shadow-inner bg-slate-50 ${addingMode ? 'cursor-crosshair' : ''}`}>
+          <section className="adm-section rt-map-card">
+            <div className={`rt-map-wrap ${addingMode ? 'rt-map-wrap--add' : ''}`}>
               {leafletLoaded && !loading ? (
                 <MapContainer center={mapCenter} zoom={14} style={{ height: '100%', width: '100%' }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
 
                   <MapClickCapture onClick={addWaypoint} enabled={editMode && addingMode} />
 
@@ -552,7 +518,7 @@ export default function RoutesPage() {
                   {activeRoute?.zone?.geometry && (
                     <Polygon
                       positions={activeRoute.zone.geometry.coordinates[0].map(c => [c[1], c[0]] as [number, number])}
-                      pathOptions={{ color: activeRoute.zone.color, fillOpacity: 0.06, weight: 3, dashArray: '10,10' }}
+                      pathOptions={{ color: activeRoute.zone.color, fillOpacity: 0.05, weight: 2, dashArray: '8,8' }}
                     />
                   )}
 
@@ -578,7 +544,7 @@ export default function RoutesPage() {
                   {editMode && draftPath.length > 1 && (
                     <Polyline
                       positions={draftPath.map(c => [c[1], c[0]] as [number, number])}
-                      pathOptions={{ color: '#059669', weight: 5, opacity: 0.7, dashArray: '4,8' }}
+                      pathOptions={{ color: '#00684A', weight: 5, opacity: 0.7, dashArray: '4,8' }}
                     />
                   )}
 
@@ -590,10 +556,10 @@ export default function RoutesPage() {
                       <CircleMarker
                         key={`wp-${wp.order}`}
                         center={[lat, lng]}
-                        radius={editMode ? 9 : 8}
+                        radius={editMode ? 9 : 7}
                         pathOptions={{
-                          color: '#fff',
-                          fillColor: editMode ? '#10B981' : '#059669',
+                          color: '#FFFFFF',
+                          fillColor: editMode ? '#00A35C' : '#00684A',
                           fillOpacity: 1,
                           weight: 3,
                         }}
@@ -621,16 +587,14 @@ export default function RoutesPage() {
                         }
                       >
                         <Popup>
-                          <div className="p-2 font-sans min-w-[160px]">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="w-6 h-6 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black shadow-lg shadow-emerald-600/20">
-                                {wp.order}
-                              </div>
-                              <strong className="text-slate-900 text-sm font-black tracking-tight">{wp.name}</strong>
+                          <div className="rt-popup">
+                            <div className="rt-popup-head">
+                              <span className="rt-popup-order">{wp.order}</span>
+                              <strong>{wp.name}</strong>
                             </div>
                             {wp.estimatedArrival && (
-                              <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                <Clock className="w-3.5 h-3.5 text-emerald-500" /> {wp.estimatedArrival}
+                              <div className="rt-popup-time">
+                                <Clock size={11} /> {wp.estimatedArrival}
                               </div>
                             )}
                           </div>
@@ -640,199 +604,954 @@ export default function RoutesPage() {
                   })}
                 </MapContainer>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-6">
-                  <div className="w-16 h-16 border-4 border-slate-100 border-t-emerald-500 rounded-full animate-spin" />
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Cargando Cartografía Operativa...</p>
+                <div className="rt-map-loading">
+                  <div className="adm-spinner" />
+                  <p>Cargando cartografía operativa…</p>
+                </div>
+              )}
+
+              {/* Map Info Overlay */}
+              <div className="rt-map-overlay">
+                <span className="rt-map-overlay-icon">
+                  <RouteIcon size={14} strokeWidth={2} />
+                </span>
+                <span className="rt-map-overlay-text">
+                  {editMode ? 'Modo edición · paradas' : 'Monitoreo de itinerario'}
+                </span>
+              </div>
+
+              {/* Inline edit hint (only when in edit mode — Save/Cancel live in action bar above) */}
+              {activeRoute && editMode && (
+                <div className="rt-editor">
+                  <span className={`adm-status ${addingMode ? 'adm-status--green' : 'adm-status--neutral'}`}>
+                    <span className="adm-status-dot" />
+                    {addingMode ? 'Clic en el mapa para agregar' : `${draftWaypoints.length} paradas en edición`}
+                  </span>
+                  <button
+                    onClick={() => setAddingMode(m => !m)}
+                    className={addingMode ? 'adm-btn-primary' : 'adm-btn-secondary'}
+                  >
+                    <Plus size={13} /> {addingMode ? 'Cancelar agregar' : 'Agregar parada'}
+                  </button>
                 </div>
               )}
             </div>
+          </section>
 
-            {/* Map Info Overlay */}
-            <div className="absolute top-10 right-10 z-[500] bg-white/90 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white shadow-2xl shadow-slate-900/10 hidden md:flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-emerald-500 text-white shadow-lg">
-                <RouteIcon className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
-                {editMode ? 'Modo Edición · Paradas' : 'Monitoreo de Itinerario'}
-              </span>
-            </div>
-
-            {/* Editor controls */}
-            {activeRoute && (
-              <div className="absolute bottom-10 left-10 right-10 z-[500] flex flex-wrap gap-2 items-center justify-between bg-white/95 backdrop-blur-xl px-6 py-4 rounded-3xl border border-white shadow-2xl shadow-slate-900/10">
-                {!editMode ? (
-                  <>
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Editor de Itinerario</p>
-                      <p className="text-xs font-bold text-slate-700 tracking-tight">{activeRoute.waypoints.length} paradas registradas</p>
-                    </div>
-                    <button
-                      onClick={enterEdit}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Editar paradas
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl ${addingMode ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-50 text-slate-500 border border-slate-100'}`}>
-                        {addingMode ? 'Clic en el mapa para agregar' : `${draftWaypoints.length} paradas en edición`}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        onClick={() => setAddingMode(m => !m)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-colors ${
-                          addingMode
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                            : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-200 hover:text-emerald-700'
-                        }`}
-                      >
-                        <Plus className="w-3.5 h-3.5" /> {addingMode ? 'Cancelar agregar' : 'Agregar parada'}
-                      </button>
-                      <button
-                        onClick={saveWaypoints}
-                        disabled={busy}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                      >
-                        <Save className="w-3.5 h-3.5" /> Guardar
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest hover:border-red-200 hover:text-red-500 transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" /> Cancelar
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Details Card */}
+          {/* Details Card with tabs */}
           {activeRoute && (
-            <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 animate-fade-in relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 opacity-40" />
-
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 relative">
-                <div className="flex items-center gap-5">
-                  <div className="p-4 rounded-[1.5rem] bg-slate-900 text-white shadow-2xl shadow-slate-900/20">
-                    <Calendar className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-2">Detalles del Itinerario</h3>
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{activeRoute.name}</p>
-                  </div>
-                </div>
-                <div className="bg-emerald-50 px-6 py-3 rounded-2xl border border-emerald-100 text-right">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Duración Estimada</p>
-                  <p className="text-2xl font-black text-emerald-700 tracking-tighter">
-                    {activeRoute.schedule.estimatedDuration} <span className="text-sm font-bold opacity-70">MIN</span>
-                  </p>
-                </div>
+            <section className="adm-section rt-details">
+              <div className="rt-details-tabs">
+                <button
+                  type="button"
+                  onClick={() => setDetailsTab('schedule')}
+                  className={`adm-tab ${detailsTab === 'schedule' ? 'adm-tab--active' : ''}`}
+                >
+                  Cronograma
+                  <span className="rt-tab-count">{effectiveWaypoints.length}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailsTab('waste')}
+                  className={`adm-tab ${detailsTab === 'waste' ? 'adm-tab--active' : ''}`}
+                >
+                  Residuos
+                  <span className="rt-tab-count">{activeRoute.wasteTypes.length}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailsTab('zone')}
+                  className={`adm-tab ${detailsTab === 'zone' ? 'adm-tab--active' : ''}`}
+                >
+                  Zona &amp; geofencing
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative">
-                {/* Waypoints timeline */}
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 mb-6 justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                        {editMode ? 'Paradas en edición' : 'Cronograma de Paradas'}
+              {detailsTab === 'schedule' && (
+                <div className="rt-tab-panel">
+                  <div className="rt-panel-head">
+                    <div>
+                      <h3 className="rt-panel-title">
+                        Cronograma <em style={{ color: '#00684A', fontStyle: 'italic', fontWeight: 500 }}>de paradas</em>
+                      </h3>
+                      <p className="rt-panel-sub">
+                        {editMode
+                          ? 'Editá nombres, arrastrá marcadores en el mapa o agregá nuevas paradas.'
+                          : `${effectiveWaypoints.length} paradas registradas · duración estimada ${activeRoute.schedule.estimatedDuration} min.`}
                       </p>
                     </div>
                   </div>
 
-                  <div className="relative pl-8 space-y-5">
-                    <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-emerald-500 via-slate-100 to-slate-50" />
+                  <div className="rt-timeline">
                     {effectiveWaypoints.map(wp => (
-                      <div key={wp.order} className="relative flex items-center gap-4 group/item">
-                        <div className="absolute left-[-24px] w-4 h-4 rounded-full border-4 border-white bg-emerald-500 shadow-sm" />
-                        <div className="flex-1 p-4 rounded-3xl bg-slate-50/50 border border-slate-100 transition-all">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <span className="text-[10px] font-black text-slate-300 uppercase shrink-0">#{wp.order}</span>
-                              {editMode ? (
-                                <input
-                                  value={wp.name}
-                                  onChange={e => renameWaypoint(wp.order, e.target.value)}
-                                  className="text-sm font-black text-slate-800 tracking-tight bg-transparent border-b border-emerald-100 focus:border-emerald-500 outline-none flex-1 min-w-0"
-                                />
-                              ) : (
-                                <span className="text-sm font-black text-slate-800 tracking-tight truncate">{wp.name}</span>
-                              )}
-                            </div>
-                            {wp.estimatedArrival && !editMode && (
-                              <div className="flex items-center gap-2 text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50/50 px-3 py-1 rounded-lg border border-emerald-100/50">
-                                <Clock3 className="w-3.5 h-3.5" /> {wp.estimatedArrival}
-                              </div>
-                            )}
-                            {editMode && (
-                              <button
-                                onClick={() => removeWaypoint(wp.order)}
-                                className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                                title="Eliminar parada"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
+                      <div key={wp.order} className="rt-tl-row">
+                        <span className="rt-tl-dot" />
+                        <div className="rt-tl-card">
+                          <span className="rt-tl-order">#{wp.order}</span>
+                          {editMode ? (
+                            <input
+                              value={wp.name}
+                              onChange={e => renameWaypoint(wp.order, e.target.value)}
+                              className="rt-tl-input"
+                            />
+                          ) : (
+                            <span className="rt-tl-name">{wp.name}</span>
+                          )}
+                          {wp.estimatedArrival && !editMode && (
+                            <span className="rt-tl-time">
+                              <Clock3 size={11} /> {wp.estimatedArrival}
+                            </span>
+                          )}
+                          {editMode && (
+                            <button
+                              onClick={() => removeWaypoint(wp.order)}
+                              className="rt-tl-remove"
+                              title="Eliminar parada"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
                     {effectiveWaypoints.length === 0 && (
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Sin paradas. Usa &quot;Agregar parada&quot; en el mapa.
+                      <p className="rt-tl-empty">
+                        Sin paradas. Activá &quot;Editar paradas&quot; arriba para agregar.
                       </p>
                     )}
                   </div>
                 </div>
+              )}
 
-                {/* Right col info */}
-                <div className="space-y-8">
-                  <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Residuos Clasificados</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {activeRoute.wasteTypes.map((wt) => (
-                        <div key={wt.name} className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                          <div className="w-3 h-3 rounded-full" style={{ background: wt.colorCode }} />
-                          <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest truncate">{wt.name}</span>
-                        </div>
-                      ))}
+              {detailsTab === 'waste' && (
+                <div className="rt-tab-panel">
+                  <div className="rt-panel-head">
+                    <div>
+                      <h3 className="rt-panel-title">
+                        Residuos <em style={{ color: '#00684A', fontStyle: 'italic', fontWeight: 500 }}>clasificados</em>
+                      </h3>
+                      <p className="rt-panel-sub">
+                        {activeRoute.wasteTypes.length} categorías recolectadas según NTP 900.058.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="p-8 rounded-[2rem] bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-2xl shadow-emerald-600/20 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-                    <div className="flex items-center gap-4 mb-6 relative">
-                      <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
-                        <CheckCircle2 className="w-6 h-6 text-white" />
+                  <div className="rt-waste-grid">
+                    {activeRoute.wasteTypes.map((wt) => (
+                      <div key={wt.name} className="rt-waste-chip">
+                        <span className="rt-waste-dot" style={{ background: wt.colorCode }} />
+                        <span className="rt-waste-body">
+                          <span className="rt-waste-name">{wt.name}</span>
+                          <span className="rt-waste-cat">{wt.category}</span>
+                        </span>
                       </div>
-                      <h4 className="text-lg font-black uppercase tracking-widest">Geofencing Activo</h4>
+                    ))}
+                    {activeRoute.wasteTypes.length === 0 && (
+                      <p className="rt-tl-empty" style={{ gridColumn: '1 / -1' }}>
+                        Sin tipos de residuo asignados a esta ruta.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {detailsTab === 'zone' && (
+                <div className="rt-tab-panel">
+                  <div className="rt-panel-head">
+                    <div>
+                      <h3 className="rt-panel-title">
+                        Zona <em style={{ color: '#00684A', fontStyle: 'italic', fontWeight: 500 }}>operativa</em>
+                      </h3>
+                      <p className="rt-panel-sub">
+                        Geofencing activo dentro de la zona asignada.
+                      </p>
                     </div>
-                    <div className="space-y-4 relative">
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-                        <span className="text-[11px] font-black uppercase tracking-widest text-emerald-100">Sector</span>
-                        <span className="text-sm font-bold text-white">{activeRoute.zone.name}</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-                        <span className="text-[11px] font-black uppercase tracking-widest text-emerald-100">Distrito</span>
-                        <span className="text-sm font-bold text-white">{activeRoute.zone.district}</span>
-                      </div>
+                  </div>
+
+                  <div className="rt-zone-grid">
+                    <div className="rt-zone-row">
+                      <span className="rt-zone-label">Sector</span>
+                      <span className="rt-zone-value">{activeRoute.zone.name}</span>
+                    </div>
+                    <div className="rt-zone-row">
+                      <span className="rt-zone-label">Distrito</span>
+                      <span className="rt-zone-value">{activeRoute.zone.district}</span>
+                    </div>
+                    <div className="rt-zone-row">
+                      <span className="rt-zone-label">Color en mapa</span>
+                      <span className="rt-zone-value rt-zone-value--color">
+                        <span
+                          className="rt-zone-swatch"
+                          style={{ background: activeRoute.zone.color }}
+                        />
+                        {activeRoute.zone.color}
+                      </span>
+                    </div>
+                    <div className="rt-zone-row">
+                      <span className="rt-zone-label">Estado de monitoreo</span>
+                      <span className="rt-zone-value">
+                        <span className="adm-status adm-status--green">
+                          <CheckCircle2 size={11} />
+                          Geofencing activo
+                        </span>
+                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              )}
+            </section>
           )}
         </div>
       </div>
     </div>
   );
 }
+
+const routeStyles = `
+  /* Layout grid */
+  .rt-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  @media (min-width: 1024px) {
+    .rt-grid { grid-template-columns: 340px minmax(0, 1fr); }
+  }
+  .rt-main {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  /* Toggle button "Ver inactivas" */
+  .rt-toggle--on {
+    background: #FCE9E9 !important;
+    color: #8B3030 !important;
+    border-color: #F7CFCF !important;
+  }
+  .rt-toggle--on:hover { background: #F8DCDC !important; }
+
+  /* Route list sidebar */
+  .rt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 860px;
+    overflow-y: auto;
+    padding-right: 2px;
+    min-width: 0;
+  }
+  @media (max-width: 1023px) {
+    .rt-list { max-height: none; padding-right: 0; }
+  }
+  .rt-list-head {
+    position: sticky;
+    top: 0;
+    background: rgba(250, 250, 248, 0.96);
+    backdrop-filter: blur(8px);
+    z-index: 20;
+    padding-bottom: 8px;
+    margin-bottom: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Filter chips */
+  .rt-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .rt-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background: #FFFFFF;
+    border: 1px solid #E8EDEB;
+    border-radius: 999px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #5C6C75;
+    cursor: pointer;
+    letter-spacing: -0.003em;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+  .rt-chip:hover {
+    background: #F1F4F2;
+    border-color: #C1F1D6;
+    color: #001E2B;
+  }
+  .rt-chip--active {
+    background: #00684A;
+    border-color: #00684A;
+    color: #FFFFFF;
+  }
+  .rt-chip--active:hover { background: #00513A; }
+  .rt-chip-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #94A3B8;
+  }
+  .rt-chip--draft .rt-chip-dot     { background: #94A3B8; }
+  .rt-chip--pending .rt-chip-dot   { background: #D97706; }
+  .rt-chip--active .rt-chip-dot    { background: #00A35C; }
+  .rt-chip--completed .rt-chip-dot { background: #0EA5E9; }
+  .rt-chip--inactive .rt-chip-dot  { background: #F87171; }
+  .rt-chip--active.rt-chip--active .rt-chip-dot,
+  .rt-chip--draft.rt-chip--active .rt-chip-dot,
+  .rt-chip--pending.rt-chip--active .rt-chip-dot,
+  .rt-chip--completed.rt-chip--active .rt-chip-dot,
+  .rt-chip--inactive.rt-chip--active .rt-chip-dot { background: #FFFFFF; }
+
+  /* Route cards */
+  .rt-card {
+    background: #FFFFFF;
+    border: 1px solid #E8EDEB;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+  .rt-card:hover { border-color: #DCE2E0; background: #FAFEFC; }
+  .rt-card--selected {
+    border-color: #00684A;
+    box-shadow: 0 0 0 3px rgba(0, 104, 74, 0.08);
+    background: #FFFFFF;
+  }
+  .rt-card-main {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    padding: 12px 14px 10px;
+    cursor: pointer;
+    font-family: 'Geist', 'Outfit', sans-serif;
+  }
+  .rt-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .rt-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #001E2B;
+    letter-spacing: -0.008em;
+    margin: 0;
+  }
+  .rt-card--selected .rt-card-title { color: #00513A; }
+
+  .rt-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .rt-status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .rt-status-dot--pulse { animation: rt-pulse 1.8s ease-in-out infinite; }
+  @keyframes rt-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .rt-status--draft     { background: #F1F4F2; color: #5C6C75; }
+  .rt-status--pending   { background: #FFF5D6; color: #8C6300; }
+  .rt-status--active    { background: #E3FCEF; color: #00513A; }
+  .rt-status--completed { background: #E3EEF9; color: #1E5180; }
+  .rt-status--inactive  { background: #FCE9E9; color: #8B3030; }
+
+  /* Card row (single-line vehicle · operator) */
+  .rt-card-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    min-width: 0;
+  }
+  .rt-card-row-icon {
+    width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    color: #889397;
+    flex-shrink: 0;
+  }
+  .rt-card-row-value {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #001E2B;
+    letter-spacing: -0.003em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rt-card-row-value--muted { color: #5C6C75; font-weight: 500; }
+  .rt-card-row-sep {
+    width: 1px;
+    height: 10px;
+    background: #E8EDEB;
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
+  /* Card itself is now the click target (no inner button) — make it a button visually */
+  .rt-card {
+    text-align: left;
+    cursor: pointer;
+    padding: 12px 14px 10px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+  }
+
+  .rt-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #F1F3F0;
+  }
+  .rt-days { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+  .rt-day {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 20px;
+    padding: 0 5px;
+    background: #F1F4F2;
+    border-radius: 4px;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #5C6C75;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .rt-time {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #00684A;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Context action bar (above map when a route is selected) */
+  .rt-actionbar {
+    padding: 14px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    justify-content: space-between;
+    animation: fadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .rt-actionbar-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+  }
+  .rt-actionbar-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .rt-actionbar-name {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: #001E2B;
+    letter-spacing: -0.014em;
+    line-height: 1.15;
+    font-variation-settings: "opsz" 36;
+    margin: 0;
+  }
+  .rt-actionbar-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .rt-actionbar-meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    background: #F9FBFA;
+    border: 1px solid #E8EDEB;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #5C6C75;
+    letter-spacing: -0.003em;
+  }
+  .rt-actionbar-meta-chip svg { color: #889397; flex-shrink: 0; }
+  .rt-actionbar-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  /* Loading / empty states for list */
+  .rt-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 20px;
+  }
+  .rt-state-text {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #5C6C75;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .rt-empty {
+    text-align: center;
+    padding: 40px 22px !important;
+  }
+  .rt-empty p {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #5C6C75;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Map card */
+  .rt-map-card {
+    padding: 12px;
+    overflow: hidden;
+  }
+  .rt-map-wrap {
+    position: relative;
+    height: 560px;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #E8EDEB;
+    background: #F1F4F2;
+  }
+  .rt-map-wrap--add { cursor: crosshair; }
+  .rt-map-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+  }
+  .rt-map-loading p {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #5C6C75;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Map info overlay (top-right) */
+  .rt-map-overlay {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 6px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid #E8EDEB;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0, 30, 43, 0.08);
+    font-family: 'Geist', 'Outfit', sans-serif;
+  }
+  .rt-map-overlay-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: #E3FCEF;
+    color: #00684A;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px #C1F1D6;
+  }
+  .rt-map-overlay-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: #001E2B;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  @media (max-width: 639px) {
+    .rt-map-overlay-text { display: none; }
+  }
+
+  /* Inline edit indicator (only visible in edit mode, inside the map) */
+  .rt-editor {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 500;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid #E8EDEB;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0, 30, 43, 0.10);
+  }
+
+  /* Details card with tabs */
+  .rt-details {
+    padding: 0;
+    animation: fadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+    overflow: hidden;
+  }
+  .rt-details-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-bottom: 1px solid #E8EDEB;
+    padding: 0 18px;
+    background: #FAFBFA;
+    overflow-x: auto;
+  }
+  .rt-details-tabs .adm-tab {
+    padding: 10px 14px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .rt-tab-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #E8EDEB;
+    color: #5C6C75;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .rt-details-tabs .adm-tab--active .rt-tab-count {
+    background: #E3FCEF;
+    color: #00684A;
+  }
+
+  .rt-tab-panel {
+    padding: 18px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .rt-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #F1F3F0;
+  }
+  .rt-panel-title {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: #001E2B;
+    letter-spacing: -0.012em;
+    line-height: 1.15;
+    font-variation-settings: "opsz" 36;
+    margin: 0;
+  }
+  .rt-panel-sub {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12.5px;
+    color: #5C6C75;
+    margin: 4px 0 0;
+    letter-spacing: -0.003em;
+  }
+
+  /* Zone tab */
+  .rt-zone-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  @media (min-width: 600px) {
+    .rt-zone-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .rt-zone-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    background: #F9FBFA;
+    border: 1px solid #E8EDEB;
+    border-radius: 6px;
+  }
+  .rt-zone-label {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #5C6C75;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .rt-zone-value {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #001E2B;
+    letter-spacing: -0.003em;
+  }
+  .rt-zone-value--color {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+  .rt-zone-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    box-shadow: inset 0 0 0 1px rgba(0,30,43,0.12);
+  }
+
+  /* Timeline */
+  .rt-timeline {
+    position: relative;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rt-timeline::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: linear-gradient(to bottom, #00A35C 0%, #C1F1D6 50%, #E8EDEB 100%);
+  }
+  .rt-tl-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .rt-tl-dot {
+    position: absolute;
+    left: -18px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #00A35C;
+    border: 2px solid #FFFFFF;
+    box-shadow: 0 0 0 1px #C1F1D6;
+    flex-shrink: 0;
+  }
+  .rt-tl-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: #F9FAFA;
+    border: 1px solid #E8EDEB;
+    border-radius: 6px;
+    min-width: 0;
+  }
+  .rt-tl-order {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #889397;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+  }
+  .rt-tl-name {
+    flex: 1;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #001E2B;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+  }
+  .rt-tl-input {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #C1F1D6;
+    padding: 2px 0;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #001E2B;
+    outline: none;
+    min-width: 0;
+  }
+  .rt-tl-input:focus { border-bottom-color: #00684A; }
+  .rt-tl-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    background: #E3FCEF;
+    border: 1px solid #C1F1D6;
+    border-radius: 4px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #00684A;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .rt-tl-remove {
+    background: transparent;
+    border: 0;
+    color: #B23A3A;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+    flex-shrink: 0;
+  }
+  .rt-tl-remove:hover { background: #FCEEEE; }
+  .rt-tl-empty {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12px;
+    color: #5C6C75;
+    letter-spacing: -0.003em;
+    padding: 4px 0;
+  }
+
+  /* Waste types grid */
+  .rt-waste-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  @media (min-width: 480px) {
+    .rt-waste-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .rt-waste-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    background: #FFFFFF;
+    border: 1px solid #E8EDEB;
+    border-radius: 6px;
+  }
+  .rt-waste-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.95);
+  }
+  .rt-waste-name {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #001E2B;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -0.003em;
+  }
+
+  /* Waste types — extra "category" sub-label in the new tab */
+  .rt-waste-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .rt-waste-cat {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #889397;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Leaflet popup overrides for waypoints */
+  .rt-popup {
+    min-width: 160px;
+    font-family: 'Geist', 'Outfit', sans-serif;
+  }
+  .rt-popup-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .rt-popup-order {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: #00684A;
+    color: #FFFFFF;
+    display: grid;
+    place-items: center;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  .rt-popup-head strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: #001E2B;
+    letter-spacing: -0.005em;
+  }
+  .rt-popup-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background: #E3FCEF;
+    border: 1px solid #C1F1D6;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #00684A;
+  }
+`;

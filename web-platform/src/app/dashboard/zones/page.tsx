@@ -402,12 +402,20 @@ export default function ZonesPage() {
         .leaflet-crosshair .leaflet-interactive { cursor: crosshair !important; }
         .zones-map-wrap {
           position: relative;
-          height: 520px;
+          height: clamp(360px, 55vh, 520px);
           width: 100%;
           border-radius: 8px;
           overflow: hidden;
           border: 1px solid #E8EDEB;
           background: #F9FBFA;
+        }
+        @media (max-width: 767px) {
+          .zones-legend {
+            top: 10px !important;
+            right: 10px !important;
+            padding: 10px 12px !important;
+            font-size: 11.5px !important;
+          }
         }
         .zones-legend {
           position: absolute;

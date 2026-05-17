@@ -1,4 +1,7 @@
-import { ReactNode } from 'react';
+'use client';
+
+import { ReactNode, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -7,131 +10,189 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  description?: string;
 }
 
 const sizeMap: Record<NonNullable<ModalProps['size']>, string> = {
-  sm: '420px',
-  md: '480px',
-  lg: '780px',
-  xl: '960px',
+  sm: '440px',
+  md: '560px',
+  lg: '720px',
+  xl: '880px',
 };
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
-  if (!isOpen) return null;
-  const maxWidth = sizeMap[size];
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'md',
+  description,
+}: ModalProps) {
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  // Mount flag for SSR-safe portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Cerrar con Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
+
+  // Lock body scroll cuando está abierto
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
+  const panelWidth = sizeMap[size];
+
+  // Render into <body> via portal so position: fixed escapes any ancestor
+  // with `transform`/`filter`/`will-change` (which would otherwise become the
+  // containing block and visually clip the modal).
+  return createPortal(
     <>
-      <style>{`
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 50;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1rem;
-          background: rgba(0,0,0,0.4);
-          backdrop-filter: blur(4px);
-          animation: modalFadeIn 0.2s ease;
-        }
-        .modal-box {
-          background: #FFFFFF;
-          border-radius: 16px;
-          box-shadow: 0 25px 50px rgba(0,0,0,0.15);
-          width: 100%;
-          max-height: 90vh;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          animation: modalZoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .modal-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid #F0EEEB;
-        }
-        .modal-header h2 {
-          font-size: 1.1rem;
-          font-weight: 800;
-          color: #1A1A1A;
-          letter-spacing: -0.01em;
-        }
-        .modal-close {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          border: none;
-          background: transparent;
-          color: #8A8780;
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-        .modal-close:hover {
-          background: #FAFAF8;
-          color: #1A1A1A;
-        }
-        .modal-body {
-          padding: 1.5rem;
-          overflow-y: auto;
-          flex: 1;
-        }
-        /* Form styles inside modal */
-        .modal-body label {
-          display: block;
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #5A5750;
-          margin-bottom: 0.35rem;
-        }
-        .modal-body input,
-        .modal-body select,
-        .modal-body textarea {
-          width: 100%;
-          padding: 0.65rem 0.85rem;
-          border-radius: 10px;
-          border: 1.5px solid #ECEAE6;
-          background: #FAFAF8;
-          color: #1A1A1A;
-          font-family: inherit;
-          font-size: 0.85rem;
-          font-weight: 500;
-        }
-        .modal-body input:focus,
-        .modal-body select:focus,
-        .modal-body textarea:focus {
-          border-color: #059669;
-          background: #FFFFFF;
-          box-shadow: 0 0 0 3px rgba(5,150,105,0.06);
-          outline: none;
-        }
-        @keyframes modalFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes modalZoomIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-box" style={{ maxWidth }} onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2>{title}</h2>
-            <button onClick={onClose} className="modal-close">
-              <X style={{ width: 18, height: 18 }} />
-            </button>
+      <style>{styles}</style>
+      <div className="mdo-overlay" onClick={onClose} />
+      <aside
+        className="mdo-panel"
+        style={{ maxWidth: panelWidth }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <header className="mdo-header">
+          <div className="mdo-header-text">
+            <h2 className="mdo-title">{title}</h2>
+            {description ? <p className="mdo-desc">{description}</p> : null}
           </div>
-          <div className="modal-body">
-            {children}
-          </div>
-        </div>
-      </div>
-    </>
+          <button
+            onClick={onClose}
+            className="mdo-close"
+            aria-label="Cerrar"
+            type="button"
+          >
+            <X size={18} />
+          </button>
+        </header>
+        <div className="mdo-body">{children}</div>
+      </aside>
+    </>,
+    document.body,
   );
 }
+
+const styles = `
+  .mdo-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 30, 43, 0.42);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    animation: mdo-overlay-in 0.2s ease;
+  }
+  .mdo-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 101;
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -18px 0 36px -8px rgba(0, 30, 43, 0.14),
+                -2px 0 8px rgba(0, 30, 43, 0.04);
+    animation: mdo-panel-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: 'Geist', 'Outfit', sans-serif;
+  }
+  .mdo-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 22px 16px;
+    border-bottom: 1px solid #E8EDEB;
+    flex-shrink: 0;
+  }
+  .mdo-header-text {
+    min-width: 0;
+    flex: 1;
+  }
+  .mdo-title {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: #001E2B;
+    letter-spacing: -0.013em;
+    line-height: 1.15;
+    font-variation-settings: "opsz" 32;
+    margin: 0;
+  }
+  .mdo-desc {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12.5px;
+    color: #5C6C75;
+    margin: 3px 0 0;
+    line-height: 1.45;
+    letter-spacing: -0.003em;
+  }
+  .mdo-close {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #5C6C75;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+    flex-shrink: 0;
+    margin-top: -2px;
+  }
+  .mdo-close:hover {
+    background: #F1F4F2;
+    color: #00684A;
+    border-color: #E8EDEB;
+  }
+  .mdo-body {
+    padding: 18px 22px 22px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  @keyframes mdo-overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes mdo-panel-in {
+    from { transform: translateX(40px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mdo-panel, .mdo-overlay { animation: none !important; }
+  }
+
+  @media (max-width: 479px) {
+    .mdo-header { padding: 14px 16px 13px; gap: 10px; }
+    .mdo-title { font-size: 18px; }
+    .mdo-desc { font-size: 12px; }
+    .mdo-body { padding: 14px 16px 18px; }
+    .mdo-close { width: 28px; height: 28px; }
+  }
+`;

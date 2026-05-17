@@ -62,6 +62,17 @@
   --color-border: #F0EEEB;
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
+
+  /* Sistema Atlas — usar en home, auth, access-restricted */
+  --color-atlas: #00684A;
+  --color-atlas-dark: #00513A;
+  --color-atlas-soft: #E3FCEF;
+  --color-atlas-border: #C1F1D6;
+  --color-ink: #001E2B;
+  --color-ink-muted: #5C6C75;
+  --color-ink-soft: #889397;
+  --color-line: #E8EDEB;
+  --color-surface-soft: #F9FBFA;
 }
 
 * {
@@ -163,15 +174,17 @@ button:active:not(:disabled) {
 .adm-btn-primary {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
+  gap: 6px;
+  padding: 6px 13px;
   background: #00684A;
   color: #FFFFFF;
   border: 1px solid #00684A;
   border-radius: 6px;
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -180,19 +193,75 @@ button:active:not(:disabled) {
 .adm-btn-secondary {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
+  gap: 6px;
+  padding: 6px 13px;
   background: #FFFFFF;
   color: #00513A;
   border: 1px solid #00684A;
   border-radius: 6px;
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 .adm-btn-secondary:hover { background: #F4FBF9; }
+
+.adm-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  background: transparent;
+  color: #5C6C75;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.003em;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.adm-btn-ghost:hover {
+  background: #F1F4F2;
+  color: #001E2B;
+  border-color: #E8EDEB;
+}
+
+/* Section with decorative ghost icon (Atlas-style watermark) */
+.adm-section--has-ghost {
+  position: relative;
+  overflow: hidden;
+}
+.adm-section-ghost {
+  position: absolute;
+  right: -22px;
+  bottom: -28px;
+  color: #00684A;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.adm-section--has-ghost:hover .adm-section-ghost {
+  opacity: 0.07;
+  transform: translate(-4px, -4px);
+}
+.adm-section--has-ghost > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* (alerts already defined further below — see .adm-alert / --success / --error) */
+.adm-alert--info {
+  background: #F1F4F2;
+  border-color: #E8EDEB;
+  color: #001E2B;
+}
 
 .adm-toolbar {
   display: flex;
@@ -449,38 +518,39 @@ button:active:not(:disabled) {
 @keyframes adm-spin { to { transform: rotate(360deg); } }
 
 /* Forms en modales */
-.adm-form { display: flex; flex-direction: column; gap: 14px; }
+.adm-form { display: flex; flex-direction: column; gap: 12px; }
 .adm-form-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 14px;
+  gap: 11px;
 }
 @media (min-width: 600px) {
   .adm-form-grid { grid-template-columns: 1fr 1fr; }
 }
 .adm-form-grid > .adm-form-field--full { grid-column: 1 / -1; }
 
-.adm-form-field { display: flex; flex-direction: column; gap: 6px; }
+.adm-form-field { display: flex; flex-direction: column; gap: 5px; }
 .adm-form-label {
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #5C6C75;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
 }
 .adm-form-input,
 .adm-form-select,
 .adm-form-textarea {
   width: 100%;
-  padding: 9px 12px;
+  padding: 7px 11px;
   background: #FFFFFF;
   border: 1px solid #E8EDEB;
   border-radius: 6px;
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 13.5px;
+  font-size: 13px;
   color: #001E2B;
   outline: none;
+  letter-spacing: -0.003em;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .adm-form-input::placeholder,
@@ -497,15 +567,20 @@ button:active:not(:disabled) {
   color: #889397;
   cursor: not-allowed;
 }
-.adm-form-textarea { min-height: 90px; resize: vertical; font-family: inherit; }
-.adm-form-hint { font-size: 12px; color: #889397; }
+.adm-form-textarea { min-height: 84px; resize: vertical; font-family: inherit; }
+.adm-form-hint {
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 11.5px;
+  color: #889397;
+  letter-spacing: -0.002em;
+}
 
 .adm-form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 6px;
-  padding-top: 14px;
+  margin-top: 4px;
+  padding-top: 12px;
   border-top: 1px solid #F0F2F0;
 }
 
@@ -521,32 +596,42 @@ button:active:not(:disabled) {
   }
 }
 
-/* Section card (grande, padding generoso, estilo Atlas overview) */
+/* Section card (Atlas overview style — compact but generous) */
 .adm-section {
   background: #FFFFFF;
   border: 1px solid #E8EDEB;
-  border-radius: 12px;
-  padding: 24px 28px;
+  border-radius: 10px;
+  padding: 18px 22px;
 }
 .adm-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 .adm-section-title {
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #001E2B;
   letter-spacing: -0.012em;
 }
+
+/* Section title with mini-icon (perfil & otras secciones temáticas) */
+.adm-section-title-with-icon {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.adm-section-title-with-icon > :first-child {
+  margin-top: 2px;
+}
 .adm-section-sub {
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 13px;
+  font-size: 12.5px;
   color: #5C6C75;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 /* Eyebrow (label uppercase verde) */
@@ -562,95 +647,252 @@ button:active:not(:disabled) {
 }
 .adm-eyebrow--muted { color: #889397; }
 
-/* Tile grande estilo "Browse collections" — icono + texto + flecha */
+/* Tile compacto Atlas-style — icono + texto + flecha */
 .adm-tile {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
+  gap: 12px;
+  padding: 12px 14px;
   background: #FFFFFF;
   border: 1px solid #E8EDEB;
+  border-left: 3px solid #00684A;
   border-radius: 8px;
   color: #001E2B;
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+  text-decoration: none;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .adm-tile:hover {
-  background: #F4FBF9;
+  background: #FAFEFC;
   border-color: #C1F1D6;
+  border-left-color: #00684A;
+  box-shadow: 0 1px 0 #ECF4F0, 0 6px 16px rgba(0, 30, 43, 0.05);
+  transform: translateY(-1px);
+}
+.adm-tile:active {
+  background: #F4FBF9;
+  transform: translateY(0);
 }
 .adm-tile-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: #E3FCEF;
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
   color: #00684A;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  transition: color 0.16s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.adm-tile-icon svg {
+  stroke-width: 1.6;
+}
+.adm-tile:hover .adm-tile-icon {
+  color: #00513A;
+}
+
+/* Tiles compactos (Atajos de gestión, lateral): mismo glifo limpio sin tile */
+.adm-tile--compact .adm-tile-icon {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #00684A;
+}
+.adm-tile--compact:hover .adm-tile-icon {
+  background: transparent;
+  border: none;
+  color: #00513A;
+}
+.adm-tile--compact .adm-tile-icon svg {
+  stroke-width: 1.8;
+}
+.adm-tile-icon--sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+.adm-tile-icon--sm svg { stroke-width: 1.8; }
+
+/* `--badge` se mantiene como alias del estilo limpio (compatibilidad) */
+.adm-tile-icon--badge {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #00684A;
+}
+.adm-tile-icon--badge svg { stroke-width: 1.8; }
 .adm-tile-body { flex: 1; min-width: 0; }
 .adm-tile-title {
-  font-size: 14px;
+  display: block;
+  font-size: 13.5px;
   font-weight: 600;
   color: #001E2B;
-  line-height: 1.25;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
 }
 .adm-tile-sub {
-  font-size: 12.5px;
+  display: block;
+  font-size: 12px;
   font-weight: 400;
   color: #5C6C75;
   margin-top: 2px;
+  letter-spacing: -0.003em;
 }
 .adm-tile-arrow {
-  color: #5C6C75;
+  color: #B2BAC0;
   flex-shrink: 0;
-  transition: transform 0.15s ease, color 0.15s ease;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), color 0.16s ease;
 }
 .adm-tile:hover .adm-tile-arrow {
   color: #00684A;
-  transform: translateX(2px);
+  transform: translateX(3px);
 }
 .adm-tile-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 10px;
 }
 @media (min-width: 640px) {
   .adm-tile-grid { grid-template-columns: 1fr 1fr; }
 }
 
+/* Tile aún más compacto (lista vertical en sidebar) */
+.adm-tile--compact {
+  padding: 8px 10px;
+  gap: 10px;
+}
+.adm-tile--compact .adm-tile-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+}
+.adm-tile--compact .adm-tile-title {
+  font-size: 13px;
+}
+
+/* Tabs Atlas-style (bottom-border activo) */
+.adm-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid #E8EDEB;
+  margin: 0 -22px 14px;
+  padding: 0 22px;
+  font-family: 'Geist', 'Outfit', sans-serif;
+}
+.adm-tab {
+  position: relative;
+  padding: 8px 12px 10px;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #5C6C75;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.adm-tab:hover { color: #001E2B; }
+.adm-tab--active {
+  color: #00684A;
+  font-weight: 600;
+}
+.adm-tab--active::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: -1px;
+  height: 2px;
+  background: #00684A;
+  border-radius: 2px 2px 0 0;
+}
+
 /* KPI inline (numeros con label, sin fondo) */
 .adm-kpi-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 4px;
-  padding: 18px 0;
-  border-top: 1px solid #F0F2F0;
-  border-bottom: 1px solid #F0F2F0;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0;
+  padding: 14px 0 16px;
+  border-top: 1px solid #ECEEEB;
+  border-bottom: 1px solid #ECEEEB;
 }
 .adm-kpi {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 0 14px;
+  border-left: 1px solid #F1F3F0;
+}
+.adm-kpi:first-child {
+  padding-left: 0;
+  border-left: 0;
 }
 .adm-kpi-num {
   font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.022em;
   color: #001E2B;
   font-variation-settings: "opsz" 36;
-  line-height: 1.1;
+  line-height: 1.05;
 }
 .adm-kpi-label {
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 500;
   color: #5C6C75;
+  letter-spacing: -0.002em;
+}
+
+/* Service row (lista tipo "Cluster0 driver list") */
+.adm-svc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid #F1F3F0;
+}
+.adm-svc-row:first-child { border-top: 0; }
+.adm-svc-row-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.adm-svc-row-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: #ECF7F0;
+  color: #00513A;
+  border: 1px solid #D6E9DD;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(0, 104, 74, 0.04);
+}
+.adm-svc-row-icon svg { stroke-width: 1.8; }
+.adm-svc-row-body { min-width: 0; }
+.adm-svc-row-title {
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #001E2B;
+  letter-spacing: -0.005em;
+}
+.adm-svc-row-desc {
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 12px;
+  color: #5C6C75;
+  margin-top: 2px;
 }
 
 /* Driver-row (lista con título + versión) */
@@ -691,5 +933,480 @@ button:active:not(:disabled) {
 .adm-system-status strong {
   color: #00684A;
   font-weight: 600;
+}
+
+/* User summary block (reusable: edit modal, profile page, zone modal) */
+.adm-user-summary {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  background: #F9FBFA;
+  border: 1px solid #E8EDEB;
+  border-radius: 8px;
+  margin-bottom: 2px;
+}
+.adm-user-summary-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #E8EDEB;
+  color: #001E2B;
+  border: 1px solid #DCE2E0;
+  display: grid;
+  place-items: center;
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.adm-user-summary-text { flex: 1; min-width: 0; }
+.adm-user-summary-name {
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #001E2B;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.adm-user-summary-meta {
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 12px;
+  color: #5C6C75;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.adm-user-summary-mono {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 11.5px;
+  color: #001E2B;
+}
+
+/* Role pill (reusable) */
+.adm-role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.adm-role-pill--admin { background: #FCE9E9; color: #8B3030; }
+.adm-role-pill--operator { background: #FFF5D6; color: #8C6300; }
+.adm-role-pill--citizen { background: #E3FCEF; color: #00513A; }
+
+/* Inline alert banner (success / error / info) */
+.adm-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: 1px solid #E8EDEB;
+  background: #F9FBFA;
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #001E2B;
+  margin-top: 14px;
+}
+.adm-alert--success {
+  background: #E3FCEF;
+  border-color: #C1F1D6;
+  color: #00513A;
+}
+.adm-alert--error {
+  background: #FCE9E9;
+  border-color: #F7CFCF;
+  color: #8B3030;
+}
+
+/* Leaflet popup overrides — apply across tracking, zones, routes */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px !important;
+  border: 1px solid #E8EDEB !important;
+  box-shadow: 0 8px 24px rgba(0, 30, 43, 0.08) !important;
+  padding: 0 !important;
+  font-family: 'Geist', 'Outfit', sans-serif !important;
+  color: #001E2B !important;
+}
+.leaflet-popup-tip {
+  background: #FFFFFF !important;
+  border: 1px solid #E8EDEB !important;
+  box-shadow: none !important;
+}
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Dashboard footer — Atlas-style: estado + copy + links + norma
+   Aparece al final de cada página dentro de .dash-content.
+   ═══════════════════════════════════════════════════════════════ */
+.adm-footer {
+  margin-top: 32px;
+  padding: 22px 0 8px;
+  border-top: 1px solid #E8EDEB;
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 12px;
+  color: #5C6C75;
+}
+.adm-footer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.adm-footer-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.002em;
+}
+.adm-footer-status .adm-system-status-dot {
+  box-shadow: 0 0 0 3px rgba(0, 163, 92, 0.16);
+}
+.adm-footer-status strong {
+  color: #00684A;
+  font-weight: 600;
+}
+.adm-footer-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: #889397;
+  letter-spacing: -0.002em;
+}
+.adm-footer-sep {
+  color: #C2C9CD;
+  user-select: none;
+}
+.adm-footer-affil {
+  font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: -0.006em;
+  color: #5C6C75;
+  font-variation-settings: "opsz" 14;
+}
+.adm-footer-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-left: 4px;
+}
+.adm-footer-links a,
+.adm-footer-links button {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: #5C6C75;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.adm-footer-links a:hover,
+.adm-footer-links button:hover {
+  color: #00684A;
+}
+.adm-footer-norm {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #F1F4F2;
+  border: 1px solid #E8EDEB;
+  color: #5C6C75;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+@media (max-width: 767px) {
+  .adm-footer { margin-top: 24px; padding-top: 18px; }
+  .adm-footer-meta { gap: 8px; font-size: 11.5px; }
+  .adm-footer-links { gap: 12px; margin-left: 0; }
+  .adm-footer-affil { font-size: 12.5px; }
+}
+@media (max-width: 479px) {
+  .adm-footer-meta { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .adm-footer-sep { display: none; }
+  .adm-footer-links { margin-left: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Stat cards Atlas/Stripe-style — patrón "2 iconos" (frontal + ghost)
+   Card individual con borde izq de acento, eyebrow, número serif,
+   label gris y un icono outline grande translúcido bottom-right.
+   ═══════════════════════════════════════════════════════════════ */
+
+.adm-stat-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+@media (max-width: 767px) {
+  .adm-stat-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+@media (max-width: 479px) {
+  .adm-stat-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adm-stat-card {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid #E8EDEB;
+  border-left: 3px solid #B45309;
+  border-radius: 8px;
+  padding: 14px 18px;
+  overflow: hidden;
+  isolation: isolate;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.adm-stat-card:hover {
+  box-shadow: 0 1px 0 #ECF4F0, 0 4px 12px rgba(0, 30, 43, 0.04);
+}
+.adm-stat-card > * { position: relative; z-index: 1; }
+
+.adm-stat-card-eyebrow {
+  display: block;
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #B45309;
+}
+.adm-stat-card-num {
+  display: block;
+  font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.022em;
+  line-height: 1.05;
+  color: #B45309;
+  margin-top: 6px;
+  font-variation-settings: "opsz" 36;
+}
+.adm-stat-card-label {
+  display: block;
+  font-family: 'Geist', 'Outfit', sans-serif;
+  font-size: 12px;
+  color: #5C6C75;
+  margin-top: 4px;
+  letter-spacing: -0.002em;
+}
+
+/* Icono ghost: el "eco" decorativo grande translúcido a la derecha */
+.adm-stat-card-ghost {
+  position: absolute;
+  right: -10px;
+  bottom: -14px;
+  color: #B45309;
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.adm-stat-card:hover .adm-stat-card-ghost {
+  opacity: 0.24;
+  transform: translate(-3px, -3px);
+}
+
+/* Variantes de color (acento + número + eyebrow + ghost coherentes) */
+.adm-stat-card--green {
+  border-left-color: #00684A;
+}
+.adm-stat-card--green .adm-stat-card-eyebrow,
+.adm-stat-card--green .adm-stat-card-num,
+.adm-stat-card--green .adm-stat-card-ghost { color: #00684A; }
+
+.adm-stat-card--blue {
+  border-left-color: #1E5180;
+}
+.adm-stat-card--blue .adm-stat-card-eyebrow,
+.adm-stat-card--blue .adm-stat-card-num,
+.adm-stat-card--blue .adm-stat-card-ghost { color: #1E5180; }
+
+.adm-stat-card--amber {
+  border-left-color: #8C6300;
+}
+.adm-stat-card--amber .adm-stat-card-eyebrow,
+.adm-stat-card--amber .adm-stat-card-num,
+.adm-stat-card--amber .adm-stat-card-ghost { color: #8C6300; }
+
+.adm-stat-card--rose {
+  border-left-color: #8B3030;
+}
+.adm-stat-card--rose .adm-stat-card-eyebrow,
+.adm-stat-card--rose .adm-stat-card-num,
+.adm-stat-card--rose .adm-stat-card-ghost { color: #8B3030; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Tile ghost — patrón "2 iconos" en tiles de atajos
+   Mismo icono que el frontal, pero grande + outline + translúcido
+   posicionado bottom-right del tile.
+   ═══════════════════════════════════════════════════════════════ */
+.adm-tile { isolation: isolate; }
+.adm-tile-ghost {
+  position: absolute;
+  right: -10px;
+  bottom: -14px;
+  color: #00684A;
+  opacity: 0.11;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.18s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.adm-tile > * { position: relative; z-index: 1; }
+.adm-tile:hover .adm-tile-ghost {
+  opacity: 0.20;
+  transform: translate(-4px, -4px);
+}
+
+/* Tile compact: ghost más pequeño y discreto */
+.adm-tile--compact .adm-tile-ghost {
+  right: -6px;
+  bottom: -8px;
+  opacity: 0.09;
+}
+.adm-tile--compact:hover .adm-tile-ghost {
+  opacity: 0.16;
+  transform: translate(-3px, -3px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Responsive refinements (mobile-first overrides para <1024 / <768 / <480)
+   Mantienen coherencia con MongoDB Atlas mobile.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Tablet — bajar gaps generales */
+@media (max-width: 1023px) {
+  .adm-page { gap: 16px; }
+  .adm-overview-grid { gap: 16px; }
+}
+
+/* Pequeñas tablets / móviles grandes */
+@media (max-width: 767px) {
+  /* Header de página: stack vertical, acciones full width */
+  .adm-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .adm-header-actions { justify-content: flex-start; }
+  .adm-title { font-size: clamp(24px, 7vw, 30px); }
+  .adm-sub { font-size: 13px; margin-top: 4px; }
+
+  /* Section padding más compacto */
+  .adm-section {
+    padding: 16px 16px;
+    border-radius: 8px;
+  }
+
+  /* Toolbar (search + filtros + stats) full ancho */
+  .adm-toolbar { gap: 8px; }
+  .adm-search {
+    flex: 1 1 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .adm-stat-pills {
+    flex-wrap: wrap;
+    width: 100%;
+    margin-left: 0 !important;
+  }
+  .adm-stat-pill { flex: 0 0 auto; }
+
+  /* Tablas: scroll horizontal cuando no caben */
+  .adm-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .adm-table { min-width: 640px; }
+  .adm-table th,
+  .adm-table td {
+    padding-left: 12px;
+    padding-right: 12px;
+    font-size: 12.5px;
+  }
+
+  /* User summary block — wrap si no entra */
+  .adm-user-summary {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  .adm-user-summary-text { flex: 1 1 auto; min-width: 0; }
+
+  /* KPI row: 2 columnas fijas */
+  .adm-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 0;
+  }
+  .adm-kpi { padding: 0 12px; }
+  .adm-kpi:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .adm-kpi-num { font-size: 22px; }
+
+  /* Form: una sola columna siempre en mobile */
+  .adm-form-grid { grid-template-columns: 1fr !important; }
+
+  /* Form actions: botones apilados full width */
+  .adm-form-actions { flex-direction: column-reverse; }
+  .adm-form-actions > button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Móviles compactos */
+@media (max-width: 479px) {
+  .adm-page { gap: 14px; }
+
+  .adm-title {
+    font-size: 22px;
+    letter-spacing: -0.014em;
+  }
+
+  .adm-section { padding: 14px 12px; }
+
+  .adm-kpi-num { font-size: 20px; }
+  .adm-kpi-label { font-size: 10.5px; }
+
+  .adm-stat-pill {
+    padding: 4px 8px;
+    font-size: 11.5px;
+  }
+
+  .adm-tile { padding: 8px 10px; }
+  .adm-tile-title { font-size: 12.5px; }
+  .adm-tile-sub { font-size: 11.5px; }
+
+  .adm-btn-primary,
+  .adm-btn-secondary {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
 }
 

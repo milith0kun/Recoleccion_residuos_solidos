@@ -29,6 +29,8 @@ import {
   PanelLeftOpen,
 } from 'lucide-react';
 import AccessRestricted from '@/components/AccessRestricted';
+import { DashboardFooter } from '@/components/dashboard/Footer';
+import { BrandMark } from '@/components/branding/BrandMark';
 
 interface MenuItem {
   href: string;
@@ -115,32 +117,10 @@ interface SidebarContentProps {
 const COLLAPSED_STORAGE_KEY = 'srss-sidebar-collapsed-groups';
 const SIDEBAR_COLLAPSED_KEY = 'srss-sidebar-collapsed';
 
-function BrandMark() {
+function SidebarBrandMark() {
   return (
     <span className="sb-brand-mark" aria-hidden>
-      <svg viewBox="0 0 36 32" width="36" height="32" fill="none">
-        {/* Tacho 1 — orgánicos · verde profundo */}
-        <rect x="0.5" y="6.5" width="11" height="2.6" rx="1.1" fill="#00513A" />
-        <rect x="1.5" y="9.5" width="9" height="20" rx="1.5" fill="#00684A" />
-        <rect x="3.5" y="13.5" width="5" height="1" rx="0.5" fill="#E3FCEF" opacity="0.45" />
-        <rect x="3.5" y="17" width="5" height="1" rx="0.5" fill="#E3FCEF" opacity="0.45" />
-        <rect x="3.5" y="20.5" width="5" height="1" rx="0.5" fill="#E3FCEF" opacity="0.45" />
-
-        {/* Tacho 2 — reciclables · verde medio */}
-        <rect x="12.5" y="6.5" width="11" height="2.6" rx="1.1" fill="#007F4A" />
-        <rect x="13.5" y="9.5" width="9" height="20" rx="1.5" fill="#00A35C" />
-        <path
-          d="M18 13.5 C15.3 16 15.3 19 18 22 C20.7 19 20.7 16 18 13.5 Z"
-          fill="#E3FCEF"
-          opacity="0.85"
-        />
-
-        {/* Tacho 3 — peligrosos · verde claro */}
-        <rect x="24.5" y="6.5" width="11" height="2.6" rx="1.1" fill="#3A9F6A" />
-        <rect x="25.5" y="9.5" width="9" height="20" rx="1.5" fill="#5BC18C" />
-        <circle cx="30" cy="18" r="2.6" fill="none" stroke="#FFFFFF" strokeWidth="1" opacity="0.95" />
-        <circle cx="30" cy="18" r="0.9" fill="#FFFFFF" opacity="0.95" />
-      </svg>
+      <BrandMark size={36} />
     </span>
   );
 }
@@ -163,7 +143,7 @@ function SidebarContent({
   return (
     <>
       <div className="sb-brand" style={stagStep(stagger++)}>
-        <BrandMark />
+        <SidebarBrandMark />
         <div className="sb-brand-text">
           <span className="sb-brand-name">SRSS Cusco</span>
         </div>
@@ -177,7 +157,10 @@ function SidebarContent({
           const isCollapsed = group.label ? collapsedGroups.has(group.label) : false;
           const groupContainsActive = group.items.some((it) => it.href === pathname);
           return (
-            <div key={gi} className={`sb-group ${isCollapsed ? 'sb-group--collapsed' : ''}`}>
+            <div
+              key={gi}
+              className={`sb-group ${group.label ? 'sb-group--has-label' : 'sb-group--no-label'} ${isCollapsed ? 'sb-group--collapsed' : ''}`}
+            >
               {group.label && GroupIcon ? (
                 <button
                   type="button"
@@ -188,7 +171,7 @@ function SidebarContent({
                   style={stagStep(stagger++)}
                   title={group.label}
                 >
-                  <GroupIcon className="sb-group-icon" style={{ width: 16, height: 16, flexShrink: 0 }} />
+                  <GroupIcon className="sb-group-icon" style={{ width: 18, height: 18, flexShrink: 0 }} />
                   <span className="sb-group-label">{group.label}</span>
                   <ChevronDown
                     className="sb-group-chevron"
@@ -266,13 +249,10 @@ function SidebarContent({
             aria-pressed={sbCollapsed}
           >
             {sbCollapsed ? (
-              <PanelLeftOpen style={{ width: 15, height: 15 }} />
+              <PanelLeftOpen style={{ width: 14, height: 14 }} />
             ) : (
-              <PanelLeftClose style={{ width: 15, height: 15 }} />
+              <PanelLeftClose style={{ width: 14, height: 14 }} />
             )}
-            <span className="sb-rail-toggle-text">
-              {sbCollapsed ? 'Expandir' : 'Contraer'}
-            </span>
           </button>
         )}
       </div>
@@ -287,8 +267,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [sbCollapsed, setSbCollapsed] = useState(false);
+  const [sbHovering, setSbHovering] = useState(false);
   const [openMenu, setOpenMenu] = useState<'help' | 'bell' | 'apps' | 'avatar' | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
+
+  const sbExpanded = !sbCollapsed || sbHovering;
 
   useEffect(() => {
     if (!openMenu) return;
@@ -335,6 +318,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       } catch {}
       return next;
     });
+    // Reset hover state so the visual change is immediate, even if the
+    // mouse is still over the sidebar after the click.
+    setSbHovering(false);
   };
 
   const toggleGroup = (label: string) => {
@@ -380,7 +366,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <style>{dashStyles}</style>
 
       <div className="sb-spacer" aria-hidden />
-      <aside className={`sb ${sbCollapsed ? 'sb--collapsed' : ''}`}>
+      <aside
+        className={`sb ${sbCollapsed ? 'sb--collapsed' : ''} ${sbExpanded ? 'sb--expanded' : ''}`}
+        onMouseEnter={() => { if (sbCollapsed) setSbHovering(true); }}
+        onMouseLeave={() => setSbHovering(false)}
+      >
         <SidebarContent
           groups={filteredGroups}
           pathname={pathname}
@@ -637,7 +627,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <main className="dash-content">
           <div className="dash-content-inner animate-fade-in">
-            {children}
+            <div className="dash-content-body">{children}</div>
+            <DashboardFooter />
           </div>
         </main>
       </div>
@@ -674,8 +665,11 @@ const dashStyles = `
     width: 64px;
   }
 
-  /* The sidebar itself is fixed so it can overlay when hover-expanded */
+  /* The sidebar itself is fixed so it can overlay when hover-expanded.
+   * All collapse/expand transitions use a single timing for a coherent feel. */
   .sb {
+    --sb-trans: 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+    --sb-trans-fast: 0.24s cubic-bezier(0.32, 0.72, 0, 1);
     position: fixed;
     top: 0;
     left: 0;
@@ -688,8 +682,10 @@ const dashStyles = `
     z-index: 30;
     overflow: hidden;
     transform-origin: top left;
-    transition: width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.32s ease;
+    transition: width var(--sb-trans), box-shadow var(--sb-trans);
+  }
+  .sb-spacer {
+    transition: width var(--sb-trans);
   }
 
   @media (min-width: 1024px) {
@@ -697,24 +693,25 @@ const dashStyles = `
   }
 
   .sb--collapsed { width: 64px; }
-  .sb--collapsed:hover {
+  .sb--collapsed.sb--expanded {
     width: 248px;
     box-shadow: 0 16px 40px -12px rgba(0, 30, 43, 0.18),
                 0 4px 14px -4px rgba(0, 30, 43, 0.08);
   }
 
   .sb-brand {
-    height: 56px;
-    padding: 0 1.25rem;
+    height: 52px;
+    padding: 0 1.15rem;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.55rem;
     border-bottom: 1px solid #E8EDEB;
     flex-shrink: 0;
-    transition: padding 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: padding var(--sb-trans), gap var(--sb-trans);
   }
-  .sb--collapsed:not(:hover) .sb-brand {
+  .sb--collapsed:not(.sb--expanded) .sb-brand {
     padding: 0 14px;
+    gap: 0;
     justify-content: center;
   }
   .sb-brand-mark {
@@ -734,18 +731,21 @@ const dashStyles = `
     display: flex;
     align-items: baseline;
     min-width: 0;
+    max-width: 200px;
     opacity: 1;
     transform: translateX(0);
-    transition: opacity 0.18s ease, transform 0.22s ease;
+    overflow: hidden;
+    transition: opacity var(--sb-trans-fast),
+                transform var(--sb-trans-fast),
+                max-width var(--sb-trans);
     transition-delay: var(--sb-stagger, 0ms);
   }
-  .sb--collapsed:not(:hover) .sb-brand-text {
+  .sb--collapsed:not(.sb--expanded) .sb-brand-text {
     opacity: 0;
     transform: translateX(-8px);
+    max-width: 0;
     transition-delay: 0ms;
     pointer-events: none;
-    width: 0;
-    overflow: hidden;
   }
   .sb-brand-name {
     font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
@@ -760,25 +760,26 @@ const dashStyles = `
 
   .sb-nav {
     flex: 1;
-    padding: 12px 0 16px;
+    padding: 8px 0 12px;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
     overflow-y: auto;
   }
   .sb-group {
     display: flex;
     flex-direction: column;
-    padding: 2px 0 4px;
+    padding: 1px 0 3px;
+    transition: margin var(--sb-trans), padding var(--sb-trans);
   }
   /* Atlas-style: groups separated by whitespace, no border lines */
   .sb-group:not(:first-child) {
-    margin-top: 14px;
-    padding-top: 2px;
+    margin-top: 10px;
+    padding-top: 0;
   }
-  .sb--collapsed:not(:hover) .sb-group:not(:first-child) {
-    margin-top: 8px;
-    padding-top: 4px;
+  .sb--collapsed:not(.sb--expanded) .sb-group:not(:first-child) {
+    margin-top: 4px;
+    padding-top: 2px;
   }
   .sb-group--collapsed {
     padding-bottom: 2px;
@@ -786,9 +787,9 @@ const dashStyles = `
   .sb-group-header {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.6rem;
     width: 100%;
-    padding: 0.55rem 0.9rem 0.55rem 1.15rem;
+    padding: 0.4rem 0.85rem 0.4rem 1.1rem;
     border: 0;
     background: transparent;
     color: #00684A;
@@ -796,7 +797,10 @@ const dashStyles = `
     cursor: pointer;
     user-select: none;
     text-align: left;
-    transition: background 0.15s ease, color 0.15s ease, padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background var(--sb-trans-fast),
+                color var(--sb-trans-fast),
+                padding var(--sb-trans),
+                gap var(--sb-trans);
   }
   .sb-group-header:hover {
     background: #F1F4F2;
@@ -809,14 +813,27 @@ const dashStyles = `
   .sb-group-header--has-active {
     color: #00513A;
   }
-  /* In collapsed sidebar (no hover), group headers disappear — the items themselves act as the rail */
-  .sb--collapsed:not(:hover) .sb-group-header {
-    display: none;
+  /* When collapsed: shrink padding to center the icon. Label/chevron fade out via max-width. */
+  .sb--collapsed:not(.sb--expanded) .sb-group-header {
+    justify-content: center;
+    padding: 0.45rem 0;
+    gap: 0;
   }
+  /* Category icon: simply darker/lighter, no tile background — keeps the animation calm */
   .sb-group-icon {
     color: inherit;
-    opacity: 0.95;
+    flex-shrink: 0;
+    transition: color var(--sb-trans-fast), opacity var(--sb-trans-fast);
+    opacity: 0.92;
   }
+  .sb-group-header:hover .sb-group-icon {
+    opacity: 1;
+  }
+  .sb-group-header--has-active .sb-group-icon {
+    opacity: 1;
+    color: #00513A;
+  }
+
   .sb-group-label {
     font-size: 0.68rem;
     font-weight: 700;
@@ -824,18 +841,35 @@ const dashStyles = `
     text-transform: uppercase;
     letter-spacing: 0.13em;
     white-space: nowrap;
+    overflow: hidden;
+    max-width: 200px;
     opacity: 1;
     transform: translateX(0);
-    transition: opacity 0.18s ease, transform 0.22s ease;
+    transition: opacity var(--sb-trans-fast),
+                transform var(--sb-trans-fast),
+                max-width var(--sb-trans);
     transition-delay: var(--sb-stagger, 0ms);
   }
+  .sb--collapsed:not(.sb--expanded) .sb-group-label {
+    opacity: 0;
+    transform: translateX(-6px);
+    max-width: 0;
+    transition-delay: 0ms;
+    pointer-events: none;
+  }
+
   /* Atlas-style: chevron points UP (▲) when expanded, DOWN (▼) when collapsed */
   .sb-group-chevron {
     margin-left: auto;
     color: inherit;
     opacity: 0.7;
+    overflow: hidden;
+    max-width: 20px;
     transform: rotate(180deg);
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+    transition: transform var(--sb-trans),
+                opacity var(--sb-trans-fast),
+                max-width var(--sb-trans),
+                margin var(--sb-trans);
   }
   .sb-group-header:hover .sb-group-chevron {
     opacity: 1;
@@ -843,19 +877,33 @@ const dashStyles = `
   .sb-group--collapsed .sb-group-chevron {
     transform: rotate(0deg);
   }
+  .sb--collapsed:not(.sb--expanded) .sb-group-chevron {
+    opacity: 0;
+    max-width: 0;
+    margin-left: 0;
+    pointer-events: none;
+  }
+
+  /* Group items container: uses grid trick (1fr → 0fr) so collapse animates smoothly */
   .sb-group-items {
     position: relative;
     display: grid;
     grid-template-rows: 1fr;
     margin-top: 2px;
-    transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: grid-template-rows var(--sb-trans), margin var(--sb-trans);
   }
   .sb-group-items--collapsed {
     grid-template-rows: 0fr;
     margin-top: 0;
   }
-  /* When sidebar is fully collapsed (no hover), force-show all items (rail acts as flat list) */
-  .sb--collapsed:not(:hover) .sb-group-items--collapsed {
+  /* When sidebar is fully collapsed (no hover): force-hide items of LABELED groups via grid 0fr.
+   * Panel general (no-label group) still shows so its icon is accessible. */
+  .sb--collapsed:not(.sb--expanded) .sb-group--has-label .sb-group-items {
+    grid-template-rows: 0fr;
+    margin-top: 0;
+  }
+  /* Inside expanded sidebar: respect the individual collapse state of each group */
+  .sb--collapsed:not(.sb--expanded) .sb-group--no-label .sb-group-items {
     grid-template-rows: 1fr;
     margin-top: 2px;
   }
@@ -870,22 +918,25 @@ const dashStyles = `
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.55rem 1.15rem;
+    gap: 0.65rem;
+    padding: 0.42rem 1.1rem;
     border-radius: 0;
     font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 0.875rem;
+    font-size: 0.855rem;
     font-weight: 450;
     color: #1A1A1A;
     text-decoration: none;
-    transition: background 0.15s ease, color 0.15s ease, padding 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background var(--sb-trans-fast),
+                color var(--sb-trans-fast),
+                padding var(--sb-trans),
+                gap var(--sb-trans);
     white-space: nowrap;
     overflow: hidden;
   }
   /* Atlas-style: indented items align with where the category LABEL starts (after the group icon) */
   .sb-link--indented {
-    padding-left: 2.7rem;
-    font-size: 0.865rem;
+    padding-left: 2.55rem;
+    font-size: 0.85rem;
   }
   .sb-link:hover:not(.sb-link--active) {
     background: #F1F4F2;
@@ -905,6 +956,7 @@ const dashStyles = `
     width: 3px;
     border-radius: 0 2px 2px 0;
     background: #00684A;
+    transition: top var(--sb-trans), bottom var(--sb-trans);
   }
 
   /* Icon visibility:
@@ -913,40 +965,52 @@ const dashStyles = `
   .sb-link-icon {
     color: inherit;
     flex-shrink: 0;
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    max-width: 20px;
+    opacity: 1;
+    transition: max-width var(--sb-trans),
+                opacity var(--sb-trans-fast),
+                margin var(--sb-trans);
   }
   .sb-link-icon--indented {
-    display: none;
+    max-width: 0;
+    opacity: 0;
+    margin-right: -0.7rem;
   }
-  .sb--collapsed:not(:hover) .sb-link-icon,
-  .sb--collapsed:not(:hover) .sb-link-icon--indented {
-    display: block;
+  .sb--collapsed:not(.sb--expanded) .sb-link-icon,
+  .sb--collapsed:not(.sb--expanded) .sb-link-icon--indented {
+    max-width: 20px;
+    opacity: 1;
+    margin-right: 0;
   }
 
   /* Link text — appears with staggered fade-in when expanding */
   .sb-link-text {
+    overflow: hidden;
+    max-width: 220px;
     opacity: 1;
     transform: translateX(0);
-    transition: opacity 0.2s ease, transform 0.24s ease;
+    transition: opacity var(--sb-trans-fast),
+                transform var(--sb-trans-fast),
+                max-width var(--sb-trans);
     transition-delay: var(--sb-stagger, 0ms);
   }
-  .sb--collapsed:not(:hover) .sb-link-text {
+  .sb--collapsed:not(.sb--expanded) .sb-link-text {
     opacity: 0;
-    transform: translateX(-10px);
+    transform: translateX(-8px);
+    max-width: 0;
     transition-delay: 0ms;
     pointer-events: none;
-    width: 0;
-    overflow: hidden;
   }
 
   /* Collapsed link: icon centered in 64px rail */
-  .sb--collapsed:not(:hover) .sb-link,
-  .sb--collapsed:not(:hover) .sb-link--indented {
-    padding: 0.62rem 0;
+  .sb--collapsed:not(.sb--expanded) .sb-link,
+  .sb--collapsed:not(.sb--expanded) .sb-link--indented {
+    padding: 0.45rem 0;
     justify-content: center;
     gap: 0;
   }
-  .sb--collapsed:not(:hover) .sb-link--active::before {
+  .sb--collapsed:not(.sb--expanded) .sb-link--active::before {
     left: 0;
     top: 6px;
     bottom: 6px;
@@ -954,49 +1018,55 @@ const dashStyles = `
   }
 
   .sb-footer {
-    padding: 0.85rem 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    padding: 0.65rem 0.65rem 0.7rem;
     margin-top: auto;
     border-top: 1px solid #E8EDEB;
-    transition: padding 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: padding var(--sb-trans);
   }
-  .sb--collapsed:not(:hover) .sb-footer {
-    padding: 0.6rem 0.5rem 0.9rem;
+  .sb--collapsed:not(.sb--expanded) .sb-footer {
+    padding: 0.5rem 0.4rem 0.6rem;
   }
   .sb-user {
-    padding: 0.85rem;
-    border-radius: 10px;
+    padding: 0.6rem 0.65rem;
+    border-radius: 8px;
     background: #F9FAFA;
     border: 1px solid #E8EDEB;
-    margin-bottom: 0.55rem;
-    transition: padding 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease;
+    margin-bottom: 0.4rem;
+    transition: padding var(--sb-trans),
+                background var(--sb-trans-fast),
+                border-color var(--sb-trans-fast),
+                margin var(--sb-trans);
   }
-  .sb--collapsed:not(:hover) .sb-user {
-    padding: 0.4rem;
+  .sb--collapsed:not(.sb--expanded) .sb-user {
+    padding: 0.3rem;
     background: transparent;
     border-color: transparent;
   }
   .sb-user-top {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.55rem;
-    transition: margin 0.25s ease;
+    gap: 0.55rem;
+    margin-bottom: 0.4rem;
+    transition: margin var(--sb-trans), gap var(--sb-trans);
   }
-  .sb--collapsed:not(:hover) .sb-user-top {
+  .sb--collapsed:not(.sb--expanded) .sb-user-top {
     margin-bottom: 0;
+    gap: 0;
     justify-content: center;
   }
   .sb-user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
     background: #E8EDEB;
     color: #001E2B;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     flex-shrink: 0;
@@ -1004,30 +1074,33 @@ const dashStyles = `
   .sb-user-meta {
     min-width: 0;
     flex: 1;
+    overflow: hidden;
+    max-width: 200px;
     opacity: 1;
     transform: translateX(0);
-    transition: opacity 0.18s ease, transform 0.22s ease;
+    transition: opacity var(--sb-trans-fast),
+                transform var(--sb-trans-fast),
+                max-width var(--sb-trans);
     transition-delay: var(--sb-stagger, 0ms);
   }
-  .sb--collapsed:not(:hover) .sb-user-meta {
+  .sb--collapsed:not(.sb--expanded) .sb-user-meta {
     opacity: 0;
     transform: translateX(-8px);
+    max-width: 0;
     transition-delay: 0ms;
-    width: 0;
-    overflow: hidden;
     pointer-events: none;
   }
   .sb-user-name {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 700;
     color: #1A1A1A;
-    line-height: 1.2;
+    line-height: 1.18;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .sb-user-role {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     font-weight: 500;
     color: #5C6C75;
     margin-top: 1px;
@@ -1036,24 +1109,35 @@ const dashStyles = `
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    padding-top: 0.5rem;
+    padding-top: 0.35rem;
+    margin-top: 0;
     border-top: 1px solid #E8EDEB;
+    overflow: hidden;
+    max-height: 28px;
     opacity: 1;
-    transition: opacity 0.18s ease;
+    transition: opacity var(--sb-trans-fast),
+                max-height var(--sb-trans),
+                padding-top var(--sb-trans),
+                border-color var(--sb-trans-fast);
     transition-delay: var(--sb-stagger, 0ms);
   }
-  .sb--collapsed:not(:hover) .sb-user-status {
-    display: none;
+  .sb--collapsed:not(.sb--expanded) .sb-user-status {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    border-top-color: transparent;
+    transition-delay: 0ms;
+    pointer-events: none;
   }
   .sb-user-dot {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: #00A35C;
     box-shadow: 0 0 0 3px rgba(0,163,92,0.15);
   }
   .sb-user-status span:last-child {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 700;
     color: #00684A;
     text-transform: uppercase;
@@ -1065,17 +1149,21 @@ const dashStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.6rem;
-    border-radius: 8px;
+    gap: 0.45rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 7px;
     border: 1px solid #E8EDEB;
     background: #FFFFFF;
     color: #5C6C75;
     font-family: inherit;
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background var(--sb-trans-fast),
+                border-color var(--sb-trans),
+                color var(--sb-trans-fast),
+                padding var(--sb-trans),
+                gap var(--sb-trans);
     white-space: nowrap;
     overflow: hidden;
   }
@@ -1086,74 +1174,56 @@ const dashStyles = `
   }
   .sb-logout-icon { flex-shrink: 0; }
   .sb-logout-text {
+    overflow: hidden;
+    max-width: 160px;
     opacity: 1;
     transform: translateX(0);
-    transition: opacity 0.18s ease, transform 0.22s ease;
+    transition: opacity var(--sb-trans-fast),
+                transform var(--sb-trans-fast),
+                max-width var(--sb-trans);
     transition-delay: var(--sb-stagger, 0ms);
   }
-  .sb--collapsed:not(:hover) .sb-logout {
-    padding: 0.55rem 0;
+  .sb--collapsed:not(.sb--expanded) .sb-logout {
+    padding: 0.45rem 0;
     border-color: transparent;
     background: transparent;
     gap: 0;
   }
-  .sb--collapsed:not(:hover) .sb-logout-text {
+  .sb--collapsed:not(.sb--expanded) .sb-logout-text {
     opacity: 0;
     transform: translateX(-8px);
+    max-width: 0;
     transition-delay: 0ms;
-    width: 0;
-    overflow: hidden;
     pointer-events: none;
   }
 
-  /* Rail toggle (collapse/expand the sidebar entirely) */
+  /* Rail toggle — small Atlas-style icon button at bottom of the sidebar */
   .sb-rail-toggle {
-    margin-top: 0.4rem;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    background: transparent;
-    color: #6B7682;
-    font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 600;
+    align-self: flex-end;
+    margin-top: 8px;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    border: 1px solid #E8EDEB;
+    background: #FFFFFF;
+    color: #5C6C75;
     cursor: pointer;
-    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    white-space: nowrap;
-    overflow: hidden;
-    letter-spacing: 0.01em;
+    transition: background var(--sb-trans-fast), color var(--sb-trans-fast), border-color var(--sb-trans-fast), align-self var(--sb-trans);
   }
   .sb-rail-toggle:hover {
-    background: #F0F7F2;
-    color: #00513A;
-    border-color: #DCEBE2;
+    background: #F1F4F2;
+    color: #00684A;
+    border-color: #C1F1D6;
   }
   .sb-rail-toggle:focus-visible {
     outline: 2px solid #00A35C;
-    outline-offset: 1px;
+    outline-offset: 2px;
   }
-  .sb-rail-toggle-text {
-    opacity: 1;
-    transform: translateX(0);
-    transition: opacity 0.18s ease, transform 0.22s ease;
-    transition-delay: var(--sb-stagger, 0ms);
-  }
-  .sb--collapsed:not(:hover) .sb-rail-toggle {
-    padding: 0.55rem 0;
-    gap: 0;
-  }
-  .sb--collapsed:not(:hover) .sb-rail-toggle-text {
-    opacity: 0;
-    transform: translateX(-8px);
-    transition-delay: 0ms;
-    width: 0;
-    overflow: hidden;
-    pointer-events: none;
+  /* When sidebar is collapsed (no hover), center the toggle in the 64px rail */
+  .sb--collapsed:not(.sb--expanded) .sb-rail-toggle {
+    align-self: center;
   }
 
   /* Mobile sidebar */
@@ -1167,13 +1237,16 @@ const dashStyles = `
   .sb-mobile {
     position: fixed;
     top: 0; bottom: 0; left: 0;
-    width: 260px;
+    width: min(280px, 84vw);
     background: #FFFFFF;
     z-index: 50;
     display: none;
     flex-direction: column;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 4px 0 24px rgba(0, 30, 43, 0.08);
   }
   .sb-mobile--open { transform: translateX(0); }
   @media (max-width: 1023px) {
@@ -1193,12 +1266,12 @@ const dashStyles = `
   /* Desktop header */
   .dash-header {
     display: none;
-    height: 56px;
+    height: 52px;
     background: #FFFFFF;
     border-bottom: 1px solid #E8EDEB;
     align-items: center;
     justify-content: space-between;
-    padding: 0 1.5rem;
+    padding: 0 1.25rem;
     flex-shrink: 0;
     z-index: 20;
   }
@@ -1264,8 +1337,8 @@ const dashStyles = `
   }
   .header-icon-btn {
     position: relative;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 6px;
     border: 1px solid transparent;
     background: transparent;
@@ -1289,20 +1362,20 @@ const dashStyles = `
     border: 2px solid #FFFFFF;
   }
   .header-avatar-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 999px;
     border: 1px solid #E8EDEB;
     background: #F1F4F2;
     color: #00684A;
     font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     display: grid;
     place-items: center;
     cursor: pointer;
-    margin-left: 8px;
+    margin-left: 6px;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
   .header-avatar-btn:hover,
@@ -1588,20 +1661,45 @@ const dashStyles = `
     color: #00513A;
   }
 
-  /* Content */
+  /* Content — uses available space generously (Atlas-style) */
   .dash-content {
     flex: 1;
     overflow: auto;
-    padding: 1.25rem;
+    padding: 1rem 1.25rem 1.5rem;
   }
   @media (min-width: 640px) {
-    .dash-content { padding: 1.5rem; }
+    .dash-content { padding: 1.25rem 1.75rem 1.75rem; }
   }
   @media (min-width: 1024px) {
-    .dash-content { padding: 2.5rem; }
+    .dash-content { padding: 1.5rem 2.25rem 2.25rem; }
+  }
+  @media (min-width: 1400px) {
+    .dash-content { padding: 1.75rem 3rem 2.5rem; }
   }
   .dash-content-inner {
-    max-width: 1400px;
+    max-width: 1640px;
     margin: 0 auto;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .dash-content-body { flex: 1 0 auto; }
+  .dash-content-inner > .adm-footer { flex-shrink: 0; margin-top: auto; }
+
+  /* Header compacto en pantallas medianas (1024-1199px) */
+  @media (min-width: 1024px) and (max-width: 1199px) {
+    .bc-label { display: none; }
+    .bc-segment { padding: 6px 8px; }
+    .dash-header { padding: 0 1rem; }
+  }
+  /* Header iconos: que no se compriman */
+  .header-icon-btn,
+  .header-avatar-btn { flex-shrink: 0; }
+
+  /* Móviles muy pequeños: menos padding lateral */
+  @media (max-width: 479px) {
+    .dash-content { padding: 0.85rem 0.9rem 1.25rem; }
+    .dash-header-mobile { padding: 0 1rem; height: 52px; }
+    .mobile-brand { font-size: 0.95rem; }
   }
 `;

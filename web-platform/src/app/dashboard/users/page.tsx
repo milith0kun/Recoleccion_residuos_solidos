@@ -542,7 +542,7 @@ export default function UsersPage() {
                     <td className="up-cell-muted">{u.email}</td>
                     <td className="up-cell-mono">{u.dni || '—'}</td>
                     <td>
-                      <span className={`up-role-pill up-role-pill--${u.role}`}>
+                      <span className={`adm-role-pill adm-role-pill--${u.role}`}>
                         {badge.label}
                       </span>
                     </td>
@@ -626,6 +626,8 @@ export default function UsersPage() {
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Invitar al proyecto"
+        description="Creá una cuenta para un operador o administrador del sistema."
+        size="md"
       >
         <form onSubmit={submitCreate} className="adm-form">
           <div className="adm-form-grid">
@@ -746,26 +748,32 @@ export default function UsersPage() {
         </form>
       </Modal>
 
-      <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Editar usuario">
+      <Modal
+        isOpen={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Editar usuario"
+        description="Actualizá los datos personales y el rol del usuario."
+        size="md"
+      >
         {editForm && editingUser && (
           <form onSubmit={submitEdit} className="adm-form">
-            <div className="up-edit-userinfo">
-              <span className="up-edit-avatar">
+            <div className="adm-user-summary">
+              <span className="adm-user-summary-avatar">
                 {(editingUser.firstName?.[0] ?? '').toUpperCase()}
                 {(editingUser.lastName?.[0] ?? '').toUpperCase()}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="up-edit-name">
+                <div className="adm-user-summary-name">
                   {editingUser.firstName} {editingUser.lastName}
                 </div>
-                <div className="up-edit-meta">{editingUser.email}</div>
+                <div className="adm-user-summary-meta">{editingUser.email}</div>
                 {editingUser.dni ? (
-                  <div className="up-edit-meta">
-                    DNI <span className="up-edit-mono">{editingUser.dni}</span>
+                  <div className="adm-user-summary-meta">
+                    DNI <span className="adm-user-summary-mono">{editingUser.dni}</span>
                   </div>
                 ) : null}
               </div>
-              <span className={`up-role-pill up-role-pill--${editingUser.role}`}>
+              <span className={`adm-role-pill adm-role-pill--${editingUser.role}`}>
                 {roleBadge[editingUser.role]?.label ?? editingUser.role}
               </span>
             </div>
@@ -874,18 +882,18 @@ export default function UsersPage() {
       >
         {zoneTargetUser && (
           <form onSubmit={submitZone} className="adm-form">
-            <div className="up-edit-userinfo">
-              <span className="up-edit-avatar">
+            <div className="adm-user-summary">
+              <span className="adm-user-summary-avatar">
                 {(zoneTargetUser.firstName?.[0] ?? '').toUpperCase()}
                 {(zoneTargetUser.lastName?.[0] ?? '').toUpperCase()}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="up-edit-name">
+                <div className="adm-user-summary-name">
                   {zoneTargetUser.firstName} {zoneTargetUser.lastName}
                 </div>
-                <div className="up-edit-meta">{zoneTargetUser.email}</div>
+                <div className="adm-user-summary-meta">{zoneTargetUser.email}</div>
               </div>
-              <span className={`up-role-pill up-role-pill--${zoneTargetUser.role}`}>
+              <span className={`adm-role-pill adm-role-pill--${zoneTargetUser.role}`}>
                 {roleBadge[zoneTargetUser.role]?.label ?? zoneTargetUser.role}
               </span>
             </div>
@@ -1002,15 +1010,17 @@ const upStyles = `
   .up-btn-primary {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 9px 16px;
+    gap: 6px;
+    padding: 6px 13px;
     background: #00684A;
     color: #FFFFFF;
     border: 1px solid #00684A;
     border-radius: 6px;
     font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.4;
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease;
   }
@@ -1163,19 +1173,6 @@ const upStyles = `
     color: #001E2B;
   }
 
-  .up-role-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    font-weight: 600;
-    letter-spacing: 0;
-  }
-  .up-role-pill--admin { background: #FCE9E9; color: #8B3030; }
-  .up-role-pill--operator { background: #FFF5D6; color: #8C6300; }
-  .up-role-pill--citizen { background: #E3FCEF; color: #00513A; }
-
   .up-zone-btn {
     display: inline-flex;
     align-items: center;
@@ -1256,49 +1253,6 @@ const upStyles = `
     background: #FCE9E9;
     border-color: #F7CFCF;
     color: #8B3030;
-  }
-
-  /* Bloque info usuario en modal de edición */
-  .up-edit-userinfo {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    background: #F9FBFA;
-    border: 1px solid #E8EDEB;
-    border-radius: 8px;
-    margin-bottom: 4px;
-  }
-  .up-edit-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
-    background: #E8EDEB;
-    color: #001E2B;
-    border: 1px solid #DCE2E0;
-    display: grid;
-    place-items: center;
-    font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    flex-shrink: 0;
-  }
-  .up-edit-name {
-    font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    color: #001E2B;
-    line-height: 1.2;
-  }
-  .up-edit-meta {
-    font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 12.5px;
-    color: #5C6C75;
-    margin-top: 2px;
-  }
-  .up-edit-mono {
-    font-family: 'Geist Mono', ui-monospace, monospace;
-    font-size: 12px;
   }
 
   /* Sortable column header */
