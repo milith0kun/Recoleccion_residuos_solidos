@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   LayoutDashboard,
@@ -242,6 +242,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [openMenu, setOpenMenu] = useState<'help' | 'bell' | 'apps' | 'avatar' | null>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!openMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setOpenMenu(null);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenMenu(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openMenu]);
+
+  const toggleMenu = (menu: 'help' | 'bell' | 'apps' | 'avatar') => {
+    setOpenMenu((prev) => (prev === menu ? null : menu));
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -327,9 +351,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main area */}
       <div className="dash-main">
         {/* Desktop Header */}
-        <header className="dash-header">
+        <header className="dash-header" ref={headerRef}>
           <div className="dash-breadcrumb">
-            <button type="button" className="bc-segment">
+            <button
+              type="button"
+              className="bc-segment"
+              onClick={() => router.push('/dashboard')}
+              title="Ir al panel general"
+            >
               <span className="bc-label">ORGANIZACIÓN</span>
               <span className="bc-value-row">
                 <span className="bc-value">Municipalidad Cusco</span>
@@ -337,7 +366,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </span>
             </button>
             <ChevronRight style={{ width: 13, height: 13, color: '#C5C8CB', flexShrink: 0 }} />
-            <button type="button" className="bc-segment">
+            <button
+              type="button"
+              className={`bc-segment ${openMenu === 'apps' ? 'bc-segment--active' : ''}`}
+              onClick={() => toggleMenu('apps')}
+              aria-expanded={openMenu === 'apps'}
+              title="Saltar a otra sección"
+            >
               <span className="bc-label">SECCIÓN</span>
               <span className="bc-value-row">
                 <span className="bc-value bc-page">{pageTitles[pathname] ?? 'Panel'}</span>
@@ -346,25 +381,184 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
           </div>
           <div className="dash-header-right">
-            <button className="header-icon-btn" aria-label="Ayuda" title="Ayuda">
-              <HelpCircle style={{ width: 17, height: 17 }} />
-            </button>
-            <button className="header-icon-btn" aria-label="Documentación" title="Documentación">
+            <div className="header-menu-wrap">
+              <button
+                className={`header-icon-btn ${openMenu === 'help' ? 'header-icon-btn--active' : ''}`}
+                aria-label="Ayuda"
+                title="Ayuda"
+                onClick={() => toggleMenu('help')}
+              >
+                <HelpCircle style={{ width: 17, height: 17 }} />
+              </button>
+              {openMenu === 'help' && (
+                <div className="header-dropdown header-dropdown--narrow" role="menu">
+                  <div className="dropdown-head">
+                    <span className="dropdown-title">Ayuda y recursos</span>
+                  </div>
+                  <a
+                    className="dropdown-item"
+                    href="https://github.com/milith0kun/Recoleccion_residuos_solidos#readme"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    <Briefcase size={15} />
+                    <span>Documentación del sistema</span>
+                  </a>
+                  <a
+                    className="dropdown-item"
+                    href="mailto:soporte@cusco.gob.pe?subject=Soporte SRSS Cusco"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    <HelpCircle size={15} />
+                    <span>Contactar soporte</span>
+                  </a>
+                  <div className="dropdown-foot">SRSS Cusco · v1.0</div>
+                </div>
+              )}
+            </div>
+
+            <a
+              className="header-icon-btn"
+              href="https://github.com/milith0kun/Recoleccion_residuos_solidos#readme"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Documentación"
+              title="Documentación"
+            >
               <Briefcase style={{ width: 17, height: 17 }} />
-            </button>
-            <button className="header-icon-btn" aria-label="Invitar usuario" title="Invitar usuario">
+            </a>
+
+            <button
+              className="header-icon-btn"
+              aria-label="Invitar usuario"
+              title="Invitar usuario"
+              onClick={() => router.push('/dashboard/users')}
+            >
               <UserPlus style={{ width: 17, height: 17 }} />
             </button>
-            <button className="header-icon-btn" aria-label="Notificaciones" title="Notificaciones">
-              <Bell style={{ width: 17, height: 17 }} />
-              <span className="bell-dot" />
-            </button>
-            <button className="header-icon-btn" aria-label="Apps" title="Apps">
-              <Grid3x3 style={{ width: 17, height: 17 }} />
-            </button>
-            <button className="header-avatar-btn" title={`${user.firstName} ${user.lastName} · ${roleLabels[user.role]}`}>
-              {user.firstName[0]}{user.lastName[0]}
-            </button>
+
+            <div className="header-menu-wrap">
+              <button
+                className={`header-icon-btn ${openMenu === 'bell' ? 'header-icon-btn--active' : ''}`}
+                aria-label="Notificaciones"
+                title="Notificaciones"
+                onClick={() => toggleMenu('bell')}
+              >
+                <Bell style={{ width: 17, height: 17 }} />
+                <span className="bell-dot" />
+              </button>
+              {openMenu === 'bell' && (
+                <div className="header-dropdown header-dropdown--bell" role="menu">
+                  <div className="dropdown-head">
+                    <span className="dropdown-title">Notificaciones</span>
+                    <span className="dropdown-badge">0 nuevas</span>
+                  </div>
+                  <div className="dropdown-empty">
+                    <div className="dropdown-empty-icon">
+                      <Bell size={20} />
+                    </div>
+                    <p className="dropdown-empty-title">Sin notificaciones nuevas</p>
+                    <p className="dropdown-empty-desc">
+                      Las alertas de rutas, incidentes y reportes ciudadanos aparecerán acá.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="header-menu-wrap">
+              <button
+                className={`header-icon-btn ${openMenu === 'apps' ? 'header-icon-btn--active' : ''}`}
+                aria-label="Accesos rápidos"
+                title="Accesos rápidos"
+                onClick={() => toggleMenu('apps')}
+              >
+                <Grid3x3 style={{ width: 17, height: 17 }} />
+              </button>
+              {openMenu === 'apps' && (
+                <div className="header-dropdown header-dropdown--apps" role="menu">
+                  <div className="dropdown-head">
+                    <span className="dropdown-title">Accesos rápidos</span>
+                  </div>
+                  <div className="apps-grid">
+                    {menuGroups
+                      .flatMap((g) => g.items)
+                      .filter((item) => !item.roles || item.roles.includes(user.role))
+                      .map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className="app-tile"
+                            onClick={() => setOpenMenu(null)}
+                          >
+                            <span className="app-tile-icon">
+                              <Icon size={18} />
+                            </span>
+                            <span className="app-tile-label">{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="header-menu-wrap">
+              <button
+                className={`header-avatar-btn ${openMenu === 'avatar' ? 'header-avatar-btn--active' : ''}`}
+                title={`${user.firstName} ${user.lastName}`}
+                onClick={() => toggleMenu('avatar')}
+              >
+                {user.firstName[0]}{user.lastName[0]}
+              </button>
+              {openMenu === 'avatar' && (
+                <div className="header-dropdown header-dropdown--avatar" role="menu">
+                  <div className="avatar-dropdown-head">
+                    <div className="avatar-dropdown-circle">
+                      {user.firstName[0]}{user.lastName[0]}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="avatar-dropdown-name">
+                        {user.firstName} {user.lastName}
+                      </div>
+                      <div className="avatar-dropdown-email">{user.email}</div>
+                      <span className="avatar-dropdown-role">{roleLabels[user.role]}</span>
+                    </div>
+                  </div>
+                  <div className="dropdown-divider" />
+                  <Link
+                    href="/dashboard/profile"
+                    className="dropdown-item"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    <UserIcon size={15} />
+                    <span>Mi perfil</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/users"
+                    className="dropdown-item"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    <Users size={15} />
+                    <span>Gestionar usuarios</span>
+                  </Link>
+                  <div className="dropdown-divider" />
+                  <button
+                    className="dropdown-item dropdown-item--danger"
+                    onClick={() => {
+                      setOpenMenu(null);
+                      logout();
+                    }}
+                  >
+                    <LogOut size={15} />
+                    <span>Cerrar sesión</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -453,19 +647,21 @@ const dashStyles = `
 
   .sb-nav {
     flex: 1;
-    padding: 8px 0 12px;
+    padding: 10px 0 14px;
     display: flex;
     flex-direction: column;
+    gap: 2px;
     overflow-y: auto;
   }
   .sb-group {
     display: flex;
     flex-direction: column;
+    padding: 2px 0 6px;
   }
   .sb-group:not(:first-child) {
-    border-top: 1px solid #F0F2F0;
-    margin-top: 4px;
-    padding-top: 4px;
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid #F5F5F2;
   }
   .sb-group--collapsed {
     padding-bottom: 2px;
@@ -473,47 +669,55 @@ const dashStyles = `
   .sb-group-header {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.7rem;
     width: 100%;
-    padding: 0.7rem 0.9rem 0.7rem 1.1rem;
+    padding: 0.5rem 0.9rem 0.5rem 1.1rem;
     border: 0;
     background: transparent;
-    color: #00513A;
+    color: #889397;
     font-family: 'Geist', 'Outfit', sans-serif;
     cursor: pointer;
     user-select: none;
     text-align: left;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease;
   }
   .sb-group-header:hover {
-    background: #F4F6F4;
+    background: #F6F7F5;
+    color: #001E2B;
   }
   .sb-group-header:focus-visible {
     outline: 2px solid #00A35C;
     outline-offset: -2px;
   }
-  .sb-group-label {
-    flex: 1;
-    font-size: 0.66rem;
-    font-weight: 700;
+  .sb-group-header--has-active {
     color: #00513A;
+  }
+  .sb-group-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: inherit;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
   }
   .sb-group-active-dot {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: #00A35C;
-    box-shadow: 0 0 0 3px rgba(0,163,92,0.18);
+    box-shadow: 0 0 0 3px rgba(0,163,92,0.16);
     flex-shrink: 0;
+    margin-left: 0.4rem;
   }
   .sb-group-chevron {
-    opacity: 0.5;
-    transition: transform 0.2s ease, opacity 0.15s ease;
+    margin-left: auto;
+    color: #B2BAC0;
+    opacity: 0.85;
+    transition: transform 0.22s ease, opacity 0.15s ease, color 0.15s ease;
   }
-  .sb-group-header:hover .sb-group-chevron {
-    opacity: 0.9;
+  .sb-group-header:hover .sb-group-chevron,
+  .sb-group-header--has-active .sb-group-chevron {
+    color: #00513A;
+    opacity: 1;
   }
   .sb-group--collapsed .sb-group-chevron {
     transform: rotate(-90deg);
@@ -521,7 +725,18 @@ const dashStyles = `
   .sb-group-items {
     display: flex;
     flex-direction: column;
+    position: relative;
+    margin-top: 2px;
     overflow: hidden;
+  }
+  .sb-group-items::before {
+    content: '';
+    position: absolute;
+    left: calc(1.1rem + 7.5px);
+    top: 4px;
+    bottom: 4px;
+    width: 1px;
+    background: #EEF0EC;
   }
   .sb-group-items[hidden] {
     display: none;
@@ -532,7 +747,7 @@ const dashStyles = `
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    padding: 0.55rem 1.1rem 0.55rem 1.1rem;
+    padding: 0.5rem 1.1rem 0.5rem 1.1rem;
     border-radius: 0;
     font-family: 'Geist', 'Outfit', sans-serif;
     font-size: 0.84rem;
@@ -543,10 +758,10 @@ const dashStyles = `
   }
   .sb-link--indented {
     padding-left: 2.6rem;
-    font-size: 0.82rem;
+    font-size: 0.825rem;
   }
   .sb-link:hover:not(.sb-link--active) {
-    background: #F4F6F4;
+    background: #F6F7F5;
     color: #001E2B;
   }
   .sb-link--active {
@@ -558,9 +773,10 @@ const dashStyles = `
     content: '';
     position: absolute;
     left: 0;
-    top: 0;
-    bottom: 0;
+    top: 4px;
+    bottom: 4px;
     width: 3px;
+    border-radius: 0 3px 3px 0;
     background: #00684A;
   }
 
@@ -810,9 +1026,250 @@ const dashStyles = `
     box-shadow: 0 2px 6px rgba(0,104,74,0.22);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
-  .header-avatar-btn:hover {
+  .header-avatar-btn:hover,
+  .header-avatar-btn--active {
     transform: scale(1.05);
     box-shadow: 0 4px 10px rgba(0,104,74,0.3);
+  }
+  .header-icon-btn--active {
+    background: #F4F6F4;
+    color: #001E2B;
+    border-color: #E8EDEB;
+  }
+  .bc-segment--active {
+    background: #F4F6F4;
+    border-color: #E8EDEB;
+  }
+
+  /* Header dropdowns */
+  .header-menu-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+  .header-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 260px;
+    max-width: 360px;
+    background: #FFFFFF;
+    border: 1px solid #E8EDEB;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0,30,43,0.12), 0 2px 6px rgba(0,30,43,0.06);
+    padding: 8px;
+    z-index: 100;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    animation: dropdown-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes dropdown-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .header-dropdown--narrow { min-width: 240px; }
+  .header-dropdown--bell { min-width: 320px; }
+  .header-dropdown--apps { min-width: 320px; padding: 12px; }
+  .header-dropdown--avatar { min-width: 280px; }
+
+  .dropdown-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px 10px;
+    border-bottom: 1px solid #F0F2F0;
+    margin-bottom: 6px;
+  }
+  .dropdown-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #001E2B;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .dropdown-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #5C6C75;
+    background: #F4F6F4;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .dropdown-section-title {
+    display: block;
+    padding: 8px 12px 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #889397;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #001E2B;
+    font-size: 0.82rem;
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+    font-family: inherit;
+  }
+  .dropdown-item:hover {
+    background: #F4F6F4;
+    color: #00513A;
+  }
+  .dropdown-item--danger:hover {
+    background: #FCE9E9;
+    color: #B23A3A;
+  }
+  .dropdown-divider {
+    height: 1px;
+    background: #F0F2F0;
+    margin: 6px -8px;
+  }
+  .dropdown-foot {
+    font-size: 0.68rem;
+    color: #889397;
+    padding: 8px 12px 4px;
+    border-top: 1px solid #F0F2F0;
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  /* Bell empty state */
+  .dropdown-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 24px 16px 16px;
+    text-align: center;
+  }
+  .dropdown-empty-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: #F4F6F4;
+    color: #5C6C75;
+    display: grid;
+    place-items: center;
+    margin-bottom: 4px;
+  }
+  .dropdown-empty-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #001E2B;
+    margin: 0;
+  }
+  .dropdown-empty-desc {
+    font-size: 0.74rem;
+    color: #5C6C75;
+    line-height: 1.45;
+    max-width: 240px;
+    margin: 0;
+  }
+
+  /* Apps grid */
+  .apps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
+  }
+  .app-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border-radius: 8px;
+    color: #001E2B;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+  }
+  .app-tile:hover {
+    background: #E3FCEF;
+    border-color: #C1F1D6;
+    color: #00513A;
+    transform: translateY(-1px);
+  }
+  .app-tile-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #F4F6F4;
+    color: #00684A;
+    display: grid;
+    place-items: center;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .app-tile:hover .app-tile-icon {
+    background: #FFFFFF;
+    color: #00684A;
+  }
+  .app-tile-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  /* Avatar dropdown */
+  .avatar-dropdown-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px 14px;
+    border-bottom: 1px solid #F0F2F0;
+    margin-bottom: 6px;
+  }
+  .avatar-dropdown-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #00A35C, #00684A);
+    color: #FFFFFF;
+    display: grid;
+    place-items: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0,104,74,0.25);
+  }
+  .avatar-dropdown-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #001E2B;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .avatar-dropdown-email {
+    font-size: 0.72rem;
+    color: #5C6C75;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .avatar-dropdown-role {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #00513A;
+    background: #E3FCEF;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
   }
 
   /* Mobile header */
