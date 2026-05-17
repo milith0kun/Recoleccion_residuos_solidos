@@ -59,6 +59,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (savedToken && savedUser) {
           setToken(savedToken);
           setUser(JSON.parse(savedUser) as User);
+
+          // Refrescar el user desde el backend en background. Si el rol
+          // u otros campos cambiaron desde el último login (ej. el admin
+          // promovió a este usuario de citizen a driver), nos enteramos
+          // sin tener que cerrar y volver a abrir sesión.
+          (async () => {
+            try {
+              const { data } = await api.get('/users/me');
+              if (data?.success && data.data) {
+                const fresh = data.data as User;
+                await SecureStore.setItemAsync('user', JSON.stringify(fresh));
+                setUser(fresh);
+              }
+            } catch (e) {
+              if (__DEV__) console.warn('[auth] refresh /users/me failed', e);
+            }
+          })();
         }
       } catch (e) {
         if (__DEV__) console.warn('[auth] error loading session', e);

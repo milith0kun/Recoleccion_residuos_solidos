@@ -60,11 +60,13 @@ export default function ProfileScreen() {
   const roleLabel =
     user?.role === 'citizen'
       ? 'Ciudadano'
+      : user?.role === 'driver'
+      ? 'Conductor'
       : user?.role === 'operator'
       ? 'Operador'
       : user?.role === 'admin'
       ? 'Administrador'
-      : 'Usuario';
+      : 'Ciudadano';
 
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
 

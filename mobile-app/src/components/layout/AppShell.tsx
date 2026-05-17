@@ -325,7 +325,7 @@ function DrawerContent({ menu, onClose }: DrawerContentProps) {
   const pathname = usePathname();
 
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
-  const roleLabel = user?.role ? ROLE_LABELS[user.role] || 'Usuario' : 'Usuario';
+  const roleLabel = user?.role ? ROLE_LABELS[user.role] || 'Ciudadano' : 'Ciudadano';
 
   const handleNavigate = (href: string) => {
     onClose();
