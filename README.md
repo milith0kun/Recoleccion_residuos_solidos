@@ -334,3 +334,62 @@ La siguiente sección establece la relación entre los requisitos funcionales pr
 La presente especificación define dieciséis requisitos funcionales agrupados en seis módulos, los cuales abordan integralmente la problemática descrita: recolección no optimizada, falta de comunicación con la ciudadanía, baja cultura de segregación, ausencia de reportes para la toma de decisiones y gestión reactiva.
 
 Su implementación, mediante SCRUM y entregas iterativas, permitirá generar valor temprano para la municipalidad y los ciudadanos, contribuyendo al desarrollo sostenible de la ciudad del Cusco mediante una gestión ambiental urbana más eficiente, transparente y participativa.
+
+---
+
+## 9. Implementación del MVP
+
+### 9.1 Arquitectura técnica
+
+El sistema se materializa en dos productos independientes pero conectados a una misma base de datos y API:
+
+| Componente | Carpeta | Stack | Despliegue |
+|---|---|---|---|
+| **Plataforma web** | `web-platform/` | Next.js 16, React 19, MongoDB Atlas, TypeScript estricto | Cualquier host Node (Railway, Vercel, etc.) |
+| **App móvil** | `mobile-app/` | Expo SDK 54, React Native 0.81, expo-router | APK preview (EAS Build) y futuro AAB en Play Store |
+
+La API REST que consume el móvil vive en `web-platform/src/app/api/v1/`, así que el backend es **el mismo proceso** que sirve el dashboard administrativo.
+
+### 9.2 Flujo de roles y guards
+
+El sistema define tres roles (`citizen`, `operator`, `admin`) que se mapean a vistas distintas en ambos productos:
+
+| Rol | Plataforma web (`/dashboard`) | App móvil |
+|---|---|---|
+| `citizen` | Acceso restringido (mensaje informativo) | Grupo `(tabs)`: home, mapa, horarios, residuos, perfil |
+| `operator` | Acceso restringido | Grupo `(operator)`: jornada, ruta, reportar, perfil |
+| `admin` | Dashboard completo | Igual que `operator` (puede operar también) |
+
+**Aplicación del control de acceso:**
+
+- **Web (`web-platform/src/app/dashboard/layout.tsx`)**: si `user.role !== 'admin'`, muestra `<AccessRestricted />`. No-admin nunca ve datos administrativos.
+- **Móvil (`AuthContext`)**: deriva `isAdmin`, `isOperator` (admin∪operator) e `isCitizen`. Cada grupo de rutas tiene su guard:
+  - `app/index.tsx` enruta inicial según rol (operator/admin → `/(operator)/jornada`, citizen → `/(tabs)/home`, sin sesión → `/login`).
+  - `app/(tabs)/_layout.tsx` rechaza a sin-sesión (→`/login`) y a operator/admin (→`/(operator)/jornada`).
+  - `app/(operator)/_layout.tsx` rechaza a sin-sesión (→`/login`) y a citizen (→`/(tabs)/home`).
+- **API**: cada endpoint usa `requireAuth(request)` o `requireRole(request, 'operator', 'admin')`. Un citizen no puede llegar a `POST /route-executions` aunque conozca la URL — el middleware devuelve 403.
+
+El registro desde móvil sólo crea cuentas con `role: 'citizen'`. Operadores y administradores se crean desde la web (panel del admin), nunca por auto-registro.
+
+### 9.3 Notificaciones push (RF-12, RF-13)
+
+**Componentes:**
+
+1. **App móvil** — `expo-notifications` instalado; `src/hooks/usePushToken.ts` pide permiso, obtiene el `ExponentPushToken` y lo envía con `PATCH /api/v1/users/me { pushToken }`. El registro se dispara solo cuando hay sesión activa (`!!user`).
+2. **Backend** — el modelo `User` persiste `pushToken` + `pushTokenUpdatedAt`. El helper `web-platform/src/lib/utils/push.ts` expone `pushToZone(zoneId, msg)` y `pushToUser(userId, msg)` que llaman al Expo Push API (`https://exp.host/--/api/v2/push/send`).
+3. **Disparadores actuales**:
+   - **Jornada iniciada** (RF-12): `POST /route-executions` envía push a todos los ciudadanos de la zona de la ruta. Título: "Camión en ruta".
+   - **Retraso reportado** (RF-13): `PATCH /route-executions/[id]` con `status='delayed'` envía push con los minutos de retraso.
+
+**Importante:** las notificaciones push requieren **dispositivo físico** (no funcionan en emuladores) y un APK construido **después** de instalar `expo-notifications`. Los APKs previos a SDK 54.0 con esa dependencia no recibirán pushes.
+
+### 9.4 Despliegue móvil — OTA vs rebuild
+
+La app móvil incluye `expo-updates` para recibir actualizaciones **Over-The-Air** sin reinstalación. La guía completa (qué cambios entran por OTA y cuáles fuerzan rebuild) está en [`mobile-app/DEPLOYMENT.md`](./mobile-app/DEPLOYMENT.md).
+
+Resumen: cualquier cambio en archivos `.ts`/`.tsx`/imágenes importadas se publica con `npm run update:preview -- "mensaje"`. Cambios en `app.json`, íconos del launcher o librerías nativas exigen `npm run build:preview` y reinstalación del APK.
+
+### 9.5 Identidad visual
+
+- **Sistema "Atlas"** — paleta verde institucional `#00684A`, tipografía Newsreader (serif) para títulos + Geist/Inter (sans) para UI. Aplicado consistentemente entre dashboard web y app móvil.
+- **BrandMark** — logotipo de 3 tachos en tonos verdes (orgánicos · reciclables · peligrosos). Vive como SVG fuente en `mobile-app/assets/brand-mark.svg` y `web-platform/src/components/branding/BrandMark.tsx`. Los íconos del launcher, splash y notificación se regeneran con `node mobile-app/scripts/generate-icons.mjs`.

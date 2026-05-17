@@ -6,8 +6,10 @@ import Zone from '@/lib/models/Zone';
 import { requireAuth } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 
-const ALLOWED_FIELDS = ['firstName', 'lastName', 'phone', 'dni', 'zone'] as const;
+const ALLOWED_FIELDS = ['firstName', 'lastName', 'phone', 'dni', 'zone', 'pushToken'] as const;
 type AllowedField = (typeof ALLOWED_FIELDS)[number];
+
+const EXPO_PUSH_TOKEN_RE = /^ExponentPushToken\[[A-Za-z0-9_-]+\]$/;
 
 export async function GET(request: NextRequest) {
   const { user: jwtUser, error } = requireAuth(request);
@@ -40,6 +42,18 @@ export async function PATCH(request: NextRequest) {
       const value = body[key];
       if (value === undefined) continue;
       update[key] = typeof value === 'string' ? value.trim() : value;
+    }
+
+    if ('pushToken' in update) {
+      const raw = update.pushToken;
+      if (raw === null || raw === '') {
+        update.pushToken = null;
+        (update as Record<string, unknown>).pushTokenUpdatedAt = null;
+      } else if (typeof raw !== 'string' || !EXPO_PUSH_TOKEN_RE.test(raw)) {
+        return errorResponse('pushToken inválido', 400, 'INVALID_PUSH_TOKEN');
+      } else {
+        (update as Record<string, unknown>).pushTokenUpdatedAt = new Date();
+      }
     }
 
     if ('dni' in update) {

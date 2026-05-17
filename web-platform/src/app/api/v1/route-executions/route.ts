@@ -5,6 +5,7 @@ import RouteExecution from '@/lib/models/RouteExecution';
 import Vehicle from '@/lib/models/Vehicle';
 import { requireAuth, requireRole } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
+import { pushToZone } from '@/lib/utils/push';
 
 // Ensure Vehicle model is registered for populate
 void Vehicle;
@@ -135,6 +136,16 @@ export async function POST(request: NextRequest) {
     route.currentExecution = execution._id;
     route.status = 'active';
     await route.save();
+
+    // Notificar a los ciudadanos de la zona que el camión salió.
+    // Fire-and-forget: si Expo Push tarda, no bloqueamos al operador.
+    if (route.zone) {
+      pushToZone(route.zone, {
+        title: 'Camión en ruta',
+        body: `El camión de ${route.name} salió a recolectar. Mirá el mapa para seguirlo.`,
+        data: { url: '/(tabs)/map', kind: 'route_started', routeId: String(route._id) },
+      }).catch((e) => console.warn('[push] route_started failed', e));
+    }
 
     const populated = await RouteExecution.findById(execution._id)
       .populate('route', 'name zone status waypoints path')

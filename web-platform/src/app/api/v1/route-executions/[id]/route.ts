@@ -5,6 +5,7 @@ import RouteExecution from '@/lib/models/RouteExecution';
 import Vehicle from '@/lib/models/Vehicle';
 import { requireAuth } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
+import { pushToZone } from '@/lib/utils/push';
 
 void Vehicle;
 
@@ -74,6 +75,7 @@ export async function PATCH(
 
     const body = (await request.json()) as PatchBody;
 
+    const previousStatus = execution.status;
     if (typeof body.status !== 'undefined') {
       if (!VALID_PATCH_STATUSES.includes(body.status)) {
         return errorResponse(
@@ -148,6 +150,23 @@ export async function PATCH(
         }
         route.status = body.status === 'completed' ? 'completed' : 'inactive';
         await route.save();
+      }
+    }
+
+    // Avisar a los ciudadanos cuando el estado cambia a "delayed" por primera vez.
+    if (
+      body.status === 'delayed' &&
+      previousStatus !== 'delayed' &&
+      typeof body.delayMinutes === 'number' &&
+      body.delayMinutes > 0
+    ) {
+      const route = await Route.findById(execution.route).select('zone name');
+      if (route?.zone) {
+        pushToZone(route.zone, {
+          title: 'Retraso en la recolección',
+          body: `${route.name} tiene un retraso aproximado de ${body.delayMinutes} min.`,
+          data: { url: '/(tabs)/map', kind: 'route_delayed', routeId: String(execution.route) },
+        }).catch((e) => console.warn('[push] route_delayed failed', e));
       }
     }
 

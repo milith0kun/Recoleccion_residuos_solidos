@@ -26,6 +26,10 @@ export interface IUser extends Document {
   provider?: 'local' | 'google';
   avatar?: string;
   profileComplete?: boolean;
+  /** Expo push token (formato `ExponentPushToken[...]`) — registrado por la app móvil. */
+  pushToken?: string;
+  /** Última fecha en que la app móvil actualizó el push token. */
+  pushTokenUpdatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,6 +81,8 @@ const UserSchema = new Schema<IUser>(
     provider: { type: String, enum: ['local', 'google'], default: 'local' },
     avatar: { type: String },
     profileComplete: { type: Boolean, default: true },
+    pushToken: { type: String, trim: true, default: null },
+    pushTokenUpdatedAt: { type: Date },
   },
   { timestamps: true }
 );

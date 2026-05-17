@@ -11,9 +11,17 @@ export default function OperatorTabsLayout() {
   const [activeExecution, setActiveExecution] = useState<string | null>(null);
   const pulse = useRef(new Animated.Value(0)).current;
 
+  // Guards de acceso al grupo operador:
+  //  - sin sesión → /login
+  //  - sesión sin permisos (citizen) → /(tabs)/home
   useEffect(() => {
-    if (!isLoading && (!user || !isOperator)) {
-      router.replace('/');
+    if (isLoading) return;
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+    if (!isOperator) {
+      router.replace('/(tabs)/home');
     }
   }, [user, isOperator, isLoading]);
 

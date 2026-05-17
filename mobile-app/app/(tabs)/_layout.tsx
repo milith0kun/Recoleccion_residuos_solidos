@@ -8,9 +8,16 @@ export default function TabsLayout() {
   const { isOperator, isLoading, user } = useAuth();
   const router = useRouter();
 
-  // Operators should never see citizen tabs; bounce them to operator group.
+  // Guards de acceso al grupo ciudadano:
+  //  - sin sesión → /login
+  //  - operator/admin → /(operator)/jornada (no deben ver tabs de ciudadano)
   useEffect(() => {
-    if (!isLoading && user && isOperator) {
+    if (isLoading) return;
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+    if (isOperator) {
       router.replace('/(operator)/jornada');
     }
   }, [isOperator, isLoading, user]);
