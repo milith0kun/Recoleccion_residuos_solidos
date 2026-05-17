@@ -18,10 +18,13 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role');
     const zone = searchParams.get('zone');
     const search = searchParams.get('search');
+    const status = searchParams.get('status'); // 'active' | 'inactive'
 
     const filter: Record<string, unknown> = {};
     if (role) filter.role = role;
     if (zone) filter.zone = zone;
+    if (status === 'active') filter.isActive = true;
+    else if (status === 'inactive') filter.isActive = false;
     if (search) {
       filter.$or = [
         { firstName: { $regex: search, $options: 'i' } },

@@ -5,12 +5,11 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Search,
   UserPlus,
-  UserCheck,
-  UserX,
   MapPin,
   Users,
   Edit2,
   Compass,
+  Trash2,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'sonner';
@@ -107,6 +106,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [zoneFilter, setZoneFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>(emptyCreate);
@@ -127,10 +127,11 @@ export default function UsersPage() {
     if (search) params.set('search', search);
     if (roleFilter) params.set('role', roleFilter);
     if (zoneFilter) params.set('zone', zoneFilter);
+    if (statusFilter) params.set('status', statusFilter);
     params.set('limit', '100');
     const data = await apiFetch(`/api/v1/users?${params.toString()}`);
     return data.data.users ?? [];
-  }, [apiFetch, search, roleFilter, zoneFilter]);
+  }, [apiFetch, search, roleFilter, zoneFilter, statusFilter]);
 
   const load = useCallback(async () => {
     try {
@@ -289,23 +290,20 @@ export default function UsersPage() {
     }
   };
 
-  const handleToggleActive = async (u: UserData) => {
+  const handleDelete = async (u: UserData) => {
     if (
       !confirm(
-        `¿Deseas ${u.isActive ? 'desactivar' : 'activar'} a ${u.firstName} ${u.lastName}?`
+        `¿Eliminar a ${u.firstName} ${u.lastName}? Esta acción es permanente y no se puede deshacer.`
       )
     ) {
       return;
     }
     try {
-      await apiFetch(`/api/v1/users/${u._id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ isActive: !u.isActive }),
-      });
-      toast.success(u.isActive ? 'Usuario desactivado' : 'Usuario activado');
+      await apiFetch(`/api/v1/users/${u._id}`, { method: 'DELETE' });
+      toast.success('Usuario eliminado permanentemente');
       load();
     } catch (err) {
-      toast.error((err as Error).message || 'No se pudo cambiar el estado');
+      toast.error((err as Error).message || 'No se pudo eliminar al usuario');
     }
   };
 
@@ -359,6 +357,15 @@ export default function UsersPage() {
               {z.name}
             </option>
           ))}
+        </select>
+        <select
+          className="up-filter"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">Todos los estados</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
         </select>
         <div className="up-stat-pills">
           <span className="up-stat-pill"><strong>{stats.total}</strong> total</span>
@@ -474,17 +481,11 @@ export default function UsersPage() {
                           <MapPin size={14} />
                         </button>
                         <button
-                          onClick={() => handleToggleActive(u)}
-                          title={u.isActive ? 'Desactivar' : 'Activar'}
-                          className={`up-icon-btn ${
-                            !u.isActive ? 'up-icon-btn--success' : ''
-                          }`}
+                          onClick={() => handleDelete(u)}
+                          title="Eliminar usuario"
+                          className="up-icon-btn up-icon-btn--danger"
                         >
-                          {u.isActive ? (
-                            <UserX size={14} />
-                          ) : (
-                            <UserCheck size={14} />
-                          )}
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -612,49 +613,67 @@ export default function UsersPage() {
         </form>
       </Modal>
 
-      <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Editar Usuario">
+      <Modal isOpen={editOpen} onClose={() => setEditOpen(false)} title="Editar usuario">
         {editForm && editingUser && (
-          <form onSubmit={submitEdit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label>Nombre</label>
+          <form onSubmit={submitEdit} className="adm-form">
+            <div className="up-edit-userinfo">
+              <span className="up-edit-avatar">
+                {(editingUser.firstName?.[0] ?? '').toUpperCase()}
+                {(editingUser.lastName?.[0] ?? '').toUpperCase()}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="up-edit-name">
+                  {editingUser.firstName} {editingUser.lastName}
+                </div>
+                <div className="up-edit-meta">{editingUser.email}</div>
+                {editingUser.dni ? (
+                  <div className="up-edit-meta">
+                    DNI <span className="up-edit-mono">{editingUser.dni}</span>
+                  </div>
+                ) : null}
+              </div>
+              <span className={`up-role-pill up-role-pill--${editingUser.role}`}>
+                {roleBadge[editingUser.role]?.label ?? editingUser.role}
+              </span>
+            </div>
+
+            <div className="adm-form-grid">
+              <div className="adm-form-field">
+                <label className="adm-form-label">Nombre</label>
                 <input
                   required
+                  className="adm-form-input"
                   value={editForm.firstName}
                   onChange={(e) =>
                     setEditForm({ ...editForm, firstName: e.target.value })
                   }
                 />
               </div>
-              <div>
-                <label>Apellido</label>
+              <div className="adm-form-field">
+                <label className="adm-form-label">Apellido</label>
                 <input
                   required
+                  className="adm-form-input"
                   value={editForm.lastName}
                   onChange={(e) =>
                     setEditForm({ ...editForm, lastName: e.target.value })
                   }
                 />
               </div>
-            </div>
-            <div>
-              <label>Teléfono</label>
-              <input
-                value={editForm.phone}
-                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <label>Dirección</label>
-              <input
-                value={editForm.address}
-                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label>Rol</label>
+              <div className="adm-form-field">
+                <label className="adm-form-label">Teléfono</label>
+                <input
+                  className="adm-form-input"
+                  inputMode="numeric"
+                  placeholder="Opcional"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                />
+              </div>
+              <div className="adm-form-field">
+                <label className="adm-form-label">Rol</label>
                 <select
+                  className="adm-form-select"
                   value={editForm.role}
                   onChange={(e) =>
                     setEditForm({
@@ -668,9 +687,19 @@ export default function UsersPage() {
                   <option value="admin">Administrador</option>
                 </select>
               </div>
-              <div>
-                <label>Estado</label>
+              <div className="adm-form-field adm-form-field--full">
+                <label className="adm-form-label">Dirección</label>
+                <input
+                  className="adm-form-input"
+                  placeholder="Opcional"
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                />
+              </div>
+              <div className="adm-form-field adm-form-field--full">
+                <label className="adm-form-label">Estado</label>
                 <select
+                  className="adm-form-select"
                   value={editForm.isActive ? 'active' : 'inactive'}
                   onChange={(e) =>
                     setEditForm({ ...editForm, isActive: e.target.value === 'active' })
@@ -679,22 +708,26 @@ export default function UsersPage() {
                   <option value="active">Activo</option>
                   <option value="inactive">Inactivo</option>
                 </select>
+                <span className="adm-form-hint">
+                  Para eliminar permanentemente al usuario, usá el botón eliminar en la tabla.
+                </span>
               </div>
             </div>
-            <div className="pt-4 flex justify-end gap-3">
+
+            <div className="adm-form-actions">
               <button
                 type="button"
                 onClick={() => setEditOpen(false)}
-                className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200"
+                className="adm-btn-secondary"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={editSubmitting}
-                className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 disabled:opacity-60"
+                className="adm-btn-primary"
               >
-                {editSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                {editSubmitting ? 'Guardando…' : 'Guardar cambios'}
               </button>
             </div>
           </form>
@@ -1034,6 +1067,54 @@ const upStyles = `
     background: #E3FCEF;
     border-color: #C1F1D6;
     color: #00513A;
+  }
+  .up-icon-btn--danger:hover {
+    background: #FCE9E9;
+    border-color: #F7CFCF;
+    color: #8B3030;
+  }
+
+  /* Bloque info usuario en modal de edición */
+  .up-edit-userinfo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: #F9FBFA;
+    border: 1px solid #E8EDEB;
+    border-radius: 8px;
+    margin-bottom: 4px;
+  }
+  .up-edit-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: #E8EDEB;
+    color: #001E2B;
+    border: 1px solid #DCE2E0;
+    display: grid;
+    place-items: center;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .up-edit-name {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #001E2B;
+    line-height: 1.2;
+  }
+  .up-edit-meta {
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 12.5px;
+    color: #5C6C75;
+    margin-top: 2px;
+  }
+  .up-edit-mono {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 12px;
   }
 
   .up-table-foot {
