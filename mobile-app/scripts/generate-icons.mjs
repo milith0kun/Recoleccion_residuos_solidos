@@ -68,27 +68,36 @@ async function render({ size, padding, bg, outFile }) {
 }
 
 async function main() {
+  // icon.png — legacy / iOS: padding mínimo para que el logo respire pero ocupe ancho.
+  await render({
+    size: 1024,
+    padding: 0.10,
+    bg: null,
+    outFile: join(ASSETS, 'icon.png'),
+  });
+
+  // adaptive-icon.png — Android adaptive foreground.
+  // Safe zone Android: contenido en círculo radius 33% del canvas (padding mínimo 18%).
+  // Vamos al borde para que el SO no recorte pero el logo se vea grande.
   await render({
     size: 1024,
     padding: 0.18,
     bg: null,
-    outFile: join(ASSETS, 'icon.png'),
-  });
-  await render({
-    size: 1024,
-    padding: 0.28,
-    bg: null,
     outFile: join(ASSETS, 'adaptive-icon.png'),
   });
+
+  // splash-icon.png — splash screen con resizeMode contain.
   await render({
     size: 1024,
-    padding: 0.34,
+    padding: 0.24,
     bg: null,
     outFile: join(ASSETS, 'splash-icon.png'),
   });
+
+  // favicon.png — web tab. Mantiene fondo blanco por legibilidad.
   await render({
     size: 48,
-    padding: 0.12,
+    padding: 0.08,
     bg: BG,
     outFile: join(ASSETS, 'favicon.png'),
   });
