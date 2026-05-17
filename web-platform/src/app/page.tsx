@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
 
@@ -17,9 +17,21 @@ interface GoogleIdConfig {
   cancel_on_tap_outside?: boolean;
 }
 
+interface GoogleButtonConfig {
+  type?: 'standard' | 'icon';
+  theme?: 'outline' | 'filled_blue' | 'filled_black';
+  size?: 'large' | 'medium' | 'small';
+  text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
+  shape?: 'rectangular' | 'pill' | 'circle' | 'square';
+  logo_alignment?: 'left' | 'center';
+  width?: number;
+  locale?: string;
+}
+
 interface GoogleIdApi {
   initialize: (config: GoogleIdConfig) => void;
   prompt: () => void;
+  renderButton: (parent: HTMLElement, config: GoogleButtonConfig) => void;
   cancel: () => void;
 }
 
@@ -41,6 +53,7 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [gisReady, setGisReady] = useState(false);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
@@ -66,17 +79,24 @@ export default function HomePage() {
     if (!gisReady) return;
     if (!googleClientId) return;
     if (!window.google) return;
+    if (!googleBtnRef.current) return;
     window.google.accounts.id.initialize({
       client_id: googleClientId,
       callback: handleGoogleCredential,
       cancel_on_tap_outside: false,
     });
+    googleBtnRef.current.innerHTML = '';
+    window.google.accounts.id.renderButton(googleBtnRef.current, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      text: 'continue_with',
+      shape: 'rectangular',
+      logo_alignment: 'left',
+      width: 332,
+      locale: 'es',
+    });
   }, [gisReady, googleClientId, handleGoogleCredential]);
-
-  const handleGoogleClick = () => {
-    if (!gisReady || !googleClientId || !window.google) return;
-    window.google.accounts.id.prompt();
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,14 +230,10 @@ export default function HomePage() {
           </div>
 
           <div className="google-wrap">
-            <button
-              type="button"
-              className="btn-google"
-              onClick={handleGoogleClick}
-              disabled={!googleClientId || !gisReady}
-            >
-              Continuar con Google
-            </button>
+            <div ref={googleBtnRef} className="google-btn-host" />
+            {googleClientId && !gisReady && (
+              <p className="google-hint">Cargando Google Sign-In…</p>
+            )}
             {!googleClientId && (
               <p className="google-hint">
                 Configura <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> en <code>.env.local</code> para activar Google Sign-In
@@ -565,30 +581,13 @@ const styles = `
     align-items: stretch;
     gap: 0.55rem;
   }
-  .btn-google {
-    width: 100%;
-    padding: 0.85rem 1rem;
-    border-radius: 10px;
-    border: 1.5px solid #ECEAE6;
-    background: #FFFFFF;
-    color: #1A1A1A;
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    cursor: pointer;
-    transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  .google-btn-host {
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
   }
-  .btn-google:hover:not(:disabled) {
-    border-color: #059669;
-    background: #FAFAF8;
-  }
-  .btn-google:active:not(:disabled) {
-    transform: scale(0.99);
-  }
-  .btn-google:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
+  .google-btn-host > div {
+    width: 100% !important;
   }
   .google-hint {
     font-size: 0.65rem;
