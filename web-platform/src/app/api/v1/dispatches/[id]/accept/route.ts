@@ -1,9 +1,12 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db/connection';
 import Dispatch from '@/lib/models/Dispatch';
+import User from '@/lib/models/User';
 import { requireRole } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 import { pushToUser } from '@/lib/utils/push';
+
+void User;
 
 export async function PATCH(
   request: NextRequest,
@@ -32,9 +35,19 @@ export async function PATCH(
     dispatch.acceptedAt = new Date();
     await dispatch.save();
 
+    // Cargar nombre del conductor para mensaje informativo.
+    const driver = await User.findById(dispatch.driver)
+      .select('firstName lastName')
+      .lean<{ firstName?: string; lastName?: string }>();
+    const driverName = driver
+      ? `${driver.firstName ?? ''} ${driver.lastName ?? ''}`.trim() || 'el conductor'
+      : 'el conductor';
+
     pushToUser(dispatch.assignedBy, {
       title: 'Salida aceptada',
-      body: `${dispatch.code} fue aceptada por el conductor.`,
+      body: `${driverName} aceptó la salida ${dispatch.code}. Se iniciará en el horario programado.`,
+      channelId: 'dispatches',
+      priority: 'high',
       data: {
         url: '/(planner)/dispatches',
         kind: 'dispatch_accepted',

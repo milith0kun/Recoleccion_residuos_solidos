@@ -141,9 +141,16 @@ export async function POST(request: NextRequest) {
     // Fire-and-forget: si Expo Push tarda, no bloqueamos al operador.
     if (route.zone) {
       pushToZone(route.zone, {
-        title: 'Camión en ruta',
-        body: `El camión de ${route.name} salió a recolectar. Mirá el mapa para seguirlo.`,
-        data: { url: '/(tabs)/map', kind: 'route_started', routeId: String(route._id) },
+        title: 'Camión en tu zona',
+        body: `${route.name} salió a recolectar. Tocá para ver el camión en el mapa en tiempo real.`,
+        channelId: 'routes',
+        priority: 'high',
+        data: {
+          url: '/(tabs)/map',
+          kind: 'route_started',
+          routeId: String(route._id),
+          routeName: route.name,
+        },
       }).catch((e) => console.warn('[push] route_started failed', e));
     }
 

@@ -124,10 +124,24 @@ export async function POST(request: NextRequest) {
     });
 
     // Push al conductor: nueva asignación.
+    const scheduledLabel = scheduledDate.toLocaleString('es-PE', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
     pushToUser(driver._id, {
-      title: 'Nueva salida asignada',
-      body: `${code} · ${route.name}. Tocá para revisar y aceptar.`,
-      data: { url: '/(driver)/jornada', kind: 'dispatch_assigned', dispatchId: String(dispatch._id) },
+      title: `Nueva salida: ${route.name}`,
+      body: `${code} · programada para ${scheduledLabel}. Tocá para aceptar o rechazar.`,
+      channelId: 'dispatches',
+      priority: 'high',
+      data: {
+        url: '/(driver)/jornada',
+        kind: 'dispatch_assigned',
+        dispatchId: String(dispatch._id),
+        routeName: route.name,
+        scheduledFor: scheduledDate.toISOString(),
+      },
     }).catch((e) => console.warn('[push] dispatch_assigned failed', e));
 
     const populated = await Dispatch.findById(dispatch._id)

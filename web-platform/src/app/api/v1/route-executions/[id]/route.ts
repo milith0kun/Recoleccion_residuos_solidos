@@ -194,8 +194,16 @@ export async function PATCH(
       if (route?.zone) {
         pushToZone(route.zone, {
           title: 'Retraso en la recolección',
-          body: `${route.name} tiene un retraso aproximado de ${body.delayMinutes} min.`,
-          data: { url: '/(tabs)/map', kind: 'route_delayed', routeId: String(execution.route) },
+          body: `${route.name} tiene un retraso de ~${body.delayMinutes} min. El camión está demorado pero va a pasar.`,
+          channelId: 'routes',
+          priority: 'high',
+          data: {
+            url: '/(tabs)/map',
+            kind: 'route_delayed',
+            routeId: String(execution.route),
+            routeName: route.name,
+            delayMinutes: body.delayMinutes,
+          },
         }).catch((e) => console.warn('[push] route_delayed failed', e));
       }
     }

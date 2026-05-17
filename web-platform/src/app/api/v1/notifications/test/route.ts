@@ -39,9 +39,11 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await sendExpoPush([dbUser.pushToken], {
-      title: 'Notificación de prueba',
-      body: `Hola ${dbUser.firstName ?? ''}, si ves esto, las notificaciones están funcionando.`,
-      data: { url: '/notifications', kind: 'system' },
+      title: 'Notificación de prueba — SRSS Cusco',
+      body: `Hola ${dbUser.firstName ?? ''}, si ves esto las notificaciones están funcionando correctamente en tu dispositivo.`,
+      channelId: 'default',
+      priority: 'high',
+      data: { url: '/notifications', kind: 'system', test: true },
     });
 
     if (result.sent === 0) {

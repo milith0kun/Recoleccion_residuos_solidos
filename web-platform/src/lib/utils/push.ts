@@ -13,6 +13,10 @@ import mongoose from 'mongoose';
 
 const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 
+/** Canal Android. La app debe haber creado un channel con este id al
+ *  arrancar (ver mobile-app/src/hooks/usePushToken.ts). */
+export type PushChannelId = 'default' | 'dispatches' | 'routes' | 'incidents';
+
 export interface PushMessage {
   title: string;
   body: string;
@@ -21,6 +25,11 @@ export interface PushMessage {
   data?: Record<string, unknown>;
   /** Sonido del dispositivo (default | null). */
   sound?: 'default' | null;
+  /** Canal Android. Por defecto 'default'. Usar canales especializados
+   *  permite al usuario silenciar/activar por tipo desde Configuración. */
+  channelId?: PushChannelId;
+  /** Prioridad de entrega. 'high' = heads-up banner inmediato. */
+  priority?: 'default' | 'high';
 }
 
 /**
@@ -51,8 +60,19 @@ async function persistNotifications(
   }
 }
 
-interface ExpoPushPayload extends PushMessage {
+interface ExpoPushPayload {
   to: string | string[];
+  title: string;
+  body: string;
+  data?: Record<string, unknown>;
+  sound?: 'default' | null;
+  channelId?: string;
+  priority?: 'default' | 'high';
+  // iOS — interruption level (active = banner sin molestar, time-sensitive
+  // = bypassa modo silencio para alertas urgentes).
+  interruptionLevel?: 'active' | 'critical' | 'passive' | 'time-sensitive';
+  // Badge en iOS / Android Oreo+.
+  badge?: number;
 }
 
 interface ExpoPushTicket {
@@ -83,12 +103,17 @@ export async function sendExpoPush(
   );
   if (clean.length === 0) return { sent: 0, failed: 0 };
 
+  const priority = message.priority ?? 'high';
   const payload: ExpoPushPayload[] = clean.map((to) => ({
     to,
     title: message.title,
     body: message.body,
     data: message.data ?? {},
     sound: message.sound === null ? null : 'default',
+    channelId: message.channelId ?? 'default',
+    priority,
+    // Para que en iOS aparezca el banner como heads-up también.
+    interruptionLevel: priority === 'high' ? 'time-sensitive' : 'active',
   }));
 
   try {

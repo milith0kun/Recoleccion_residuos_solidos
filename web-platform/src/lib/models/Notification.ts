@@ -9,6 +9,10 @@ export const NOTIFICATION_KINDS = [
   'route_delayed',
   'incident_created',
   'incident_status',
+  'dispatch_assigned',
+  'dispatch_accepted',
+  'dispatch_rejected',
+  'dispatch_cancelled',
   'system',
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];

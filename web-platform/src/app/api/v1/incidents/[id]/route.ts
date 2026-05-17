@@ -91,12 +91,21 @@ export async function PATCH(
             ? 'Tu reporte fue resuelto. ¡Gracias por avisar!'
             : 'Tu reporte fue reabierto.';
       pushToUser(incident.reportedBy, {
-        title: `${incident.code} actualizado`,
+        title: `Reporte ${incident.code}: ${
+          body.status === 'in_progress'
+            ? 'en proceso'
+            : body.status === 'resolved'
+              ? 'resuelto'
+              : 'reabierto'
+        }`,
         body: msg,
+        channelId: 'incidents',
+        priority: 'high',
         data: {
-          url: '/(tabs)/profile',
+          url: '/(tabs)/incidents',
           kind: 'incident_status',
           incidentId: String(incident._id),
+          status: body.status,
         },
       }).catch((e) => console.warn('[push] incident_status failed', e));
     }

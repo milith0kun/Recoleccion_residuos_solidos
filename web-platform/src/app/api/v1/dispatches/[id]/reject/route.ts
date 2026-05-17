@@ -40,12 +40,15 @@ export async function PATCH(
     await dispatch.save();
 
     pushToUser(dispatch.assignedBy, {
-      title: 'Salida rechazada',
-      body: `${dispatch.code} fue rechazada. Motivo: ${reason.slice(0, 80)}`,
+      title: `Salida rechazada: ${dispatch.code}`,
+      body: `El conductor no puede tomar esta salida. Motivo: ${reason.slice(0, 100)}`,
+      channelId: 'dispatches',
+      priority: 'high',
       data: {
         url: '/(planner)/dispatches',
         kind: 'dispatch_rejected',
         dispatchId: String(dispatch._id),
+        reason,
       },
     }).catch((e) => console.warn('[push] dispatch_rejected failed', e));
 

@@ -22,14 +22,65 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/**
+ * Canales Android. Se crean al primer arranque. Cada canal aparece como
+ * una sub-opción en Configuración → SRSS Cusco → Notificaciones, así el
+ * usuario puede activar/silenciar por tipo sin perder los demás.
+ *
+ * Todos en importancia HIGH para que aparezcan como heads-up (banner
+ * pop-up en la pantalla) en lugar del comportamiento silencioso de
+ * DEFAULT. Es el comportamiento esperado para alertas operativas.
+ */
 async function ensureAndroidChannel() {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync('default', {
-    name: 'General',
-    importance: Notifications.AndroidImportance.DEFAULT,
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#00684A',
-  });
+  const channels: {
+    id: string;
+    name: string;
+    description: string;
+    importance: Notifications.AndroidImportance;
+    vibrationPattern: number[];
+  }[] = [
+    {
+      id: 'default',
+      name: 'General',
+      description: 'Avisos generales y de prueba.',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+    },
+    {
+      id: 'dispatches',
+      name: 'Asignaciones de salida',
+      description: 'Cuando te asignan una salida o cambia su estado.',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 300, 200, 300],
+    },
+    {
+      id: 'routes',
+      name: 'Recolección en tu zona',
+      description: 'Inicio, retrasos y cierre de la recolección.',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 200, 150, 200],
+    },
+    {
+      id: 'incidents',
+      name: 'Reportes ciudadanos',
+      description: 'Actualizaciones de tus reportes y nuevos casos cercanos.',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 150, 100, 150],
+    },
+  ];
+  for (const c of channels) {
+    await Notifications.setNotificationChannelAsync(c.id, {
+      name: c.name,
+      description: c.description,
+      importance: c.importance,
+      vibrationPattern: c.vibrationPattern,
+      lightColor: '#00684A',
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      enableLights: true,
+      enableVibrate: true,
+    });
+  }
 }
 
 /**

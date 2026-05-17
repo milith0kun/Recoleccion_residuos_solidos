@@ -139,9 +139,16 @@ export async function POST(request: NextRequest) {
 
     // Push de confirmación al ciudadano que reportó.
     pushToUser(user!.sub, {
-      title: 'Reporte registrado',
-      body: `${code} · ${TYPE_LABELS[incidentType]}. Te avisaremos cuando haya novedades.`,
-      data: { url: '/(tabs)/profile', kind: 'incident_created', incidentId: String(incident._id) },
+      title: `Reporte registrado: ${code}`,
+      body: `${TYPE_LABELS[incidentType]} · "${(title ?? '').slice(0, 60)}". Te avisaremos cuando haya novedades.`,
+      channelId: 'incidents',
+      priority: 'high',
+      data: {
+        url: '/(tabs)/incidents',
+        kind: 'incident_created',
+        incidentId: String(incident._id),
+        code,
+      },
     }).catch((e) => console.warn('[push] incident_created failed', e));
 
     const populated = await Incident.findById(incident._id)

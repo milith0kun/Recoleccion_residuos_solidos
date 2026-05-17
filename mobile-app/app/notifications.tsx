@@ -19,7 +19,16 @@ import { useAuth } from '../src/context/AuthContext';
 import { useNotifications } from '../src/components/layout/AppShell';
 import { colors, fontFamily, radius, spacing } from '../src/theme/tokens';
 
-type NotifKind = 'route_started' | 'route_delayed' | 'incident_created' | 'incident_status' | 'system';
+type NotifKind =
+  | 'route_started'
+  | 'route_delayed'
+  | 'incident_created'
+  | 'incident_status'
+  | 'dispatch_assigned'
+  | 'dispatch_accepted'
+  | 'dispatch_rejected'
+  | 'dispatch_cancelled'
+  | 'system';
 
 interface NotificationItem {
   _id: string;
@@ -40,6 +49,10 @@ const KIND_META: Record<
   route_delayed: { icon: 'clock', color: colors.warn },
   incident_created: { icon: 'alert-triangle', color: colors.info },
   incident_status: { icon: 'check-circle', color: colors.primaryDark },
+  dispatch_assigned: { icon: 'send', color: colors.primary },
+  dispatch_accepted: { icon: 'check-circle', color: colors.primaryDark },
+  dispatch_rejected: { icon: 'x-circle', color: colors.danger },
+  dispatch_cancelled: { icon: 'slash', color: colors.warn },
   system: { icon: 'bell', color: colors.textSecondary },
 };
 

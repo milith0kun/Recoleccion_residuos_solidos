@@ -103,9 +103,17 @@ export async function DELETE(
     await dispatch.save();
 
     pushToUser(dispatch.driver, {
-      title: 'Salida cancelada',
-      body: `${dispatch.code} fue cancelada por el operador.`,
-      data: { url: '/(driver)/jornada', kind: 'dispatch_cancelled', dispatchId: String(dispatch._id) },
+      title: `Salida cancelada: ${dispatch.code}`,
+      body: dispatch.cancelReason
+        ? `El operador canceló la salida. Motivo: ${dispatch.cancelReason.slice(0, 100)}`
+        : 'El operador canceló esta salida. Revisá la app para más detalles.',
+      channelId: 'dispatches',
+      priority: 'high',
+      data: {
+        url: '/(driver)/jornada',
+        kind: 'dispatch_cancelled',
+        dispatchId: String(dispatch._id),
+      },
     }).catch((e) => console.warn('[push] dispatch_cancelled failed', e));
 
     return successResponse({ _id: id, status: dispatch.status }, 'Salida cancelada');
