@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
+import { ArrowRight, BookOpen } from 'lucide-react';
+import { BrandLockup, BrandMark } from '@/components/branding/BrandMark';
 
 interface GoogleCredentialResponse {
   credential: string;
@@ -45,6 +47,12 @@ declare global {
   }
 }
 
+const FEATURES = [
+  'Rutas y zonas geográficas',
+  'Vehículos y seguimiento GPS',
+  'Catálogo NTP 900.058',
+];
+
 export default function HomePage() {
   const { user, login, loginWithGoogle, isLoading } = useAuth();
   const router = useRouter();
@@ -55,6 +63,7 @@ export default function HomePage() {
   const [gisReady, setGisReady] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const year = new Date().getFullYear();
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -62,18 +71,21 @@ export default function HomePage() {
     }
   }, [user, isLoading, router]);
 
-  const handleGoogleCredential = useCallback(async (resp: GoogleCredentialResponse) => {
-    setSubmitting(true);
-    setError('');
-    try {
-      await loginWithGoogle(resp.credential);
-      router.push('/dashboard');
-    } catch (err: unknown) {
-      setError((err as Error).message || 'Error con Google');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [loginWithGoogle, router]);
+  const handleGoogleCredential = useCallback(
+    async (resp: GoogleCredentialResponse) => {
+      setSubmitting(true);
+      setError('');
+      try {
+        await loginWithGoogle(resp.credential);
+        router.push('/dashboard');
+      } catch (err: unknown) {
+        setError((err as Error).message || 'Error con Google');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [loginWithGoogle, router],
+  );
 
   useEffect(() => {
     if (!gisReady) return;
@@ -114,15 +126,15 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="landing-root" style={{ justifyContent: 'center', alignItems: 'center' }}>
+      <div className="home-root home-root--center">
         <style>{styles}</style>
-        <span className="spinner-lg" aria-label="Cargando" />
+        <span className="home-spinner" aria-label="Cargando" />
       </div>
     );
   }
 
   return (
-    <div className="landing-root">
+    <div className="home-root">
       <style>{styles}</style>
       <Script
         src="https://accounts.google.com/gsi/client"
@@ -130,517 +142,500 @@ export default function HomePage() {
         onLoad={() => setGisReady(true)}
       />
 
-      {/* Panel Izquierdo */}
-      <div className="panel-left">
-        <div className="left-decor" aria-hidden />
-        <div className="left-content animate-fade-in">
+      <header className="home-top">
+        <div className="home-top-inner">
+          <BrandLockup size={30} />
+          <a
+            href="https://github.com/milith0kun/Recoleccion_residuos_solidos#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="home-top-link"
+          >
+            <BookOpen size={14} strokeWidth={2} />
+            <span>Documentación</span>
+            <ArrowRight size={13} strokeWidth={2} />
+          </a>
+        </div>
+      </header>
 
-          <div className="brand">
-            <span className="wordmark">SRSS</span>
-            <span className="brand-bar" aria-hidden />
-            <span className="brand-loc">Cusco</span>
+      <main className="home-main">
+        <section className="home-hero animate-fade-in">
+          <div className="home-hero-mark" aria-hidden>
+            <BrandMark size={64} />
           </div>
-
-          <div className="hero">
-            <span className="hero-eyebrow">Plataforma de Gestión Municipal</span>
-            <h1 className="hero-title">
-              Recolección inteligente<br />
-              de residuos sólidos<br />
-              para una ciudad limpia.
-            </h1>
-            <p className="hero-desc">
-              Monitorea, planifica y optimiza la recolección de residuos en
-              tiempo real con datos al servicio de la ciudadanía del Cusco.
-            </p>
-          </div>
-
-          <div className="features">
-            {[
-              'Geolocalización de zonas y rutas',
-              'Seguimiento GPS en tiempo real',
-              'Planificación de recorridos diarios',
-              'Reportes y analítica operativa',
-            ].map((f, i) => (
-              <div key={i} className="feature-item">
-                <span className="feature-dot" />
+          <span className="home-eyebrow">
+            <span className="home-eyebrow-dot" aria-hidden />
+            SRSS · Cusco
+          </span>
+          <h1 className="home-title">
+            Recolección de{' '}
+            <em
+              style={{
+                color: 'var(--color-atlas)',
+                fontStyle: 'italic',
+                fontWeight: 500,
+              }}
+            >
+              residuos
+            </em>
+            <br />
+            segregados.
+          </h1>
+          <p className="home-sub">
+            Plataforma de gestión ambiental urbana del Cusco, con rutas,
+            vehículos y seguimiento GPS en tiempo real.
+          </p>
+          <ul className="home-features">
+            {FEATURES.map((f) => (
+              <li key={f}>
+                <span className="home-feature-dot" aria-hidden />
                 <span>{f}</span>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
+        </section>
 
-          <div className="left-footer">
-            <span>Municipalidad Provincial del Cusco</span>
-            <span className="sep">·</span>
-            <span>Gerencia de Medio Ambiente</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Panel Derecho - Login */}
-      <div className="panel-right">
-        <div className="login-box animate-fade-in">
-          <div className="login-header">
-            <span className="login-eyebrow">Acceso al sistema</span>
-            <h2>Bienvenido de vuelta</h2>
-            <p>Inicia sesión para continuar con la gestión.</p>
-          </div>
-
-          <form onSubmit={handleLogin}>
-            <div className="field">
-              <label>Correo electrónico</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="usuario@cusco.gob.pe"
-                required
-              />
+        <section className="home-auth animate-fade-in">
+          <div className="home-auth-card">
+            <div className="home-auth-brand-mobile">
+              <BrandMark size={32} />
             </div>
-            <div className="field">
-              <label>Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
+            <h2 className="home-auth-title">Ingresar al sistema</h2>
+            <p className="home-auth-sub">
+              Accedé con tu cuenta institucional o Google.
+            </p>
 
-            {error && (
-              <div className="error-msg" role="alert">
-                <span className="error-dot" />
-                <span>{error}</span>
+            <form onSubmit={handleLogin} className="home-form">
+              <div className="home-field">
+                <label className="adm-form-label" htmlFor="login-email">
+                  Correo electrónico
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="usuario@cusco.gob.pe"
+                  className="adm-form-input"
+                  required
+                  autoComplete="email"
+                />
               </div>
-            )}
+              <div className="home-field">
+                <label className="adm-form-label" htmlFor="login-password">
+                  Contraseña
+                </label>
+                <input
+                  id="login-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="adm-form-input"
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
 
-            <button type="submit" disabled={submitting} className="btn-login">
-              {submitting ? <span className="spinner-sm" /> : 'Ingresar'}
-            </button>
+              {error && (
+                <div className="home-error" role="alert">
+                  <span className="home-error-dot" aria-hidden />
+                  <span>{error}</span>
+                </div>
+              )}
 
-            <div className="forgot-row">
-              <Link href="/forgot-password" className="forgot-link">¿Olvidaste tu contraseña?</Link>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="adm-btn-primary home-submit"
+              >
+                {submitting ? (
+                  <span className="home-spinner home-spinner--sm" />
+                ) : (
+                  <>
+                    <span>Continuar</span>
+                    <ArrowRight size={14} strokeWidth={2.2} />
+                  </>
+                )}
+              </button>
+
+              <div className="home-forgot">
+                <Link href="/forgot-password" className="home-link">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+            </form>
+
+            <div className="home-divider" role="separator" aria-label="o">
+              <span className="home-divider-line" />
+              <span className="home-divider-text">o</span>
+              <span className="home-divider-line" />
             </div>
-          </form>
 
-          <div className="divider-or" role="separator" aria-label="o">
-            <span className="divider-line" />
-            <span className="divider-text">o</span>
-            <span className="divider-line" />
+            <div className="home-google">
+              <div ref={googleBtnRef} className="home-google-host" />
+              {googleClientId && !gisReady && (
+                <p className="home-google-hint">Cargando Google Sign-In…</p>
+              )}
+              {!googleClientId && (
+                <p className="home-google-hint">
+                  Configurá <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> para activar Google.
+                </p>
+              )}
+            </div>
           </div>
+        </section>
+      </main>
 
-          <div className="google-wrap">
-            <div ref={googleBtnRef} className="google-btn-host" />
-            {googleClientId && !gisReady && (
-              <p className="google-hint">Cargando Google Sign-In…</p>
-            )}
-            {!googleClientId && (
-              <p className="google-hint">
-                Configura <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> en <code>.env.local</code> para activar Google Sign-In
-              </p>
-            )}
-          </div>
-
-          <div className="login-footer">
-            © 2026 Municipalidad Provincial del Cusco
-          </div>
+      <footer className="home-foot">
+        <div className="home-foot-inner">
+          <span>© {year} SRSS Cusco</span>
+          <span className="home-foot-sep" aria-hidden>·</span>
+          <span className="home-foot-affil">
+            Municipalidad Provincial del Cusco
+          </span>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
 
 const styles = `
-  .landing-root {
+  .home-root {
     min-height: 100vh;
     display: flex;
-    font-family: 'Outfit', 'DM Sans', -apple-system, sans-serif;
+    flex-direction: column;
     background: #FFFFFF;
-    color: #1A1A1A;
+    color: var(--color-ink);
+    font-family: 'Geist', 'Outfit', sans-serif;
   }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* Panel Izquierdo */
-  .panel-left {
-    flex: 1.15;
-    background: #FAFAF8;
-    display: flex;
+  .home-root--center {
     align-items: center;
     justify-content: center;
-    padding: 4.5rem 4rem;
-    position: relative;
-    border-right: 1px solid #F0EEEB;
-    overflow: hidden;
-  }
-  .left-decor {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(600px 400px at 90% -10%, rgba(5,150,105,0.07), transparent 60%),
-      radial-gradient(500px 350px at -10% 110%, rgba(5,150,105,0.05), transparent 60%);
-    pointer-events: none;
-  }
-  .panel-left::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #E8E5E0, transparent);
   }
 
-  .left-content {
-    position: relative;
-    max-width: 540px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 2.75rem;
-    z-index: 1;
-  }
-
-  /* Brand */
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-  }
-  .wordmark {
-    font-size: 1.7rem;
-    font-weight: 900;
-    color: #059669;
-    letter-spacing: -0.05em;
-    line-height: 1;
-  }
-  .brand-bar {
-    display: inline-block;
-    width: 1px;
-    height: 22px;
-    background: #D6D3CE;
-  }
-  .brand-loc {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #6B6862;
-    letter-spacing: 0.02em;
-  }
-
-  /* Hero */
-  .hero-eyebrow {
-    display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #059669;
-    background: rgba(5,150,105,0.08);
-    padding: 0.35rem 0.75rem;
-    border-radius: 99px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 1.25rem;
-  }
-  .hero-title {
-    font-size: clamp(1.9rem, 3.6vw, 2.85rem);
-    font-weight: 800;
-    line-height: 1.15;
-    letter-spacing: -0.03em;
-    color: #1A1A1A;
-    margin-bottom: 1.25rem;
-  }
-  .hero-desc {
-    font-size: 1rem;
-    color: #6B6862;
-    font-weight: 400;
-    line-height: 1.7;
-    max-width: 460px;
-  }
-
-  /* Features */
-  .features {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-  }
-  .feature-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #4A4742;
-  }
-  .feature-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #059669;
+  /* ─── Top bar minimal ─── */
+  .home-top {
     flex-shrink: 0;
-    box-shadow: 0 0 0 4px rgba(5,150,105,0.1);
+    border-bottom: 1px solid var(--color-line);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
-
-  /* Footer left */
-  .left-footer {
+  .home-top-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 14px 28px;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.7rem;
-    color: #B0ADA8;
-    font-weight: 500;
-    letter-spacing: 0.01em;
+    justify-content: space-between;
+    gap: 16px;
   }
-  .left-footer .sep { color: #DDDBD7; }
+  .home-top-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--color-line);
+    background: #FFFFFF;
+    color: var(--color-ink-muted);
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: -0.003em;
+    text-decoration: none;
+    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  }
+  .home-top-link:hover {
+    background: var(--color-atlas-soft);
+    border-color: var(--color-atlas-border);
+    color: var(--color-atlas-dark);
+  }
 
-  /* Panel Derecho */
-  .panel-right {
+  /* ─── Main: hero + auth ─── */
+  .home-main {
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
-    background: #FFFFFF;
-  }
-
-  .login-box {
     width: 100%;
-    max-width: 380px;
-  }
-
-  .login-header {
-    margin-bottom: 1.75rem;
-  }
-  .login-eyebrow {
-    display: block;
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: #B0ADA8;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    margin-bottom: 0.6rem;
-  }
-  .login-header h2 {
-    font-size: 1.85rem;
-    font-weight: 800;
-    color: #1A1A1A;
-    letter-spacing: -0.025em;
-    margin-bottom: 0.4rem;
-    line-height: 1.15;
-  }
-  .login-header p {
-    font-size: 0.875rem;
-    color: #8A8780;
-    font-weight: 400;
-  }
-
-  /* Form */
-  .field {
-    margin-bottom: 1.15rem;
-  }
-  .field label {
-    display: block;
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: #8A8780;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 0.45rem;
-  }
-  .field input {
-    width: 100%;
-    padding: 0.85rem 1rem;
-    border-radius: 10px;
-    border: 1.5px solid #ECEAE6;
-    background: #FAFAF8;
-    color: #1A1A1A;
-    font-family: inherit;
-    font-size: 0.9rem;
-    font-weight: 500;
-    outline: none;
-    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-  }
-  .field input::placeholder {
-    color: #CDCAC5;
-    font-weight: 400;
-  }
-  .field input:hover {
-    border-color: #E0DDD8;
-  }
-  .field input:focus {
-    border-color: #059669;
-    background: #FFFFFF;
-    box-shadow: 0 0 0 4px rgba(5,150,105,0.08);
-  }
-
-  .error-msg {
-    display: flex;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 56px 28px 40px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
     align-items: center;
-    gap: 0.55rem;
-    padding: 0.7rem 0.9rem;
-    border-radius: 10px;
-    background: #FEF2F2;
-    border: 1px solid #FECACA;
-    color: #DC2626;
-    font-size: 0.78rem;
+  }
+  @media (min-width: 1024px) {
+    .home-main {
+      grid-template-columns: minmax(0, 1.05fr) minmax(420px, 480px);
+      gap: 80px;
+      padding-top: 72px;
+      padding-bottom: 56px;
+    }
+  }
+
+  /* ─── Hero ─── */
+  .home-hero { min-width: 0; }
+  .home-hero-mark {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+  .home-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 11px 5px 9px;
+    border-radius: 999px;
+    background: var(--color-atlas-soft);
+    color: var(--color-atlas-dark);
+    font-size: 11.5px;
     font-weight: 600;
-    margin-bottom: 1.15rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 22px;
   }
-  .error-dot {
+  .home-eyebrow-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-atlas);
+    box-shadow: 0 0 0 3px rgba(0, 104, 74, 0.18);
+  }
+  .home-title {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: clamp(36px, 6vw, 60px);
+    font-weight: 500;
+    color: var(--color-ink);
+    letter-spacing: -0.022em;
+    line-height: 1.04;
+    font-variation-settings: "opsz" 36;
+    margin: 0;
+  }
+  .home-sub {
+    font-family: 'Geist', sans-serif;
+    font-size: clamp(14px, 1.4vw, 16px);
+    color: var(--color-ink-muted);
+    line-height: 1.55;
+    margin: 18px 0 26px;
+    max-width: 460px;
+    letter-spacing: -0.003em;
+  }
+  .home-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .home-features li {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    font-size: 13.5px;
+    color: var(--color-ink);
+    letter-spacing: -0.003em;
+  }
+  .home-feature-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #DC2626;
+    background: var(--color-atlas);
     flex-shrink: 0;
-    box-shadow: 0 0 0 3px rgba(220,38,38,0.15);
   }
 
-  .btn-login {
+  /* ─── Auth card ─── */
+  .home-auth {
     width: 100%;
     display: flex;
-    align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.9rem;
-    border-radius: 10px;
-    border: none;
-    background: #059669;
-    color: #FFFFFF;
-    font-family: inherit;
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-    transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.25s ease;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 4px 12px rgba(5,150,105,0.18);
+    min-width: 0;
   }
-  .btn-login:hover:not(:disabled) {
-    background: #047857;
-    transform: translateY(-1px) scale(1.005);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 8px 20px rgba(5,150,105,0.28);
+  .home-auth-card {
+    width: 100%;
+    max-width: 460px;
+    background: #FFFFFF;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    padding: 30px 28px;
+    box-shadow: 0 1px 0 #ECF4F0, 0 12px 36px -18px rgba(0, 30, 43, 0.10);
   }
-  .btn-login:active:not(:disabled) {
-    transform: translateY(0) scale(0.99);
+  .home-auth-brand-mobile {
+    display: none;
+    margin-bottom: 14px;
   }
-  .btn-login:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    box-shadow: none;
+  @media (max-width: 1023px) {
+    .home-auth-brand-mobile { display: block; }
   }
-
-  .forgot-row {
-    margin-top: 0.85rem;
-    text-align: center;
-  }
-  .forgot-link {
-    font-size: 0.73rem;
-    font-weight: 600;
-    color: #8A8780;
-    text-decoration: none;
-    letter-spacing: 0.01em;
-    transition: color 0.2s ease;
-  }
-  .forgot-link:hover {
-    color: #059669;
-  }
-
-  .login-footer {
-    margin-top: 2.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid #F0EEEB;
-    text-align: center;
-    font-size: 0.65rem;
-    color: #C5C2BD;
+  .home-auth-title {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: 26px;
     font-weight: 500;
+    color: var(--color-ink);
+    letter-spacing: -0.014em;
+    line-height: 1.15;
+    font-variation-settings: "opsz" 24;
+    margin: 0 0 4px;
   }
-
-  /* Divider OR */
-  .divider-or {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 1.5rem 0 1.1rem;
+  .home-auth-sub {
+    font-size: 13px;
+    color: var(--color-ink-muted);
+    margin: 0 0 22px;
+    letter-spacing: -0.003em;
   }
-  .divider-line {
-    flex: 1;
-    height: 1px;
-    background: #F0EEEB;
-  }
-  .divider-text {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #8A8780;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  /* Google */
-  .google-wrap {
+  .home-form {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    gap: 0.55rem;
+    gap: 14px;
   }
-  .google-btn-host {
+  .home-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .home-field .adm-form-input {
+    height: 40px;
+  }
+  .home-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    background: #FCEEEE;
+    border: 1px solid #F5C9C9;
+    color: #B23A3A;
+    font-size: 12.5px;
+    font-weight: 500;
+    margin-top: -4px;
+  }
+  .home-error-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #B23A3A;
+    flex-shrink: 0;
+  }
+  .home-submit {
+    width: 100%;
+    justify-content: center;
+    height: 42px;
+    font-size: 13.5px;
+    margin-top: 4px;
+  }
+  .home-forgot {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -2px;
+  }
+  .home-link {
+    font-size: 12.5px;
+    color: var(--color-ink-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .home-link:hover { color: var(--color-atlas); }
+
+  /* ─── Divider "o" estilo Claude ─── */
+  .home-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0 18px;
+  }
+  .home-divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--color-line);
+  }
+  .home-divider-text {
+    font-size: 11.5px;
+    color: var(--color-ink-soft);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ─── Google ─── */
+  .home-google {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .home-google-host {
+    width: 100%;
     display: flex;
     justify-content: center;
-    min-height: 44px;
+    min-height: 40px;
   }
-  .google-btn-host > div {
-    width: 100% !important;
-  }
-  .google-hint {
-    font-size: 0.65rem;
-    color: #B0ADA8;
-    font-weight: 500;
-    line-height: 1.5;
-    text-align: center;
+  .home-google-host > div { width: 100% !important; max-width: 332px; }
+  .home-google-hint {
+    font-size: 11.5px;
+    color: var(--color-ink-soft);
     margin: 0;
+    text-align: center;
   }
-  .google-hint code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.62rem;
-    background: #F0EEEB;
-    color: #6B6862;
+  .home-google-hint code {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 10.5px;
     padding: 1px 5px;
-    border-radius: 4px;
+    background: var(--color-surface-soft);
+    border: 1px solid var(--color-line);
+    border-radius: 3px;
   }
 
-  /* Spinners (sin librería de iconos) */
-  .spinner-lg {
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    border: 3px solid #E8E5E0;
-    border-top-color: #059669;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+  /* ─── Footer público ─── */
+  .home-foot {
+    flex-shrink: 0;
+    border-top: 1px solid var(--color-line);
+    background: #FFFFFF;
   }
-  .spinner-sm {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2.5px solid rgba(255,255,255,0.35);
-    border-top-color: #FFFFFF;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+  .home-foot-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--color-ink-muted);
+    flex-wrap: wrap;
+  }
+  .home-foot-sep {
+    color: #C2C9CD;
+    user-select: none;
+  }
+  .home-foot-affil {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: -0.005em;
+    color: var(--color-ink-muted);
+    font-variation-settings: "opsz" 14;
   }
 
-  /* Responsive */
-  @media (max-width: 1024px) {
-    .landing-root { flex-direction: column; }
-    .panel-left {
-      padding: 3rem 2rem;
-      border-right: none;
-      border-bottom: 1px solid #F0EEEB;
-    }
-    .left-content { gap: 2rem; }
-    .panel-right { padding: 2.5rem 2rem; }
+  /* ─── Spinner ─── */
+  .home-spinner {
+    width: 28px;
+    height: 28px;
+    border: 2.5px solid #E8EDEB;
+    border-top-color: var(--color-atlas);
+    border-radius: 50%;
+    animation: home-spin 0.7s linear infinite;
+    display: inline-block;
   }
-  @media (max-width: 640px) {
-    .panel-left { padding: 2.25rem 1.5rem; }
-    .panel-right { padding: 2rem 1.5rem; }
-    .hero-title { font-size: 1.7rem; }
-    .login-header h2 { font-size: 1.55rem; }
+  .home-spinner--sm { width: 16px; height: 16px; border-width: 2px; }
+  @keyframes home-spin { to { transform: rotate(360deg); } }
+
+  /* ─── Mobile: top bar más compacto, padding reducido ─── */
+  @media (max-width: 767px) {
+    .home-top-inner { padding: 12px 18px; }
+    .home-main { padding: 28px 18px 32px; gap: 32px; }
+    .home-auth-card { padding: 24px 20px; }
+    .home-foot-inner { padding: 14px 18px; font-size: 11.5px; }
   }
 `;

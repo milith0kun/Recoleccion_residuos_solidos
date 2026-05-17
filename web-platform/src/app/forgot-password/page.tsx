@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowLeft, Loader2, MailCheck, Send } from 'lucide-react';
+import { ArrowLeft, Loader2, MailCheck } from 'lucide-react';
+import { BrandMark } from '@/components/branding/BrandMark';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -36,50 +37,67 @@ export default function ForgotPasswordPage() {
     <div className="auth-root">
       <style>{styles}</style>
       <div className="auth-card">
+        <div className="auth-brand">
+          <BrandMark size={32} />
+          <span className="auth-brand-text">SRSS Cusco</span>
+        </div>
+
         <Link href="/" className="auth-back">
-          <ArrowLeft style={{ width: 14, height: 14 }} />
+          <ArrowLeft style={{ width: 13, height: 13 }} />
           <span>Volver al inicio</span>
         </Link>
 
         <div className="auth-header">
-          <div className="auth-icon">
-            <Send style={{ width: 22, height: 22 }} />
-          </div>
-          <h2>Recuperar contraseña</h2>
-          <p>
-            Ingresa tu correo y enviaremos un enlace para que puedas
-            restablecer tu contraseña.
+          <h2 className="auth-title">Recuperar contraseña</h2>
+          <p className="auth-sub">
+            Ingresá tu correo y te enviaremos un enlace para restablecer tu acceso.
           </p>
         </div>
 
         {done ? (
           <div className="auth-success">
             <div className="auth-success-icon">
-              <MailCheck style={{ width: 28, height: 28 }} />
+              <MailCheck style={{ width: 26, height: 26 }} />
             </div>
             <p>{message}</p>
-            <Link href="/" className="auth-secondary-btn">
+            <Link href="/" className="adm-btn-secondary" style={{ marginTop: 18 }}>
               Volver al inicio de sesión
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="auth-form">
             <div className="auth-field">
-              <label>Correo electrónico</label>
+              <label className="adm-form-label" htmlFor="forgot-email">
+                Correo electrónico
+              </label>
               <input
+                id="forgot-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="usuario@cusco.gob.pe"
+                className="adm-form-input"
                 required
+                autoComplete="email"
               />
             </div>
 
-            {error && <div className="auth-error">{error}</div>}
+            {error && (
+              <div className="auth-error" role="alert">
+                <span className="auth-error-dot" aria-hidden />
+                <span>{error}</span>
+              </div>
+            )}
 
-            <button type="submit" disabled={submitting} className="auth-btn">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="adm-btn-primary auth-submit"
+            >
               {submitting ? (
-                <Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} />
+                <Loader2
+                  style={{ width: 16, height: 16, animation: 'auth-spin 0.7s linear infinite' }}
+                />
               ) : (
                 'Enviar enlace'
               )}
@@ -92,145 +110,132 @@ export default function ForgotPasswordPage() {
 }
 
 const styles = `
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes auth-spin { to { transform: rotate(360deg); } }
   .auth-root {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
-    background: #FAFAF8;
-    font-family: 'Outfit', 'DM Sans', -apple-system, sans-serif;
-    color: #1A1A1A;
+    padding: 32px 18px;
+    background: #FFFFFF;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    color: var(--color-ink);
   }
   .auth-card {
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
     background: #FFFFFF;
-    border: 1px solid #F0EEEB;
-    border-radius: 20px;
-    padding: 2.5rem 2rem;
-    box-shadow: 0 12px 40px rgba(15,23,42,0.06);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    padding: 30px 28px;
+    box-shadow: 0 1px 0 #ECF4F0, 0 12px 36px -18px rgba(0, 30, 43, 0.10);
+  }
+  .auth-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .auth-brand-text {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--color-ink);
+    letter-spacing: -0.012em;
+    line-height: 1;
+    font-variation-settings: "opsz" 24;
   }
   .auth-back {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #8A8780;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--color-ink-muted);
     text-decoration: none;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-bottom: 1.75rem;
+    margin-bottom: 22px;
+    transition: color 0.15s ease;
   }
-  .auth-back:hover { color: #059669; }
-  .auth-icon {
-    width: 48px; height: 48px;
-    border-radius: 14px;
-    background: #ECFDF5;
-    color: #059669;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 1.25rem;
-  }
-  .auth-header h2 {
-    font-size: 1.5rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: #1A1A1A;
-    margin-bottom: 0.4rem;
-  }
-  .auth-header p {
-    font-size: 0.82rem;
-    color: #8A8780;
-    line-height: 1.55;
-    margin-bottom: 1.75rem;
-  }
-  .auth-field { margin-bottom: 1.25rem; }
-  .auth-field label {
-    display: block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #8A8780;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.4rem;
-  }
-  .auth-field input {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: 10px;
-    border: 1.5px solid #ECEAE6;
-    background: #FAFAF8;
-    font-size: 0.875rem;
+  .auth-back:hover { color: var(--color-atlas); }
+
+  .auth-header { margin-bottom: 22px; }
+  .auth-title {
+    font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
+    font-size: 24px;
     font-weight: 500;
-    color: #1A1A1A;
-    font-family: inherit;
-    outline: none;
-    transition: all 0.2s;
+    color: var(--color-ink);
+    letter-spacing: -0.014em;
+    line-height: 1.18;
+    font-variation-settings: "opsz" 24;
+    margin: 0 0 6px;
   }
-  .auth-field input:focus {
-    border-color: #059669;
-    background: #FFFFFF;
-    box-shadow: 0 0 0 3px rgba(5,150,105,0.06);
+  .auth-sub {
+    font-size: 13px;
+    color: var(--color-ink-muted);
+    line-height: 1.5;
+    margin: 0;
+    letter-spacing: -0.003em;
   }
-  .auth-btn {
-    width: 100%;
-    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    padding: 0.85rem;
-    border-radius: 10px;
-    border: none;
-    background: #059669;
-    color: #FFFFFF;
-    font-family: inherit;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .auth-btn:hover { background: #047857; }
-  .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .auth-form { display: flex; flex-direction: column; gap: 14px; }
+  .auth-field { display: flex; flex-direction: column; gap: 6px; }
+  .auth-field .adm-form-input { height: 40px; }
+
   .auth-error {
-    padding: 0.7rem 0.9rem;
-    border-radius: 10px;
-    background: #FEF2F2;
-    border: 1px solid #FECACA;
-    color: #DC2626;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    background: #FCEEEE;
+    border: 1px solid #F5C9C9;
+    color: #B23A3A;
+    font-size: 12.5px;
+    font-weight: 500;
   }
+  .auth-error-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #B23A3A;
+    flex-shrink: 0;
+  }
+
+  .auth-submit {
+    width: 100%;
+    justify-content: center;
+    height: 42px;
+    font-size: 13.5px;
+    margin-top: 4px;
+  }
+
   .auth-success {
     text-align: center;
-    padding: 1rem 0;
+    padding: 8px 0;
   }
   .auth-success-icon {
-    width: 64px; height: 64px;
-    border-radius: 20px;
-    background: #ECFDF5;
-    color: #059669;
-    margin: 0 auto 1rem;
-    display: flex; align-items: center; justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: var(--color-atlas-soft);
+    color: var(--color-atlas-dark);
+    border: 1px solid var(--color-atlas-border);
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .auth-success p {
-    font-size: 0.85rem;
-    color: #5A5750;
+    font-size: 13.5px;
+    color: var(--color-ink-muted);
     line-height: 1.55;
-    margin-bottom: 1.5rem;
+    margin: 0;
   }
-  .auth-secondary-btn {
-    display: inline-block;
-    padding: 0.7rem 1.25rem;
-    border-radius: 10px;
-    background: #FAFAF8;
-    border: 1px solid #ECEAE6;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #3A3A38;
-    text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+
+  @media (max-width: 479px) {
+    .auth-card { padding: 24px 20px; }
+    .auth-title { font-size: 22px; }
   }
-  .auth-secondary-btn:hover { background: #F0EEEB; }
 `;

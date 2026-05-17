@@ -1,0 +1,27 @@
+{
+  "name": "SRSS Cusco — Sistema de Recolección de Residuos Sólidos Segregados",
+  "short_name": "SRSS Cusco",
+  "description": "Plataforma de gestión ambiental urbana del Cusco: rutas, zonas, vehículos y seguimiento GPS.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#00684A",
+  "lang": "es-PE",
+  "categories": ["government", "utilities", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
