@@ -284,68 +284,128 @@ export default function RoutesPage() {
 
   /* ============================ RENDER ============================ */
   return (
-    <div className="space-y-10 animate-fade-in pb-10">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+    <div className="adm-page animate-fade-in">
+      <header className="adm-header">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Rutas de Recolección</h1>
-          <p className="text-slate-500 mt-2 font-medium text-lg">Planificación estratégica y control de itinerarios logísticos.</p>
+          <h1 className="adm-title">Rutas de recolección</h1>
+          <p className="adm-sub">
+            Planificación de itinerarios y control de operadores asignados.
+          </p>
         </div>
-
-        <div className="flex items-center gap-3">
+        <div className="adm-header-actions">
           <button
-            onClick={() => setShowInactive(s => !s)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+            onClick={() => setShowInactive((s) => !s)}
+            className={`adm-btn-secondary ${showInactive ? 'rt-toggle--on' : ''}`}
+            style={
               showInactive
-                ? 'bg-red-50 text-red-500 border-red-100'
-                : 'bg-white text-slate-400 border-slate-100 hover:text-slate-600'
-            }`}
+                ? { background: '#FCE9E9', color: '#8B3030', borderColor: '#F7CFCF' }
+                : undefined
+            }
           >
-            {showInactive ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            Ver inactivas
+            {showInactive ? <Eye size={15} /> : <EyeOff size={15} />}
+            <span>{showInactive ? 'Ocultar inactivas' : 'Ver inactivas'}</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div
+        className="rt-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr',
+          gap: 20,
+          alignItems: 'start',
+        }}
+      >
+        <style>{`
+          @media (min-width: 1024px) {
+            .rt-grid { grid-template-columns: 360px minmax(0, 1fr) !important; }
+          }
+          .rt-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            max-height: 860px;
+            overflow-y: auto;
+            padding-right: 4px;
+          }
+          .rt-list-head {
+            position: sticky;
+            top: 0;
+            background: rgba(249, 251, 250, 0.92);
+            backdrop-filter: blur(8px);
+            z-index: 20;
+            padding-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .rt-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            background: #FFFFFF;
+            border: 1px solid #E8EDEB;
+            border-radius: 999px;
+            font-family: 'Geist', 'Outfit', sans-serif;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #5C6C75;
+            cursor: pointer;
+            transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+          }
+          .rt-chip:hover {
+            background: #F4F6F4;
+            border-color: #DCE2E0;
+            color: #001E2B;
+          }
+          .rt-chip--active {
+            background: #001E2B;
+            border-color: #001E2B;
+            color: #FFFFFF;
+          }
+          .rt-chip-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+          }
+        `}</style>
+
         {/* Sidebar - Route list */}
-        <div className="lg:col-span-4 space-y-5 max-h-[860px] overflow-y-auto pr-3 custom-scrollbar scroll-smooth">
-          <div className="sticky top-0 bg-[#FAFAF8]/85 backdrop-blur-md pb-4 z-20 space-y-4">
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+        <div className="rt-list">
+          <div className="rt-list-head">
+            <div className="adm-search" style={{ maxWidth: 'none' }}>
+              <Search size={14} className="adm-search-icon" />
               <input
                 type="text"
                 value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar ruta específica..."
-                className="w-full pl-12 pr-4 py-3.5 rounded-[1.25rem] bg-white border border-slate-200 text-sm font-bold text-slate-700 focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm outline-none"
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar ruta"
               />
             </div>
 
             {/* Status chips */}
-            <div className="flex flex-wrap gap-2">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               <button
+                type="button"
                 onClick={() => setStatusFilter('all')}
-                className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border transition-all ${
-                  statusFilter === 'all'
-                    ? 'bg-slate-900 border-slate-900 text-white'
-                    : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200'
-                }`}
+                className={`rt-chip ${statusFilter === 'all' ? 'rt-chip--active' : ''}`}
               >
                 Todas · {routes.length}
               </button>
-              {statusOrder.map(s => {
+              {statusOrder.map((s) => {
                 const m = statusMeta[s];
                 const active = statusFilter === s;
                 return (
                   <button
                     key={s}
+                    type="button"
                     onClick={() => setStatusFilter(active ? 'all' : s)}
-                    className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border transition-all ${
-                      active ? `${m.badgeBg} ${m.badgeText} ${m.ring}` : 'bg-white border-slate-100 text-slate-400 hover:text-slate-600'
-                    }`}
+                    className={`rt-chip ${active ? 'rt-chip--active' : ''}`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${m.dotBg} ${m.pulse && active ? 'animate-pulse' : ''}`} />
+                    <span className={`rt-chip-dot ${active ? '' : m.dotBg}`} />
                     {m.label} · {counts[s]}
                   </button>
                 );
@@ -478,7 +538,7 @@ export default function RoutesPage() {
         </div>
 
         {/* Main - Map + details */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className="space-y-8" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Map Card */}
           <div className="bg-white rounded-[2.5rem] p-5 shadow-sm border border-slate-100 overflow-hidden relative">
             <div className={`relative h-[560px] w-full rounded-[2rem] overflow-hidden border border-slate-50 shadow-inner bg-slate-50 ${addingMode ? 'cursor-crosshair' : ''}`}>

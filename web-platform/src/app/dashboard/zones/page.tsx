@@ -396,36 +396,88 @@ export default function ZonesPage() {
   };
 
   return (
-    <div className="space-y-10 animate-fade-in pb-10">
+    <div className="adm-page animate-fade-in">
       <style>{`
         .leaflet-crosshair, .leaflet-crosshair .leaflet-container,
         .leaflet-crosshair .leaflet-interactive { cursor: crosshair !important; }
+        .zones-map-wrap {
+          position: relative;
+          height: 520px;
+          width: 100%;
+          border-radius: 8px;
+          overflow: hidden;
+          border: 1px solid #E8EDEB;
+          background: #F9FBFA;
+        }
+        .zones-legend {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          z-index: 500;
+          background: rgba(255,255,255,0.95);
+          backdrop-filter: saturate(150%) blur(8px);
+          padding: 12px 14px;
+          border-radius: 8px;
+          border: 1px solid #E8EDEB;
+          box-shadow: 0 4px 12px rgba(0,30,43,0.08);
+          max-width: 220px;
+          font-family: 'Geist', 'Outfit', sans-serif;
+        }
+        .zones-legend-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #5C6C75;
+          margin-bottom: 10px;
+        }
+        .zones-legend-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 0;
+          font-size: 12px;
+          font-weight: 500;
+          color: #001E2B;
+        }
+        .zones-legend-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
       `}</style>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+      <header className="adm-header">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Zonas de Recolección</h1>
-          <p className="text-slate-500 mt-2 font-medium text-lg">Visualización geográfica de los sectores operativos en Cusco.</p>
+          <h1 className="adm-title">Zonas de recolección</h1>
+          <p className="adm-sub">
+            Visualización geográfica de los sectores operativos en Cusco.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 font-black text-[10px] uppercase tracking-widest">
-            <Layers className="w-4 h-4" />
-            <span>{zones.length} Sectores Activos</span>
-          </div>
-          <button
-            onClick={() => handleOpenModal()}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-600/20"
-          >
-            <Plus className="w-5 h-5" />
-            Añadir Zona
+        <div className="adm-header-actions">
+          <button onClick={() => handleOpenModal()} className="adm-btn-primary">
+            <Plus size={15} />
+            <span>Añadir zona</span>
           </button>
+        </div>
+      </header>
+
+      <div className="adm-toolbar">
+        <div className="adm-stat-pills" style={{ marginLeft: 0 }}>
+          <span className="adm-stat-pill"><strong>{zones.length}</strong> total</span>
+          <span className="adm-stat-pill adm-stat-pill--green">
+            <Layers size={12} />
+            <strong>{zones.length}</strong> activas
+          </span>
         </div>
       </div>
 
-      {/* Map Card */}
-      <div className="bg-white rounded-[2.5rem] p-5 shadow-sm border border-slate-100 overflow-hidden">
-        <div className="relative h-[600px] w-full rounded-[2rem] overflow-hidden border border-slate-100 shadow-inner bg-slate-50">
+      <section className="adm-section" style={{ padding: 16 }}>
+        <div className="zones-map-wrap">
           {leafletLoaded && !loading ? (
             <MapContainer center={mapCenter} zoom={14} style={{ height: '100%', width: '100%' }}>
               <TileLayer
@@ -440,16 +492,32 @@ export default function ZonesPage() {
                   <Polygon
                     key={zone._id}
                     positions={positions}
-                    pathOptions={{ color: zone.color, fillColor: zone.color, fillOpacity: 0.2, weight: 4 }}
+                    pathOptions={{
+                      color: zone.color,
+                      fillColor: zone.color,
+                      fillOpacity: 0.18,
+                      weight: 2.5,
+                    }}
                   >
                     <Popup>
-                      <div className="p-2 font-sans min-w-[150px]">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-3 h-3 rounded-full shadow-sm" style={{ background: zone.color }} />
-                          <strong className="text-slate-900 text-sm font-black uppercase tracking-tight">{zone.name}</strong>
+                      <div style={{ minWidth: 160, fontFamily: 'Geist, Outfit, sans-serif' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <span
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              background: zone.color,
+                            }}
+                          />
+                          <strong style={{ fontSize: 13, color: '#001E2B' }}>{zone.name}</strong>
                         </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1">{zone.district}</p>
-                        <p className="text-xs text-slate-600 leading-relaxed font-medium">{zone.description}</p>
+                        <div style={{ fontSize: 11, color: '#5C6C75', marginBottom: 6 }}>
+                          {zone.district}
+                        </div>
+                        <p style={{ fontSize: 12, color: '#001E2B', lineHeight: 1.45, margin: 0 }}>
+                          {zone.description}
+                        </p>
                       </div>
                     </Popup>
                   </Polygon>
@@ -457,82 +525,124 @@ export default function ZonesPage() {
               })}
             </MapContainer>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-6">
-              <div className="w-16 h-16 border-4 border-slate-100 border-t-emerald-500 rounded-full animate-spin" />
-              <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Sincronizando Cartografía...</p>
+            <div className="adm-state" style={{ height: '100%', justifyContent: 'center' }}>
+              <span className="adm-spinner" />
+              <p>Sincronizando cartografía…</p>
             </div>
           )}
 
-          {/* Legend Overlay */}
-          <div className="absolute top-8 right-8 z-[500] bg-white/90 backdrop-blur-xl p-6 rounded-[2rem] border border-white shadow-2xl shadow-slate-900/10 max-w-[240px] hidden md:block">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-xl bg-slate-900 text-white shadow-lg">
-                <Info className="w-4 h-4" />
+          {leafletLoaded && !loading && zones.length > 0 && (
+            <div className="zones-legend">
+              <div className="zones-legend-title">
+                <Info size={12} />
+                Leyenda
               </div>
-              <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Leyenda</span>
-            </div>
-            <div className="space-y-3">
-              {zones.slice(0, 5).map(z => (
-                <div key={z._id} className="flex items-center justify-between group/item cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ background: z.color }} />
-                    <span className="text-[11px] font-bold text-slate-600 group-hover/item:text-slate-900 transition-colors truncate">{z.name}</span>
-                  </div>
-                  <ChevronRight className="w-3 h-3 text-slate-300 group-hover/item:translate-x-1 transition-transform" />
+              {zones.slice(0, 6).map((z) => (
+                <div key={z._id} className="zones-legend-item">
+                  <span className="zones-legend-dot" style={{ background: z.color }} />
+                  <span>{z.name}</span>
                 </div>
               ))}
             </div>
-          </div>
+          )}
         </div>
-      </div>
+      </section>
 
-      {/* Grid List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {zones.map((zone, idx) => (
-          <div
-            key={zone._id}
-            className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-2 group relative overflow-hidden"
-            style={{ animationDelay: `${idx * 100}ms` }}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full opacity-[0.05] group-hover:opacity-[0.1] transition-opacity" style={{ background: zone.color }} />
-
-            <div className="flex items-start justify-between mb-6 relative">
-              <div className="flex items-center gap-4">
-                <div className="w-4 h-4 rounded-full shadow-[0_0_12px] shadow-current transition-transform group-hover:scale-125 duration-500" style={{ background: zone.color, color: zone.color }} />
-                <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none mb-1">{zone.name}</h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{zone.district}</p>
-                </div>
-              </div>
-              <span className="text-[9px] font-black px-3 py-1.5 rounded-xl bg-slate-50 text-slate-400 uppercase border border-slate-100 tracking-tighter">
-                {Math.max(0, zone.geometry.coordinates[0].length - 1)} Puntos
-              </span>
-            </div>
-
-            <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed h-[60px] overflow-hidden line-clamp-3 italic">
-              &quot;{zone.description}&quot;
-            </p>
-
-            <div className="flex items-center justify-between pt-6 border-t border-slate-50 relative">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-slate-50 text-slate-400">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
-                  Cusco Región
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleOpenModal(zone)} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-all">
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button onClick={() => handleDelete(zone._id)} className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-all">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+      <div className="adm-table-wrap">
+        {loading ? (
+          <div className="adm-state">
+            <span className="adm-spinner" />
+            <p>Cargando zonas…</p>
           </div>
-        ))}
+        ) : zones.length === 0 ? (
+          <div className="adm-state">
+            <div className="adm-state-icon">
+              <MapPin size={22} />
+            </div>
+            <p className="adm-state-title">Sin zonas registradas</p>
+            <p className="adm-state-desc">
+              Definí la primera zona dibujando su polígono sobre el mapa.
+            </p>
+          </div>
+        ) : (
+          <table className="adm-table">
+            <thead>
+              <tr>
+                <th>Zona</th>
+                <th>Distrito</th>
+                <th>Color</th>
+                <th>Vértices</th>
+                <th>Descripción</th>
+                <th className="adm-th-actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {zones.map((zone) => (
+                <tr key={zone._id}>
+                  <td>
+                    <div className="adm-row-title-cell">
+                      <span
+                        className="adm-row-mini-avatar"
+                        style={{
+                          background: `${zone.color}1A`,
+                          color: zone.color,
+                          borderColor: `${zone.color}40`,
+                        }}
+                      >
+                        <MapPin size={14} />
+                      </span>
+                      <strong>{zone.name}</strong>
+                    </div>
+                  </td>
+                  <td className="adm-cell-muted">{zone.district}</td>
+                  <td>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 4,
+                          background: zone.color,
+                          border: '1px solid #E8EDEB',
+                        }}
+                      />
+                      <span className="adm-cell-mono adm-cell-muted">{zone.color.toUpperCase()}</span>
+                    </div>
+                  </td>
+                  <td className="adm-cell-mono">
+                    {Math.max(0, zone.geometry.coordinates[0].length - 1)} pts
+                  </td>
+                  <td className="adm-cell-muted">
+                    {zone.description.length > 80
+                      ? `${zone.description.slice(0, 80)}…`
+                      : zone.description}
+                  </td>
+                  <td className="adm-td-actions">
+                    <div className="adm-actions">
+                      <button
+                        onClick={() => handleOpenModal(zone)}
+                        className="adm-icon-btn"
+                        title="Editar zona"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(zone._id)}
+                        className="adm-icon-btn adm-icon-btn--danger"
+                        title="Eliminar zona"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <div className="adm-table-foot">
+          {zones.length} zona{zones.length !== 1 ? 's' : ''} registrada{zones.length !== 1 ? 's' : ''}
+        </div>
       </div>
 
       <Modal
