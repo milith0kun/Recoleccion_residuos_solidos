@@ -802,13 +802,14 @@ const dashStyles = `
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: #1A1A1A;
-    color: #FFFFFF;
+    background: #E8EDEB;
+    color: #001E2B;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.68rem;
-    font-weight: 800;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
     letter-spacing: 0.02em;
     flex-shrink: 0;
   }
@@ -1012,24 +1013,23 @@ const dashStyles = `
     width: 32px;
     height: 32px;
     border-radius: 999px;
-    border: none;
-    background: linear-gradient(135deg, #00A35C, #00684A);
-    color: #FFFFFF;
+    border: 1px solid #E8EDEB;
+    background: #F4F6F4;
+    color: #001E2B;
     font-family: 'Geist', 'Outfit', sans-serif;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     display: grid;
     place-items: center;
     cursor: pointer;
     margin-left: 8px;
-    box-shadow: 0 2px 6px rgba(0,104,74,0.22);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
   }
   .header-avatar-btn:hover,
   .header-avatar-btn--active {
-    transform: scale(1.05);
-    box-shadow: 0 4px 10px rgba(0,104,74,0.3);
+    background: #E8EDEB;
+    border-color: #D4D9D7;
   }
   .header-icon-btn--active {
     background: #F4F6F4;
@@ -1234,14 +1234,15 @@ const dashStyles = `
     width: 40px;
     height: 40px;
     border-radius: 999px;
-    background: linear-gradient(135deg, #00A35C, #00684A);
-    color: #FFFFFF;
+    background: #E8EDEB;
+    color: #001E2B;
     display: grid;
     place-items: center;
-    font-size: 0.85rem;
+    font-family: 'Geist', 'Outfit', sans-serif;
+    font-size: 0.88rem;
     font-weight: 700;
     flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(0,104,74,0.25);
+    border: 1px solid #DCE2E0;
   }
   .avatar-dropdown-name {
     font-size: 0.85rem;
