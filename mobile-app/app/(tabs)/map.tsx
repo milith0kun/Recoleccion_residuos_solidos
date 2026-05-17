@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -85,6 +86,7 @@ export default function MapScreen() {
     pending: false,
   });
   const [selectedExecution, setSelectedExecution] = useState<ActiveExecution | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const mapRef = useRef<OSMMapRef>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -299,6 +301,59 @@ export default function MapScreen() {
     await Promise.all([loadRoutes(), loadActive()]);
   };
 
+  const confirmTruckHere = async () => {
+    if (confirming) return;
+    // El ciudadano confirma sobre la execution que esté inspeccionando, y si
+    // no eligió ninguna, sobre la primera activa.
+    const target = selectedExecution ?? executions[0];
+    if (!target) return;
+
+    let lng: number;
+    let lat: number;
+    try {
+      // Reintentamos pedir la ubicación actual para asegurar precisión al
+      // momento de marcar (no la que cacheamos al abrir la pantalla).
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      lng = loc.coords.longitude;
+      lat = loc.coords.latitude;
+    } catch {
+      if (location) {
+        lng = location.coords.longitude;
+        lat = location.coords.latitude;
+      } else {
+        Alert.alert('Sin ubicación', 'No pudimos obtener tu ubicación actual.');
+        return;
+      }
+    }
+
+    setConfirming(true);
+    try {
+      await api.post('/confirmations', {
+        routeId: target.routeId,
+        lng,
+        lat,
+      });
+      Alert.alert(
+        '¡Gracias!',
+        `Registraste el paso de ${target.routeName} en tu zona. Nos ayuda a mostrar la ruta real al resto del barrio.`,
+      );
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      const message =
+        (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? 'No se pudo registrar tu confirmación.';
+      if (status === 409) {
+        Alert.alert('Ya confirmaste hoy', 'Sólo se puede confirmar una vez por ruta y día.');
+      } else {
+        Alert.alert('Error', message);
+      }
+    } finally {
+      setConfirming(false);
+    }
+  };
+
   const toggleFilter = (key: FilterKey) => {
     setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -443,6 +498,24 @@ export default function MapScreen() {
       <TouchableOpacity style={s.fabSecondary} onPress={handleRefresh} activeOpacity={0.85}>
         <Feather name="refresh-cw" size={16} color={colors.primary} />
       </TouchableOpacity>
+
+      {activeTrucks > 0 && (
+        <TouchableOpacity
+          style={s.confirmBtn}
+          onPress={confirmTruckHere}
+          activeOpacity={0.85}
+          disabled={confirming}
+        >
+          {confirming ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Feather name="check-circle" size={15} color="#FFFFFF" />
+              <Text style={s.confirmBtnText}>Vi el camión acá</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -592,5 +665,31 @@ const s = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 12,
     marginTop: 2,
+  },
+
+  confirmBtn: {
+    position: 'absolute',
+    bottom: 24,
+    left: 24,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: radius.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    elevation: 6,
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    minWidth: 168,
+    justifyContent: 'center',
+  },
+  confirmBtnText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 13,
+    letterSpacing: -0.1,
   },
 });
