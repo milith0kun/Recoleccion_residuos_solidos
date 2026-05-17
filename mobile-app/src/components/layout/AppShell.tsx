@@ -19,6 +19,13 @@ import { useAuth } from '../../context/AuthContext';
 import { BrandMark } from '../branding/BrandMark';
 import { colors, fontFamily, radius, spacing } from '../../theme/tokens';
 
+// Estado compartido del operador (jornada activa o no) para que el AppHeader
+// pueda mostrar el badge "EN RUTA / FUERA DE SERVICIO" en todas las pantallas.
+interface OperatorStatusContextValue {
+  onRoute: boolean;
+}
+const OperatorStatusContext = createContext<OperatorStatusContextValue>({ onRoute: false });
+
 type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
 
 interface DrawerContextValue {
@@ -107,6 +114,24 @@ export function AppShell({ children, role }: AppShellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const slide = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlay = useRef(new Animated.Value(0)).current;
+  const { getActiveExecutionId } = useAuth();
+  const [onRoute, setOnRoute] = useState(false);
+
+  // Poll del estado de jornada solo si rol = operator.
+  useEffect(() => {
+    if (role !== 'operator') return;
+    let cancelled = false;
+    const check = async () => {
+      const id = await getActiveExecutionId();
+      if (!cancelled) setOnRoute(!!id);
+    };
+    check();
+    const t = setInterval(check, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [role, getActiveExecutionId]);
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
@@ -138,6 +163,7 @@ export function AppShell({ children, role }: AppShellProps) {
 
   return (
     <DrawerContext.Provider value={ctxValue}>
+    <OperatorStatusContext.Provider value={{ onRoute }}>
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         {children}
 
@@ -162,7 +188,64 @@ export function AppShell({ children, role }: AppShellProps) {
           </View>
         </Modal>
       </View>
+    </OperatorStatusContext.Provider>
     </DrawerContext.Provider>
+  );
+}
+
+/**
+ * Badge "EN RUTA" / "FUERA DE SERVICIO" con dot pulsante.
+ * Se muestra automáticamente en el AppHeader si el rol es operador.
+ */
+function OperatorStatusPill() {
+  const { onRoute } = useContext(OperatorStatusContext);
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  const dotScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.4] });
+  const dotOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1] });
+
+  return (
+    <View style={[s.opPill, onRoute ? s.opPillOn : s.opPillOff]}>
+      <Animated.View
+        style={[
+          s.opDot,
+          {
+            backgroundColor: onRoute ? colors.primary : colors.textMuted,
+            transform: [{ scale: dotScale }],
+            opacity: dotOpacity,
+          },
+        ]}
+      />
+      <Text
+        style={[
+          s.opPillText,
+          { color: onRoute ? colors.primaryDark : colors.textSecondary },
+        ]}
+      >
+        {onRoute ? 'EN RUTA' : 'FUERA'}
+      </Text>
+    </View>
   );
 }
 
@@ -261,6 +344,8 @@ interface AppHeaderProps {
 
 export function AppHeader({ title, section, onBack }: AppHeaderProps) {
   const { toggle } = useDrawer();
+  const { user } = useAuth();
+  const isOperator = user?.role === 'operator' || user?.role === 'admin';
   return (
     <View style={s.header}>
       <View style={s.headerInner}>
@@ -281,7 +366,7 @@ export function AppHeader({ title, section, onBack }: AppHeaderProps) {
           </View>
         </View>
 
-        <View style={s.headerSpacer} />
+        {isOperator ? <OperatorStatusPill /> : <View style={s.headerSpacer} />}
       </View>
 
       <View style={s.breadcrumb}>
@@ -334,6 +419,35 @@ const s = StyleSheet.create({
     letterSpacing: -0.2,
   },
   headerSpacer: { width: 36 },
+  opPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    minWidth: 90,
+    justifyContent: 'center',
+  },
+  opPillOn: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primaryBorder,
+  },
+  opPillOff: {
+    backgroundColor: colors.bgSurface,
+    borderColor: colors.border,
+  },
+  opDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    marginRight: 6,
+  },
+  opPillText: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 9.5,
+    letterSpacing: 0.7,
+  },
   breadcrumb: {
     flexDirection: 'row',
     alignItems: 'center',
