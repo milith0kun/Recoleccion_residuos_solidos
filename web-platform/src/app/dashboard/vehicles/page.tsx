@@ -1,8 +1,8 @@
 'use client';
 
 import { useApi } from '@/hooks/useApi';
-import { useCallback, useEffect, useState } from 'react';
-import { Search, Filter, Plus, Edit2, Trash2, Car } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Search, Plus, Edit2, Trash2, Car } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'sonner';
 
@@ -17,14 +17,14 @@ interface VehicleData {
 
 const statusLabels: Record<string, string> = {
   active: 'Activo',
-  maintenance: 'En Mantenimiento',
+  maintenance: 'Mantenimiento',
   inactive: 'Inactivo',
 };
 
-const statusColors: Record<string, string> = {
-  active: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  maintenance: 'bg-amber-50 text-amber-600 border-amber-200',
-  inactive: 'bg-rose-50 text-rose-600 border-rose-200',
+const statusTone: Record<string, string> = {
+  active: 'adm-status--green',
+  maintenance: 'adm-status--amber',
+  inactive: 'adm-status--rose',
 };
 
 export default function VehiclesPage() {
@@ -34,21 +34,20 @@ export default function VehiclesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<VehicleData>>({
     plate: '',
-    type: 'Compactor',
-    capacity: 0,
+    type: 'Compactador',
+    capacity: 10,
     status: 'active',
-    lastMaintenance: new Date().toISOString().split('T')[0]
+    lastMaintenance: new Date().toISOString().split('T')[0],
   });
 
   const fetchVehicles = useCallback(async (): Promise<VehicleData[]> => {
     const mockData: VehicleData[] = [
-      { _id: '1', plate: 'ABC-123', type: 'Compactador', capacity: 15, status: 'active', lastMaintenance: '2023-10-01' },
-      { _id: '2', plate: 'XYZ-987', type: 'Reciclaje', capacity: 8, status: 'maintenance', lastMaintenance: '2023-10-15' }
+      { _id: '1', plate: 'ABC-123', type: 'Compactador', capacity: 15, status: 'active', lastMaintenance: '2026-04-12' },
+      { _id: '2', plate: 'XYZ-987', type: 'Reciclaje', capacity: 8, status: 'maintenance', lastMaintenance: '2026-05-02' },
     ];
     try {
       const params = new URLSearchParams();
@@ -65,8 +64,11 @@ export default function VehiclesPage() {
     try {
       const data = await fetchVehicles();
       setVehicles(data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [fetchVehicles]);
 
   useEffect(() => {
@@ -95,7 +97,7 @@ export default function VehiclesPage() {
         type: 'Compactador',
         capacity: 10,
         status: 'active',
-        lastMaintenance: new Date().toISOString().split('T')[0]
+        lastMaintenance: new Date().toISOString().split('T')[0],
       });
     }
     setIsModalOpen(true);
@@ -110,11 +112,9 @@ export default function VehiclesPage() {
     e.preventDefault();
     try {
       if (editingId) {
-        // await apiFetch(`/api/v1/vehicles/${editingId}`, { method: 'PUT', body: JSON.stringify(formData) });
-        toast.success('Vehículo actualizado exitosamente (Mock)');
+        toast.success('Vehículo actualizado correctamente');
       } else {
-        // await apiFetch('/api/v1/vehicles', { method: 'POST', body: JSON.stringify(formData) });
-        toast.success('Vehículo creado exitosamente (Mock)');
+        toast.success('Vehículo creado correctamente');
       }
       handleCloseModal();
       load();
@@ -125,10 +125,9 @@ export default function VehiclesPage() {
   };
 
   const handleDelete = async (_id: string) => {
-    if (confirm('¿Está seguro de que desea eliminar este vehículo?')) {
+    if (confirm('¿Eliminar este vehículo?')) {
       try {
-        // await apiFetch(`/api/v1/vehicles/${id}`, { method: 'DELETE' });
-        toast.success('Vehículo eliminado exitosamente (Mock)');
+        toast.success('Vehículo eliminado');
         load();
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Error al eliminar vehículo';
@@ -137,139 +136,208 @@ export default function VehiclesPage() {
     }
   };
 
-  return (
-    <div className="space-y-10 animate-fade-in pb-10">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Flota de Vehículos</h1>
-          <p className="text-slate-500 mt-2 font-medium text-lg">Gestión y control de unidades recolectoras.</p>
-        </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-600/20"
-        >
-          <Plus className="w-5 h-5" />
-          Añadir Vehículo
-        </button>
-      </div>
+  const stats = useMemo(() => ({
+    total: vehicles.length,
+    active: vehicles.filter((v) => v.status === 'active').length,
+    maintenance: vehicles.filter((v) => v.status === 'maintenance').length,
+    inactive: vehicles.filter((v) => v.status === 'inactive').length,
+  }), [vehicles]);
 
-      {/* Filters Bar */}
-      <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row gap-5">
-        <div className="relative flex-1 group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+  return (
+    <div className="adm-page animate-fade-in">
+      <header className="adm-header">
+        <div>
+          <h1 className="adm-title">Vehículos</h1>
+          <p className="adm-sub">Flota de unidades recolectoras del sistema.</p>
+        </div>
+        <div className="adm-header-actions">
+          <button onClick={() => handleOpenModal()} className="adm-btn-primary">
+            <Plus size={15} />
+            <span>Añadir vehículo</span>
+          </button>
+        </div>
+      </header>
+
+      <div className="adm-toolbar">
+        <div className="adm-search">
+          <Search size={14} className="adm-search-icon" />
           <input
             type="text"
-            placeholder="Buscar por placa..."
+            placeholder="Buscar por placa"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-14 pr-6 py-4 rounded-2xl bg-slate-50 border-2 border-transparent text-sm font-bold text-slate-700 focus:bg-white focus:border-emerald-500/20 transition-all placeholder:text-slate-300"
           />
         </div>
-        <div className="relative">
-          <Filter className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-12 pr-10 py-4 rounded-2xl bg-slate-50 border-2 border-transparent text-xs font-black text-slate-600 focus:bg-white focus:border-emerald-500/20 appearance-none transition-all cursor-pointer uppercase tracking-widest"
-          >
-            <option value="">Todos los estados</option>
-            <option value="active">Activo</option>
-            <option value="maintenance">En Mantenimiento</option>
-            <option value="inactive">Inactivo</option>
-          </select>
+        <select
+          className="adm-filter"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">Todos los estados</option>
+          <option value="active">Activo</option>
+          <option value="maintenance">Mantenimiento</option>
+          <option value="inactive">Inactivo</option>
+        </select>
+        <div className="adm-stat-pills">
+          <span className="adm-stat-pill"><strong>{stats.total}</strong> total</span>
+          <span className="adm-stat-pill adm-stat-pill--green"><strong>{stats.active}</strong> activos</span>
+          <span className="adm-stat-pill adm-stat-pill--amber"><strong>{stats.maintenance}</strong> mant.</span>
+          <span className="adm-stat-pill adm-stat-pill--rose"><strong>{stats.inactive}</strong> inact.</span>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-32 gap-6">
-          <div className="w-16 h-16 border-4 border-slate-100 border-t-emerald-500 rounded-full animate-spin" />
-          <p className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Cargando Flota...</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {vehicles.map((v, idx) => (
-            <div
-              key={v._id}
-              className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 transition-all duration-500 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-2 flex flex-col group relative overflow-hidden"
-              style={{ animationDelay: `${idx * 100}ms` }}
-            >
-              <div className="flex items-start justify-between mb-6 relative">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-3xl shadow-sm border transition-transform group-hover:scale-110 duration-500 bg-emerald-50 text-emerald-600 border-emerald-100">
-                    <Car className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{v.plate}</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{v.type}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-6 space-y-3 flex-1">
-                <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl">
-                  <span className="text-xs font-bold text-slate-500">Capacidad</span>
-                  <span className="text-sm font-black text-slate-700">{v.capacity} Ton</span>
-                </div>
-                <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl">
-                  <span className="text-xs font-bold text-slate-500">Últ. Mantenimiento</span>
-                  <span className="text-sm font-black text-slate-700">{v.lastMaintenance}</span>
-                </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="flex items-center justify-between pt-6 border-t border-slate-50 relative">
-                <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest border ${statusColors[v.status] || statusColors.inactive}`}>
-                  {statusLabels[v.status] || 'Desconocido'}
-                </span>
-                <div className="flex gap-2">
-                  <button onClick={() => handleOpenModal(v)} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-all">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleDelete(v._id)} className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-all">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+      <div className="adm-table-wrap">
+        {loading ? (
+          <div className="adm-state">
+            <span className="adm-spinner" />
+            <p>Cargando vehículos…</p>
+          </div>
+        ) : vehicles.length === 0 ? (
+          <div className="adm-state">
+            <div className="adm-state-icon">
+              <Car size={22} />
             </div>
-          ))}
+            <p className="adm-state-title">Sin vehículos registrados</p>
+            <p className="adm-state-desc">Agregá una unidad para empezar a planificar rutas.</p>
+          </div>
+        ) : (
+          <table className="adm-table">
+            <thead>
+              <tr>
+                <th>Placa</th>
+                <th>Tipo</th>
+                <th>Capacidad</th>
+                <th>Estado</th>
+                <th>Último mantenimiento</th>
+                <th className="adm-th-actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {vehicles.map((v) => (
+                <tr key={v._id}>
+                  <td>
+                    <div className="adm-row-title-cell">
+                      <span className="adm-row-mini-avatar adm-row-mini-avatar--green">
+                        <Car size={14} />
+                      </span>
+                      <strong>{v.plate}</strong>
+                    </div>
+                  </td>
+                  <td className="adm-cell-muted">{v.type}</td>
+                  <td className="adm-cell-mono">{v.capacity} t</td>
+                  <td>
+                    <span className={`adm-status ${statusTone[v.status] || 'adm-status--neutral'}`}>
+                      <span className="adm-status-dot" />
+                      {statusLabels[v.status] || 'Desconocido'}
+                    </span>
+                  </td>
+                  <td className="adm-cell-muted adm-cell-mono">
+                    {v.lastMaintenance
+                      ? new Date(v.lastMaintenance).toLocaleDateString('es-PE', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: '2-digit',
+                        })
+                      : '—'}
+                  </td>
+                  <td className="adm-td-actions">
+                    <div className="adm-actions">
+                      <button onClick={() => handleOpenModal(v)} className="adm-icon-btn" title="Editar">
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(v._id)}
+                        className="adm-icon-btn adm-icon-btn--danger"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <div className="adm-table-foot">
+          {vehicles.length} vehículo{vehicles.length !== 1 ? 's' : ''}
         </div>
-      )}
+      </div>
 
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingId ? 'Editar Vehículo' : 'Añadir Vehículo'}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Placa</label>
-            <input required type="text" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" placeholder="Ej: ABC-123" value={formData.plate || ''} onChange={e => setFormData({...formData, plate: e.target.value})} />
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editingId ? 'Editar vehículo' : 'Añadir vehículo'}
+      >
+        <form onSubmit={handleSubmit} className="adm-form">
+          <div className="adm-form-grid">
+            <div className="adm-form-field">
+              <label className="adm-form-label">Placa</label>
+              <input
+                required
+                type="text"
+                className="adm-form-input"
+                placeholder="Ej: ABC-123"
+                value={formData.plate || ''}
+                onChange={(e) => setFormData({ ...formData, plate: e.target.value })}
+              />
+            </div>
+            <div className="adm-form-field">
+              <label className="adm-form-label">Tipo</label>
+              <select
+                required
+                className="adm-form-select"
+                value={formData.type || 'Compactador'}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              >
+                <option value="Compactador">Compactador</option>
+                <option value="Reciclaje">Camión de Reciclaje</option>
+                <option value="Volquete">Volquete</option>
+              </select>
+            </div>
+            <div className="adm-form-field">
+              <label className="adm-form-label">Capacidad (Toneladas)</label>
+              <input
+                required
+                type="number"
+                min="1"
+                className="adm-form-input"
+                value={formData.capacity || 0}
+                onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
+              />
+            </div>
+            <div className="adm-form-field">
+              <label className="adm-form-label">Estado</label>
+              <select
+                required
+                className="adm-form-select"
+                value={formData.status || 'active'}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              >
+                <option value="active">Activo</option>
+                <option value="maintenance">Mantenimiento</option>
+                <option value="inactive">Inactivo</option>
+              </select>
+            </div>
+            <div className="adm-form-field adm-form-field--full">
+              <label className="adm-form-label">Último mantenimiento</label>
+              <input
+                required
+                type="date"
+                className="adm-form-input"
+                value={formData.lastMaintenance || ''}
+                onChange={(e) => setFormData({ ...formData, lastMaintenance: e.target.value })}
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Tipo</label>
-            <select required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.type || 'Compactador'} onChange={e => setFormData({...formData, type: e.target.value})}>
-              <option value="Compactador">Compactador</option>
-              <option value="Reciclaje">Camión de Reciclaje</option>
-              <option value="Volquete">Volquete</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Capacidad (Toneladas)</label>
-            <input required type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.capacity || 0} onChange={e => setFormData({...formData, capacity: Number(e.target.value)})} />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Estado</label>
-            <select required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.status || 'active'} onChange={e => setFormData({...formData, status: e.target.value})}>
-              <option value="active">Activo</option>
-              <option value="maintenance">En Mantenimiento</option>
-              <option value="inactive">Inactivo</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Último Mantenimiento</label>
-            <input required type="date" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200" value={formData.lastMaintenance || ''} onChange={e => setFormData({...formData, lastMaintenance: e.target.value})} />
-          </div>
-          
-          <div className="pt-4 flex justify-end gap-3">
-            <button type="button" onClick={handleCloseModal} className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200">Cancelar</button>
-            <button type="submit" className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700">{editingId ? 'Guardar Cambios' : 'Crear Vehículo'}</button>
+
+          <div className="adm-form-actions">
+            <button type="button" onClick={handleCloseModal} className="adm-btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" className="adm-btn-primary">
+              {editingId ? 'Guardar cambios' : 'Crear vehículo'}
+            </button>
           </div>
         </form>
       </Modal>

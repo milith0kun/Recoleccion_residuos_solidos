@@ -75,12 +75,6 @@ export default function DashboardPage() {
     { label: 'Seguridad SSL', desc: 'Encriptación AES-256', status: 'Protegido', tone: 'green' },
   ];
 
-  const creds = [
-    { role: 'Administrador', email: 'admin@residuos.cusco.gob.pe', pass: 'admin123' },
-    { role: 'Operador', email: 'operador@residuos.cusco.gob.pe', pass: 'operator123' },
-    { role: 'Ciudadano', email: 'ciudadano@gmail.com', pass: 'citizen123' },
-  ];
-
   return (
     <div className="dp-root animate-fade-in">
       <style>{dpStyles}</style>
@@ -156,30 +150,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Credentials */}
-        <div className="dp-creds">
-          <div className="dp-creds-header">
-            <div>
-              <span className="dp-creds-eyebrow">Entorno demo</span>
-              <h2>Acceso de prueba</h2>
-            </div>
-            <span className="dp-creds-version">v1.0</span>
-          </div>
-          <div className="dp-creds-list">
-            {creds.map((c) => (
-              <div key={c.role} className="dp-cred-item">
-                <div className="dp-cred-top">
-                  <span className="dp-cred-role">{c.role}</span>
-                  <code className="dp-cred-pass">{c.pass}</code>
-                </div>
-                <span className="dp-cred-email">{c.email}</span>
-              </div>
-            ))}
-          </div>
-          <div className="dp-creds-note">
-            Usa estas credenciales para explorar el sistema según el rol asignado.
-          </div>
-        </div>
       </div>
     </div>
   );
