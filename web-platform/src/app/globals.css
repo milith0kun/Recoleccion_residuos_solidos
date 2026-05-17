@@ -145,7 +145,7 @@ button:active:not(:disabled) {
 
 /* ─── Patrón Admin (Atlas-like) — clases compartidas entre páginas del dashboard ─── */
 
-.adm-page { display: flex; flex-direction: column; gap: 20px; }
+.adm-page { display: flex; flex-direction: column; gap: 14px; }
 
 .adm-header {
   display: flex;
@@ -156,18 +156,18 @@ button:active:not(:disabled) {
 }
 .adm-title {
   font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
-  font-size: clamp(28px, 4vw, 36px);
+  font-size: clamp(22px, 2.6vw, 28px);
   font-weight: 500;
   color: #001E2B;
-  letter-spacing: -0.018em;
+  letter-spacing: -0.016em;
   line-height: 1.1;
-  font-variation-settings: "opsz" 36;
+  font-variation-settings: "opsz" 30;
 }
 .adm-sub {
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   color: #5C6C75;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 .adm-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -588,34 +588,34 @@ button:active:not(:disabled) {
 .adm-overview-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 14px;
 }
 @media (min-width: 1100px) {
   .adm-overview-grid {
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr) 300px;
   }
 }
 
-/* Section card (Atlas overview style — compact but generous) */
+/* Section card (Atlas overview style — compact) */
 .adm-section {
   background: #FFFFFF;
   border: 1px solid #E8EDEB;
-  border-radius: 10px;
-  padding: 18px 22px;
+  border-radius: 8px;
+  padding: 13px 16px;
 }
 .adm-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
+  gap: 14px;
+  margin-bottom: 10px;
 }
 .adm-section-title {
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #001E2B;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.01em;
 }
 
 /* Section title with mini-icon (perfil & otras secciones temáticas) */
@@ -629,9 +629,9 @@ button:active:not(:disabled) {
 }
 .adm-section-sub {
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 12.5px;
+  font-size: 12px;
   color: #5C6C75;
-  margin-top: 3px;
+  margin-top: 2px;
 }
 
 /* Eyebrow (label uppercase verde) */
@@ -652,15 +652,15 @@ button:active:not(:disabled) {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 10px;
+  padding: 9px 12px;
   background: #FFFFFF;
   border: 1px solid #E8EDEB;
   border-left: 3px solid #00684A;
-  border-radius: 8px;
+  border-radius: 7px;
   color: #001E2B;
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
@@ -679,9 +679,9 @@ button:active:not(:disabled) {
 }
 .adm-tile-icon {
   position: relative;
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   background: transparent;
   border: none;
   color: #00684A;
@@ -730,7 +730,7 @@ button:active:not(:disabled) {
 .adm-tile-body { flex: 1; min-width: 0; }
 .adm-tile-title {
   display: block;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #001E2B;
   line-height: 1.2;
@@ -738,10 +738,10 @@ button:active:not(:disabled) {
 }
 .adm-tile-sub {
   display: block;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 400;
   color: #5C6C75;
-  margin-top: 2px;
+  margin-top: 1px;
   letter-spacing: -0.003em;
 }
 .adm-tile-arrow {
@@ -756,7 +756,7 @@ button:active:not(:disabled) {
 .adm-tile-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 @media (min-width: 640px) {
   .adm-tile-grid { grid-template-columns: 1fr 1fr; }
@@ -764,16 +764,16 @@ button:active:not(:disabled) {
 
 /* Tile aún más compacto (lista vertical en sidebar) */
 .adm-tile--compact {
-  padding: 8px 10px;
-  gap: 10px;
+  padding: 6px 9px;
+  gap: 9px;
 }
 .adm-tile--compact .adm-tile-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
 }
 .adm-tile--compact .adm-tile-title {
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 /* Tabs Atlas-style (bottom-border activo) */
@@ -1155,8 +1155,8 @@ button:active:not(:disabled) {
 
 .adm-stat-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
 }
 @media (max-width: 767px) {
   .adm-stat-card-grid {
@@ -1175,8 +1175,8 @@ button:active:not(:disabled) {
   background: #FFFFFF;
   border: 1px solid #E8EDEB;
   border-left: 3px solid #B45309;
-  border-radius: 8px;
-  padding: 14px 18px;
+  border-radius: 7px;
+  padding: 11px 14px;
   overflow: hidden;
   isolation: isolate;
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
@@ -1198,33 +1198,35 @@ button:active:not(:disabled) {
 .adm-stat-card-num {
   display: block;
   font-family: 'Newsreader', 'EB Garamond', Georgia, serif;
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 500;
   letter-spacing: -0.022em;
   line-height: 1.05;
   color: #B45309;
-  margin-top: 6px;
-  font-variation-settings: "opsz" 36;
+  margin-top: 4px;
+  font-variation-settings: "opsz" 30;
 }
 .adm-stat-card-label {
   display: block;
   font-family: 'Geist', 'Outfit', sans-serif;
-  font-size: 12px;
+  font-size: 11.5px;
   color: #5C6C75;
-  margin-top: 4px;
+  margin-top: 3px;
   letter-spacing: -0.002em;
 }
 
 /* Icono ghost: el "eco" decorativo grande translúcido a la derecha */
 .adm-stat-card-ghost {
   position: absolute;
-  right: -10px;
-  bottom: -14px;
+  right: -8px;
+  bottom: -12px;
   color: #B45309;
-  opacity: 0.18;
+  opacity: 0.16;
   pointer-events: none;
   z-index: 0;
   transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 78px !important;
+  height: 78px !important;
 }
 .adm-stat-card:hover .adm-stat-card-ghost {
   opacity: 0.24;

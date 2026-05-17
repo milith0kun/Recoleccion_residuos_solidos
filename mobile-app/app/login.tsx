@@ -12,6 +12,7 @@ import {
   Animated,
   Easing,
   Pressable,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
@@ -32,20 +33,20 @@ export default function LoginScreen() {
   const [focused, setFocused] = useState<FocusedField>(null);
 
   const fade = useRef(new Animated.Value(0)).current;
-  const slide = useRef(new Animated.Value(14)).current;
+  const slide = useRef(new Animated.Value(10)).current;
   const pressScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fade, {
         toValue: 1,
-        duration: 420,
+        duration: 360,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(slide, {
         toValue: 0,
-        duration: 460,
+        duration: 400,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -74,13 +75,20 @@ export default function LoginScreen() {
   };
 
   const handleGoogle = async () => {
-    if (!googleReady || googleLoading) return;
+    if (googleLoading || loading) return;
+    if (!googleReady) {
+      Alert.alert(
+        'Google no disponible',
+        'El inicio de sesión con Google aún no está configurado en esta versión. Usá correo y contraseña, o actualizá la app.'
+      );
+      return;
+    }
     setGoogleLoading(true);
     try {
       const outcome = await googleSignIn();
       if (outcome.type === 'cancelled') return;
       if (outcome.type === 'error') {
-        Alert.alert('Error', outcome.message);
+        Alert.alert('Google Sign-In', outcome.message);
         return;
       }
       await loginWithGoogle(outcome.idToken);
@@ -100,7 +108,7 @@ export default function LoginScreen() {
   const handleForgotPassword = () => {
     Alert.alert(
       'Recuperación de contraseña',
-      'Función disponible en la versión web. Visita: srss.ecosdelseo.com/forgot-password'
+      'Función disponible en la versión web. Visitá: srss.ecosdelseo.com/forgot-password'
     );
   };
 
@@ -121,36 +129,37 @@ export default function LoginScreen() {
     }).start();
   };
 
-  const googleDisabled = !googleReady || googleLoading || loading;
   const year = new Date().getFullYear();
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView
+      style={s.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <ScrollView
         contentContainerStyle={s.container}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         <Animated.View
           style={[s.brandWrap, { opacity: fade, transform: [{ translateY: slide }] }]}
         >
-          <BrandMark size={56} />
-          <View style={s.eyebrow}>
-            <View style={s.eyebrowDot} />
-            <Text style={s.eyebrowText}>SRSS · Cusco</Text>
+          <View style={s.brandRow}>
+            <BrandMark size={36} />
+            <View style={s.eyebrow}>
+              <View style={s.eyebrowDot} />
+              <Text style={s.eyebrowText}>SRSS · Cusco</Text>
+            </View>
           </View>
           <Text style={s.brandTitle}>
-            Recolección de <Text style={s.brandTitleAccent}>residuos</Text> segregados.
-          </Text>
-          <Text style={s.brandTagline}>
-            Plataforma de gestión ambiental urbana del Cusco.
+            Ingresá al <Text style={s.brandTitleAccent}>sistema</Text>
           </Text>
         </Animated.View>
 
         <Animated.View
           style={[s.card, { opacity: fade, transform: [{ translateY: slide }] }]}
         >
-          <Text style={s.cardTitle}>Ingresar al sistema</Text>
           <Text style={s.cardSubtitle}>
             Accedé con tu cuenta institucional o Google.
           </Text>
@@ -194,7 +203,7 @@ export default function LoginScreen() {
               ]}
             >
               {loading ? (
-                <ActivityIndicator color="#FFF" />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={s.btnText}>Continuar</Text>
               )}
@@ -213,11 +222,12 @@ export default function LoginScreen() {
 
           <Pressable
             onPress={handleGoogle}
-            disabled={googleDisabled}
+            disabled={googleLoading || loading}
             style={({ pressed }) => [
               s.googleBtn,
-              googleDisabled && s.googleBtnDisabled,
-              pressed && !googleDisabled && s.googleBtnPressed,
+              (googleLoading || loading) && s.googleBtnDisabled,
+              pressed && s.googleBtnPressed,
+              !googleReady && s.googleBtnMuted,
             ]}
           >
             {googleLoading ? (
@@ -225,18 +235,12 @@ export default function LoginScreen() {
             ) : (
               <>
                 <Text style={s.googleMark}>G</Text>
-                <Text style={s.googleBtnText}>Continuar con Google</Text>
+                <Text style={s.googleBtnText}>
+                  {googleReady ? 'Continuar con Google' : 'Google no disponible'}
+                </Text>
               </>
             )}
           </Pressable>
-
-          {!googleReady && (
-            <Text style={s.googleHint}>
-              Configurá las credenciales de Google en .env
-            </Text>
-          )}
-
-          <View style={s.bottomDivider} />
 
           <TouchableOpacity onPress={() => router.push('/register')} style={s.linkBtn}>
             <Text style={s.linkText}>
@@ -245,13 +249,11 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        <View style={s.foot}>
-          <Text style={s.footYear}>© {year} SRSS Cusco</Text>
-          <Text style={s.footSep}>·</Text>
-          <Text style={s.footAffil}>Municipalidad Provincial del Cusco</Text>
-        </View>
+        <Text style={s.foot}>
+          © {year} SRSS Cusco · Municipalidad Provincial del Cusco
+        </Text>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -260,45 +262,48 @@ const s = StyleSheet.create({
   container: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: spacing.xxl,
-    paddingVertical: 48,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
   },
 
   brandWrap: {
-    alignItems: 'flex-start',
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.md,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: spacing.sm,
   },
   eyebrow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: colors.primarySoft,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
     borderRadius: radius.pill,
-    marginTop: 18,
-    marginBottom: 16,
   },
   eyebrowDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: colors.primary,
   },
   eyebrowText: {
     fontFamily: fontFamily.sansSemibold,
-    fontSize: 11,
+    fontSize: 10,
     color: colors.primaryDark,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   brandTitle: {
     fontFamily: fontFamily.serif,
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: '500',
     color: colors.ink,
-    letterSpacing: -0.6,
-    lineHeight: 34,
+    letterSpacing: -0.4,
+    lineHeight: 28,
   },
   brandTitleAccent: {
     fontFamily: fontFamily.serif,
@@ -306,78 +311,58 @@ const s = StyleSheet.create({
     fontStyle: 'italic',
     fontWeight: '500',
   },
-  brandTagline: {
-    fontFamily: fontFamily.sansRegular,
-    fontSize: 13.5,
-    color: colors.textSecondary,
-    lineHeight: 20,
-    marginTop: 10,
-  },
 
   card: {
     backgroundColor: colors.bg,
-    borderRadius: radius.xl,
-    padding: spacing.xxl,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
     shadowColor: colors.ink,
-    shadowOpacity: 0.05,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  cardTitle: {
-    fontFamily: fontFamily.serif,
-    fontSize: 22,
-    fontWeight: '500',
-    color: colors.ink,
-    letterSpacing: -0.4,
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   cardSubtitle: {
     fontFamily: fontFamily.sansRegular,
-    fontSize: 13,
+    fontSize: 12.5,
     color: colors.textSecondary,
-    marginTop: 4,
-    marginBottom: 22,
-    lineHeight: 19,
+    marginBottom: spacing.md,
+    lineHeight: 18,
   },
 
   fieldLabel: {
     fontFamily: fontFamily.sansBold,
-    fontSize: 10.5,
+    fontSize: 10,
     color: colors.textSecondary,
-    letterSpacing: 1.3,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   fieldLabelSpaced: {
-    marginTop: 14,
+    marginTop: spacing.sm + 2,
   },
   input: {
     backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    paddingHorizontal: 11,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
     color: colors.ink,
     fontFamily: fontFamily.sansRegular,
     fontSize: 14,
   },
   inputFocused: {
     borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 2,
   },
 
-  btnWrap: { marginTop: 22 },
+  btnWrap: { marginTop: spacing.md },
   btn: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,
-    paddingVertical: 13,
+    paddingVertical: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -391,20 +376,20 @@ const s = StyleSheet.create({
   },
 
   forgotBtn: {
-    marginTop: 12,
+    marginTop: spacing.sm,
     alignSelf: 'flex-end',
   },
   forgotText: {
     fontFamily: fontFamily.sansMedium,
-    fontSize: 12.5,
+    fontSize: 12,
     color: colors.textSecondary,
   },
 
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 22,
-    marginBottom: 18,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm + 2,
   },
   dividerLine: {
     flex: 1,
@@ -413,11 +398,11 @@ const s = StyleSheet.create({
   },
   dividerText: {
     fontFamily: fontFamily.sansMedium,
-    fontSize: 11,
+    fontSize: 10.5,
     color: colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 1.6,
-    marginHorizontal: 14,
+    letterSpacing: 1.4,
+    marginHorizontal: 12,
   },
 
   googleBtn: {
@@ -425,7 +410,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    paddingVertical: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -435,42 +420,30 @@ const s = StyleSheet.create({
     borderColor: colors.borderStrong,
   },
   googleBtnDisabled: {
-    opacity: 0.5,
+    opacity: 0.55,
+  },
+  googleBtnMuted: {
+    backgroundColor: colors.bgSurface,
   },
   googleMark: {
     fontFamily: fontFamily.sansBlack,
-    fontSize: 15,
+    fontSize: 14,
     color: '#4285F4',
-    marginRight: 10,
-    lineHeight: 17,
+    marginRight: 9,
+    lineHeight: 16,
   },
   googleBtnText: {
     fontFamily: fontFamily.sansSemibold,
-    fontSize: 13.5,
+    fontSize: 13,
     color: colors.ink,
     letterSpacing: 0.1,
   },
-  googleHint: {
-    fontFamily: fontFamily.sansRegular,
-    fontSize: 11,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 16,
-  },
 
-  bottomDivider: {
-    height: 1,
-    backgroundColor: colors.borderSoft,
-    marginTop: 22,
-    marginBottom: 4,
-  },
-
-  linkBtn: { marginTop: 14, alignItems: 'center' },
+  linkBtn: { marginTop: spacing.md, alignItems: 'center' },
   linkText: {
     fontFamily: fontFamily.sansMedium,
     color: colors.textSecondary,
-    fontSize: 13,
+    fontSize: 12.5,
   },
   linkAccent: {
     fontFamily: fontFamily.sansSemibold,
@@ -478,27 +451,11 @@ const s = StyleSheet.create({
   },
 
   foot: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 28,
-  },
-  footYear: {
     fontFamily: fontFamily.sansMedium,
-    fontSize: 11.5,
+    textAlign: 'center',
     color: colors.textMuted,
-  },
-  footSep: {
-    color: colors.textFaint,
-    fontSize: 12,
-  },
-  footAffil: {
-    fontFamily: fontFamily.serif,
-    fontStyle: 'italic',
-    fontSize: 12.5,
-    color: colors.textSecondary,
-    letterSpacing: -0.1,
+    fontSize: 10.5,
+    letterSpacing: 0.1,
+    marginTop: spacing.md,
   },
 });

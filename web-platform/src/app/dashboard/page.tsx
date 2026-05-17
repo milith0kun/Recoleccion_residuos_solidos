@@ -170,10 +170,10 @@ export default function DashboardPage() {
 
       <div className="adm-overview-grid">
         {/* ─── Columna principal ─── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Resumen operativo */}
           <section className="adm-section">
-            <div className="adm-section-header" style={{ marginBottom: 6 }}>
+            <div className="adm-section-header" style={{ marginBottom: 4 }}>
               <div>
                 <h2 className="adm-section-title">Resumen operativo</h2>
                 <p className="adm-section-sub">
@@ -183,7 +183,7 @@ export default function DashboardPage() {
               <Link
                 href="/dashboard/reports"
                 className="adm-btn-secondary"
-                style={{ padding: '7px 13px', fontSize: 12.5 }}
+                style={{ padding: '5px 11px', fontSize: 12 }}
               >
                 Ver reportes
               </Link>
@@ -215,7 +215,7 @@ export default function DashboardPage() {
             </div>
 
             {tab === 'overview' && (
-              <div className="adm-stat-card-grid" style={{ marginTop: 14 }}>
+              <div className="adm-stat-card-grid" style={{ marginTop: 10 }}>
                 {isAdmin && (
                   <div className="adm-stat-card adm-stat-card--green">
                     <span className="adm-stat-card-eyebrow">Usuarios</span>
@@ -234,7 +234,7 @@ export default function DashboardPage() {
                   <span className="adm-stat-card-label">áreas definidas</span>
                   <MapIcon
                     className="adm-stat-card-ghost"
-                    size={96}
+                    size={78}
                     strokeWidth={1.4}
                   />
                 </div>
@@ -244,7 +244,7 @@ export default function DashboardPage() {
                   <span className="adm-stat-card-label">programadas</span>
                   <Truck
                     className="adm-stat-card-ghost"
-                    size={96}
+                    size={78}
                     strokeWidth={1.4}
                   />
                 </div>
@@ -254,7 +254,7 @@ export default function DashboardPage() {
                   <span className="adm-stat-card-label">en flota</span>
                   <Car
                     className="adm-stat-card-ghost"
-                    size={96}
+                    size={78}
                     strokeWidth={1.4}
                   />
                 </div>
@@ -264,7 +264,7 @@ export default function DashboardPage() {
                   <span className="adm-stat-card-label">tipos catalogados</span>
                   <Recycle
                     className="adm-stat-card-ghost"
-                    size={96}
+                    size={78}
                     strokeWidth={1.4}
                   />
                 </div>
@@ -282,8 +282,8 @@ export default function DashboardPage() {
                       <span className="adm-tile-title">{title}</span>
                       <span className="adm-tile-sub">{sub}</span>
                     </span>
-                    <ArrowRight size={16} className="adm-tile-arrow" />
-                    <Icon className="adm-tile-ghost" size={92} strokeWidth={1.3} />
+                    <ArrowRight size={14} className="adm-tile-arrow" />
+                    <Icon className="adm-tile-ghost" size={72} strokeWidth={1.3} />
                   </Link>
                 ))}
               </div>
@@ -340,17 +340,17 @@ export default function DashboardPage() {
         </div>
 
         {/* ─── Sidebar derecho ─── */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <section className="adm-section" style={{ padding: '22px 24px' }}>
-            <div style={{ marginBottom: 14 }}>
-              <h3 className="adm-section-title" style={{ fontSize: 15 }}>
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <section className="adm-section">
+            <div style={{ marginBottom: 10 }}>
+              <h3 className="adm-section-title">
                 Atajos de gestión
               </h3>
-              <p className="adm-section-sub" style={{ fontSize: 12.5 }}>
+              <p className="adm-section-sub">
                 Acceso directo a paneles administrativos.
               </p>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {sideTiles.map(({ href, title, icon: Icon }) => (
                 <Link key={href} href={href} className="adm-tile adm-tile--compact">
                   <span className="adm-tile-icon adm-tile-icon--sm">
@@ -359,26 +359,26 @@ export default function DashboardPage() {
                   <span className="adm-tile-body">
                     <span className="adm-tile-title">{title}</span>
                   </span>
-                  <ArrowRight size={14} className="adm-tile-arrow" />
-                  <Icon className="adm-tile-ghost" size={56} strokeWidth={1.3} />
+                  <ArrowRight size={13} className="adm-tile-arrow" />
+                  <Icon className="adm-tile-ghost" size={48} strokeWidth={1.3} />
                 </Link>
               ))}
             </div>
           </section>
 
-          <section className="adm-section" style={{ padding: '22px 24px' }}>
-            <div style={{ marginBottom: 12 }}>
-              <span className="adm-eyebrow">Recurso</span>
-              <h3 className="adm-section-title" style={{ fontSize: 15, marginTop: 2 }}>
+          <section className="adm-section">
+            <div style={{ marginBottom: 8 }}>
+              <span className="adm-eyebrow" style={{ marginBottom: 6 }}>Recurso</span>
+              <h3 className="adm-section-title" style={{ marginTop: 0 }}>
                 Documentación oficial
               </h3>
             </div>
             <p
               style={{
-                fontSize: 13,
+                fontSize: 12.5,
                 color: '#5C6C75',
-                marginBottom: 16,
-                lineHeight: 1.55,
+                marginBottom: 12,
+                lineHeight: 1.5,
                 letterSpacing: '-0.003em',
               }}
             >
