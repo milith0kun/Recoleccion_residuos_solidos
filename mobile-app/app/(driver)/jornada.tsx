@@ -387,7 +387,7 @@ export default function JornadaScreen() {
 
     return (
       <View style={s.container}>
-      <AppHeader title="Jornada activa" section="Operador" />
+      <AppHeader title="Jornada activa" section="Conductor" />
       <ScrollView
         contentContainerStyle={s.contentPad}
         refreshControl={

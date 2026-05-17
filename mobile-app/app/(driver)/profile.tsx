@@ -59,11 +59,16 @@ export default function OperatorProfileScreen() {
   };
 
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
-  const roleLabel = user?.role === 'admin' ? 'Administrador' : 'Operador';
+  const roleLabel =
+    user?.role === 'admin'
+      ? 'Administrador'
+      : user?.role === 'operator'
+        ? 'Operador'
+        : 'Conductor';
 
   return (
     <View style={s.container}>
-    <AppHeader title="Mi perfil" section="Operador" />
+    <AppHeader title="Mi perfil" section="Conductor" />
     <ScrollView contentContainerStyle={s.content}>
       <View style={s.profileCard}>
         <View style={s.avatarBox}>

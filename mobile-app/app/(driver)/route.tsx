@@ -256,7 +256,7 @@ export default function RouteMapScreen() {
   if (loading) {
     return (
       <View style={s.container}>
-        <AppHeader title="Mi ruta" section="Operador" />
+        <AppHeader title="Mi ruta" section="Conductor" />
         <View style={s.loading}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={s.loadingText}>Cargando ruta...</Text>
@@ -268,7 +268,7 @@ export default function RouteMapScreen() {
   if (!execution) {
     return (
       <View style={s.container}>
-        <AppHeader title="Mi ruta" section="Operador" />
+        <AppHeader title="Mi ruta" section="Conductor" />
         <View style={s.empty}>
           <View style={s.emptyIcon}>
             <Feather name="map" size={28} color={colors.primary} />
@@ -291,7 +291,7 @@ export default function RouteMapScreen() {
 
   return (
     <View style={s.container}>
-      <AppHeader title="Mi ruta" section="Operador" />
+      <AppHeader title="Mi ruta" section="Conductor" />
 
       <ErrorBoundary label="El mapa no pudo cargar">
         <OSMMap

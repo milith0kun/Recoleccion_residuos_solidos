@@ -132,7 +132,7 @@ export default function ReportScreen() {
   if (loading) {
     return (
       <View style={s.container}>
-        <AppHeader title="Reportar" section="Operador" />
+        <AppHeader title="Reportar" section="Conductor" />
         <View style={s.empty}>
           <Text style={s.emptyDesc}>Cargando...</Text>
         </View>
@@ -143,7 +143,7 @@ export default function ReportScreen() {
   if (!execution) {
     return (
       <View style={s.container}>
-      <AppHeader title="Reportar" section="Operador" />
+      <AppHeader title="Reportar" section="Conductor" />
       <View style={s.empty}>
         <View style={s.emptyIcon}>
           <Feather name="clipboard" size={26} color={colors.primary} />
@@ -165,7 +165,7 @@ export default function ReportScreen() {
 
   return (
     <View style={s.container}>
-    <AppHeader title="Reportar" section="Operador" />
+    <AppHeader title="Reportar" section="Conductor" />
     <ScrollView
       contentContainerStyle={s.content}
       refreshControl={
