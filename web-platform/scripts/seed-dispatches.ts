@@ -78,52 +78,67 @@ async function main() {
   });
   console.log(`  Limpieza: ${removed.deletedCount} dispatches anteriores eliminados.`);
 
-  // Dispatch 1: pendiente, programada para mañana 6:00 AM.
-  const tomorrow6am = new Date();
-  tomorrow6am.setDate(tomorrow6am.getDate() + 1);
-  tomorrow6am.setHours(6, 0, 0, 0);
-
+  // Dispatch 1: ACEPTADO, programado para ahora — el conductor solo tiene
+  // que tocar "Iniciar" para arrancar el GPS tracking inmediato.
+  const now = new Date();
   const code1 = await generateCode();
-  const d1 = await Dispatch.create({
+  await Dispatch.create({
     code: code1,
     route: routes[0]._id,
     driver: driver._id,
     assignedBy: planner._id,
-    scheduledFor: tomorrow6am,
+    scheduledFor: now,
     vehicle: routes[0].vehicle,
-    notes: 'Salida regular de la mañana. Revisar contenedores de Plaza de Armas con cuidado, la semana pasada hubo desborde.',
-    status: 'pending',
+    notes: 'Salida lista para iniciar. Tocá "Iniciar" en la app para arrancar el GPS y empezar el recorrido.',
+    status: 'accepted',
+    acceptedAt: now,
   });
-  console.log(`✓ ${code1} → ${routes[0].name} · mañana 06:00 · PENDIENTE`);
+  console.log(`✓ ${code1} → ${routes[0].name} · AHORA · ACEPTADA (listo para Iniciar)`);
 
-  // Dispatch 2: pendiente también, hoy en 2 horas.
+  // Dispatch 2: pendiente, programado para mañana 6:00 AM (para probar
+  // el flujo Aceptar/Rechazar).
   if (routes.length > 1) {
-    const in2hours = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    const tomorrow6am = new Date();
+    tomorrow6am.setDate(tomorrow6am.getDate() + 1);
+    tomorrow6am.setHours(6, 0, 0, 0);
     const code2 = await generateCode();
     await Dispatch.create({
       code: code2,
       route: routes[1]._id,
       driver: driver._id,
       assignedBy: planner._id,
-      scheduledFor: in2hours,
+      scheduledFor: tomorrow6am,
       vehicle: routes[1].vehicle,
-      notes: 'Ruta vespertina. Priorizar puntos con más reportes ciudadanos.',
+      notes: 'Salida vespertina. Probar el flujo de aceptar/rechazar.',
       status: 'pending',
     });
-    console.log(
-      `✓ ${code2} → ${routes[1].name} · hoy ${in2hours.toLocaleTimeString('es-PE', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })} · PENDIENTE`,
-    );
+    console.log(`✓ ${code2} → ${routes[1].name} · mañana 06:00 · PENDIENTE`);
+  }
+
+  // Limpiar route-executions activas del conductor para evitar conflictos
+  // si en una corrida anterior quedó una "in_progress" colgada.
+  const RouteExecution = (await import('../src/lib/models/RouteExecution')).default;
+  const cleanup = await RouteExecution.updateMany(
+    { operator: driver._id, status: 'in_progress' },
+    { $set: { status: 'cancelled', endedAt: new Date() } },
+  );
+  if (cleanup.modifiedCount > 0) {
+    console.log(`  Cleanup: ${cleanup.modifiedCount} ejecuciones colgadas marcadas como canceladas.`);
   }
 
   await mongoose.disconnect();
   console.log('\n═══════════════════════════════════════════');
   console.log(' Dispatches creados. Ahora el conductor verá:');
-  console.log('   - 2 asignaciones nuevas en su pantalla "Inicio"');
-  console.log('   - Push de "Nueva salida asignada" en su celular');
+  console.log('   • 1 aceptada (lista para Iniciar — arranca GPS tracking)');
+  console.log('   • 1 pendiente (para probar Aceptar/Rechazar)');
   console.log('═══════════════════════════════════════════\n');
+  console.log('Flujo de prueba:');
+  console.log('  1) Abre la app como conductor.');
+  console.log('  2) En "Aceptadas — listas para iniciar" tocá "Iniciar".');
+  console.log('  3) Se activa el GPS y empieza a transmitir cada 10s.');
+  console.log('  4) En la web ingresá como admin → /dashboard/tracking');
+  console.log('     para ver el camión en vivo en el mapa.');
+  console.log('');
 }
 
 main().catch(async (e) => {
