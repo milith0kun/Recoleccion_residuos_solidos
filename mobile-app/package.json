@@ -8,10 +8,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "build:preview": "eas build --profile preview --platform android",
-    "build:production": "eas build --profile production --platform android",
-    "update:preview": "eas update --branch preview --message",
-    "update:production": "eas update --branch production --message"
+    "build:preview": "npx eas-cli build --profile preview --platform android",
+    "build:production": "npx eas-cli build --profile production --platform android",
+    "update:preview": "npx eas-cli update --branch preview --message",
+    "update:production": "npx eas-cli update --branch production --message"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -40,7 +40,6 @@
   "devDependencies": {
     "@types/react": "~19.1.0",
     "cross-env": "^10.1.0",
-    "eas-cli": "^18.13.0",
     "typescript": "~5.9.2"
   },
   "private": true
