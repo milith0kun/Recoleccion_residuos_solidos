@@ -85,7 +85,6 @@ export default function JornadaScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [execution, setExecution] = useState<Execution | null>(null);
-  const [routes, setRoutes] = useState<Route[]>([]);
   const [dispatches, setDispatches] = useState<DispatchItem[]>([]);
   const [history, setHistory] = useState<Execution[]>([]);
   const [busyDispatch, setBusyDispatch] = useState<string | null>(null);
@@ -146,11 +145,11 @@ export default function JornadaScreen() {
       await setActiveExecutionId(null);
       setExecution(null);
 
-      // Cargar dispatches del driver (pending + accepted) en paralelo con rutas
-      // legacy. Las dispatches son el nuevo flujo principal; las rutas son
-      // fallback hasta que todas las salidas se migren al nuevo modelo.
-      const [routesRes, dispatchesRes, historyRes] = await Promise.all([
-        api.get('/routes', { params: { status: 'active' } }),
+      // Cargar dispatches del driver (pending + accepted) + historial de
+      // jornadas completadas. En el modelo nuevo el conductor SOLO recibe
+      // trabajo vía Dispatch — no se le asignan rutas directamente, eso
+      // pasó a ser responsabilidad del operador planificador.
+      const [dispatchesRes, historyRes] = await Promise.all([
         api.get('/dispatches', { params: { driver: 'me' } }).catch(() => ({ data: { data: [] } })),
         api
           .get('/route-executions', { params: { operator: 'me', status: 'completed' } })
@@ -163,12 +162,6 @@ export default function JornadaScreen() {
       setDispatches(relevantDispatches);
       const allHistory = Array.isArray(historyRes.data?.data) ? historyRes.data.data : [];
       setHistory((allHistory as Execution[]).slice(0, 5));
-      const all: any[] = routesRes.data.data || [];
-      const mine = all.filter((r) => {
-        const opId = typeof r.operator === 'string' ? r.operator : r.operator?._id;
-        return opId === user?.id;
-      });
-      setRoutes(mine);
     } catch (e: unknown) {
       if (__DEV__) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -295,32 +288,6 @@ export default function JornadaScreen() {
       Alert.alert('Error', message);
     } finally {
       setBusyDispatch(null);
-    }
-  };
-
-  const startJornada = async (route: Route) => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permiso requerido',
-          'Necesitamos acceso a tu ubicación para registrar el recorrido.'
-        );
-        return;
-      }
-
-      const { data } = await api.post('/route-executions', { routeId: route._id });
-      if (!data?.success) throw new Error(data?.error?.message || 'No se pudo iniciar');
-
-      const exec: Execution = data.data;
-      await setActiveExecutionId(exec._id);
-      setExecution(exec);
-      Alert.alert('Jornada iniciada', 'Tu ubicación se enviará automáticamente cada 10s.');
-    } catch (err: any) {
-      Alert.alert(
-        'Error',
-        err?.response?.data?.error?.message || err?.message || 'No se pudo iniciar la jornada'
-      );
     }
   };
 
@@ -605,10 +572,9 @@ export default function JornadaScreen() {
     );
   }
 
-  const todays = routes.filter((r) => r.schedule?.dayOfWeek?.includes(todayDow));
-  const others = routes.filter((r) => !r.schedule?.dayOfWeek?.includes(todayDow));
   const pendingDispatches = dispatches.filter((d) => d.status === 'pending');
   const acceptedDispatches = dispatches.filter((d) => d.status === 'accepted');
+  const noPending = pendingDispatches.length === 0 && acceptedDispatches.length === 0;
 
   return (
     <View style={s.container}>
@@ -623,10 +589,13 @@ export default function JornadaScreen() {
         <View style={s.startIconWrap}>
           <Feather name="play-circle" size={22} color={colors.primary} />
         </View>
-        <Text style={s.startTitle}>Tu jornada del día</Text>
+        <Text style={s.startTitle}>
+          {user?.firstName ? `Hola, ${user.firstName}` : 'Tu jornada del día'}
+        </Text>
         <Text style={s.startDesc}>
-          El operador te asigna salidas. Aceptalas o rechazalas y, en el horario indicado,
-          tocá "Iniciar" para empezar a transmitir tu ubicación.
+          {noPending && history.length === 0
+            ? 'Todavía no tenés asignaciones. Cuando el operador te asigne una salida desde la web, aparecerá acá y vas a recibir una notificación.'
+            : 'El operador te asigna salidas. Aceptalas o rechazalas y, en el horario indicado, tocá "Iniciar" para empezar a transmitir tu ubicación.'}
         </Text>
       </Card>
 
@@ -669,29 +638,11 @@ export default function JornadaScreen() {
         </>
       ) : null}
 
-      <SectionTitle trailing={<Badge label={String(todays.length)} tone="primary" />}>
-        Hoy
-      </SectionTitle>
-      {todays.length === 0 ? (
+      {noPending && history.length === 0 ? (
         <EmptyState
-          title="Sin rutas para hoy"
-          description="No tenés rutas programadas para hoy."
+          title="Sin asignaciones por ahora"
+          description="Esperá a que el operador te asigne una salida. Mientras tanto, podés revisar tu perfil o configurar tus permisos."
         />
-      ) : (
-        todays.map((r) => (
-          <RouteCard key={r._id} route={r} primary onStart={() => startJornada(r)} />
-        ))
-      )}
-
-      {others.length > 0 ? (
-        <>
-          <SectionTitle trailing={<Badge label={String(others.length)} tone="muted" />}>
-            Otras rutas asignadas
-          </SectionTitle>
-          {others.map((r) => (
-            <RouteCard key={r._id} route={r} onStart={() => startJornada(r)} />
-          ))}
-        </>
       ) : null}
 
       {history.length > 0 ? (
@@ -738,56 +689,6 @@ function HistoryRow({ item }: { item: Execution }) {
           {visited > 0 ? ` · ${visited} paradas` : ''}
         </Text>
       </View>
-    </View>
-  );
-}
-
-function RouteCard({
-  route,
-  primary,
-  onStart,
-}: {
-  route: Route;
-  primary?: boolean;
-  onStart: () => void;
-}) {
-  return (
-    <View style={[s.routeCard, primary && s.routeCardPrimary]}>
-      <View style={[s.routeAccent, primary && s.routeAccentPrimary]} />
-      <View style={s.routeContent}>
-        <Text style={s.routeName} numberOfLines={1}>
-          {route.name}
-        </Text>
-        {route.zone?.district ? (
-          <Text style={s.routeZone} numberOfLines={1}>
-            {route.zone.district}
-          </Text>
-        ) : null}
-        <View style={s.routeMetaRow}>
-          {route.schedule?.startTime ? (
-            <View style={s.metaPill}>
-              <Feather name="clock" size={10} color={colors.textSecondary} />
-              <Text style={s.metaText}>{route.schedule.startTime}</Text>
-            </View>
-          ) : null}
-          {route.waypoints?.length ? (
-            <View style={s.metaPill}>
-              <Feather name="map-pin" size={10} color={colors.textSecondary} />
-              <Text style={s.metaText}>{route.waypoints.length} paradas</Text>
-            </View>
-          ) : null}
-          {route.vehicle?.plate ? (
-            <View style={s.metaPill}>
-              <Feather name="truck" size={10} color={colors.textSecondary} />
-              <Text style={s.metaText}>{route.vehicle.plate}</Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-      <TouchableOpacity style={s.startBtn} activeOpacity={0.85} onPress={onStart}>
-        <Text style={s.startBtnText}>Iniciar</Text>
-        <Feather name="arrow-right" size={13} color="#FFFFFF" />
-      </TouchableOpacity>
     </View>
   );
 }
