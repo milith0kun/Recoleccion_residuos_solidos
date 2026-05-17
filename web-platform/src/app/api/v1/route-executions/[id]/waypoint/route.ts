@@ -14,7 +14,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { user, error } = requireRole(request, 'operator', 'admin');
+  const { user, error } = requireRole(request, 'driver', 'admin');
   if (error) return error;
 
   try {

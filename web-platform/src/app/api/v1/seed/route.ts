@@ -41,17 +41,36 @@ export async function POST(request: NextRequest) {
       { upsert: true, new: true }
     );
 
-    // Create operator
+    // Create operator (planner / supervisor de operaciones)
     const opPassword = await bcrypt.hash('operator123', 12);
-    const operator = await User.findOneAndUpdate(
+    await User.findOneAndUpdate(
       { email: 'operador@residuos.cusco.gob.pe' },
       {
         email: 'operador@residuos.cusco.gob.pe',
         password: opPassword,
+        dni: '70000004',
+        firstName: 'Lucía',
+        lastName: 'Vargas Quispe',
+        role: 'operator',
+        phone: '984777888',
+        address: 'Av. Tullumayo 200, Cusco',
+        isActive: true,
+        isVerified: true,
+      },
+      { upsert: true, new: true }
+    );
+
+    // Create driver (conductor del camión)
+    const drvPassword = await bcrypt.hash('driver123', 12);
+    const operator = await User.findOneAndUpdate(
+      { email: 'conductor@residuos.cusco.gob.pe' },
+      {
+        email: 'conductor@residuos.cusco.gob.pe',
+        password: drvPassword,
         dni: '70000002',
         firstName: 'Miguel',
         lastName: 'Huamán Torres',
-        role: 'operator',
+        role: 'driver',
         phone: '984333444',
         address: 'Calle Saphi 45, Cusco',
         isActive: true,
@@ -279,6 +298,7 @@ export async function POST(request: NextRequest) {
       credentials: {
         admin: { email: 'admin@residuos.cusco.gob.pe', password: 'admin123' },
         operator: { email: 'operador@residuos.cusco.gob.pe', password: 'operator123' },
+        driver: { email: 'conductor@residuos.cusco.gob.pe', password: 'driver123' },
         citizen: { email: 'ciudadano@gmail.com', password: 'citizen123' },
       },
     }, 'Seed completado', 201);

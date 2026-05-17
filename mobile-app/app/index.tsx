@@ -6,7 +6,7 @@ import { BrandMark } from '../src/components/branding/BrandMark';
 import { colors, fontFamily } from '../src/theme/tokens';
 
 export default function Index() {
-  const { user, isLoading, isOperator } = useAuth();
+  const { user, isLoading, isDriver, isPlanner } = useAuth();
   const router = useRouter();
 
   const fade = useRef(new Animated.Value(0)).current;
@@ -32,8 +32,10 @@ export default function Index() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        if (isOperator) {
-          router.replace('/(operator)/jornada');
+        if (isPlanner) {
+          router.replace('/(planner)/home');
+        } else if (isDriver) {
+          router.replace('/(driver)/jornada');
         } else {
           router.replace('/(tabs)/home');
         }
@@ -41,7 +43,7 @@ export default function Index() {
         router.replace('/login');
       }
     }
-  }, [user, isLoading, isOperator]);
+  }, [user, isLoading, isDriver, isPlanner]);
 
   return (
     <View style={s.root}>

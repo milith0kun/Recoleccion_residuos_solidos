@@ -92,25 +92,45 @@ const CITIZEN_MENU: MenuGroup[] = [
   },
 ];
 
-const OPERATOR_MENU: MenuGroup[] = [
+const DRIVER_MENU: MenuGroup[] = [
   {
-    items: [{ href: '/(operator)/jornada', label: 'Inicio', icon: 'home' }],
+    items: [{ href: '/(driver)/jornada', label: 'Inicio', icon: 'home' }],
   },
   {
     label: 'Operación',
     items: [
-      { href: '/(operator)/route', label: 'Mi ruta', icon: 'map' },
-      { href: '/(operator)/report', label: 'Reportar', icon: 'check-square' },
+      { href: '/(driver)/route', label: 'Mi ruta', icon: 'map' },
+      { href: '/(driver)/report', label: 'Reportar', icon: 'check-square' },
     ],
   },
   {
     label: 'Cuenta',
-    items: [{ href: '/(operator)/profile', label: 'Mi perfil', icon: 'user' }],
+    items: [{ href: '/(driver)/profile', label: 'Mi perfil', icon: 'user' }],
+  },
+];
+
+const PLANNER_MENU: MenuGroup[] = [
+  {
+    items: [{ href: '/(planner)/home', label: 'Inicio', icon: 'home' }],
+  },
+  {
+    label: 'Planificación',
+    items: [
+      { href: '/(planner)/dispatches/new', label: 'Asignar salida', icon: 'send' },
+      { href: '/(planner)/dispatches', label: 'Asignaciones', icon: 'clipboard' },
+      { href: '/(planner)/drivers', label: 'Conductores activos', icon: 'truck' },
+      { href: '/(planner)/traces', label: 'Trazas históricas', icon: 'git-branch' },
+    ],
+  },
+  {
+    label: 'Cuenta',
+    items: [{ href: '/(planner)/profile', label: 'Mi perfil', icon: 'user' }],
   },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
   citizen: 'Ciudadano',
+  driver: 'Conductor',
   operator: 'Operador',
   admin: 'Administrador',
 };
@@ -121,7 +141,7 @@ const STATUS_BAR_HEIGHT = StatusBar.currentHeight ?? (Platform.OS === 'ios' ? 44
 
 interface AppShellProps {
   children: React.ReactNode;
-  role: 'citizen' | 'operator';
+  role: 'citizen' | 'driver' | 'planner';
 }
 
 export function AppShell({ children, role }: AppShellProps) {
@@ -132,9 +152,9 @@ export function AppShell({ children, role }: AppShellProps) {
   const [onRoute, setOnRoute] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Poll del estado de jornada solo si rol = operator.
+  // Poll del estado de jornada solo si rol = driver (el que maneja).
   useEffect(() => {
-    if (role !== 'operator') return;
+    if (role !== 'driver') return;
     let cancelled = false;
     const check = async () => {
       const id = await getActiveExecutionId();
@@ -201,7 +221,8 @@ export function AppShell({ children, role }: AppShellProps) {
     [open, close, toggle, isOpen]
   );
 
-  const menu = role === 'operator' ? OPERATOR_MENU : CITIZEN_MENU;
+  const menu =
+    role === 'driver' ? DRIVER_MENU : role === 'planner' ? PLANNER_MENU : CITIZEN_MENU;
 
   return (
     <DrawerContext.Provider value={ctxValue}>
@@ -332,7 +353,12 @@ function DrawerContent({ menu, onClose }: DrawerContentProps) {
           <View key={gi} style={s.drawerGroup}>
             {group.label ? <Text style={s.drawerGroupLabel}>{group.label}</Text> : null}
             {group.items.map((item) => {
-              const isActive = pathname?.includes(item.href.replace('/(tabs)', '').replace('/(operator)', ''));
+              const isActive = pathname?.includes(
+                item.href
+                  .replace('/(tabs)', '')
+                  .replace('/(driver)', '')
+                  .replace('/(planner)', '')
+              );
               return (
                 <TouchableOpacity
                   key={item.href}
@@ -391,9 +417,15 @@ export function AppHeader({ title, section, onBack }: AppHeaderProps) {
   const { user } = useAuth();
   const router = useRouter();
   const { unreadCount } = useNotifications();
-  const isOperator = user?.role === 'operator' || user?.role === 'admin';
+  const isDriver =
+    user?.role === 'driver' || user?.role === 'operator' || user?.role === 'admin';
+  const isPlanner = user?.role === 'operator' || user?.role === 'admin';
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
-  const profileRoute = isOperator ? '/(operator)/profile' : '/(tabs)/profile';
+  const profileRoute = isPlanner
+    ? '/(planner)/profile'
+    : isDriver
+      ? '/(driver)/profile'
+      : '/(tabs)/profile';
   return (
     <View style={s.header}>
       <View style={s.headerInner}>
@@ -415,7 +447,7 @@ export function AppHeader({ title, section, onBack }: AppHeaderProps) {
         </View>
 
         <View style={s.headerRight}>
-          {isOperator ? <OperatorStatusPill /> : null}
+          {isDriver && !isPlanner ? <OperatorStatusPill /> : null}
           <TouchableOpacity
             style={s.headerIconBtn}
             onPress={() => router.push('/notifications' as never)}

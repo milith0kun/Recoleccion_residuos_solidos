@@ -52,7 +52,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { user, error } = requireRole(request, 'operator', 'admin');
+  const { user, error } = requireRole(request, 'operator', 'admin', 'driver');
   if (error) return error;
 
   try {

@@ -4,28 +4,24 @@ import { useAuth } from '../../src/context/AuthContext';
 import { AppShell } from '../../src/components/layout/AppShell';
 import { colors } from '../../src/theme/tokens';
 
-export default function CitizenLayout() {
-  const { isDriver, isPlanner, isLoading, user } = useAuth();
+export default function DriverLayout() {
+  const { user, isDriver, isLoading } = useAuth();
   const router = useRouter();
 
-  // Guards: sin sesión → /login. Planner → /(planner)/home. Driver → /(driver)/jornada.
+  // Guards: sin sesión → /login. Citizen → /(tabs)/home.
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
       router.replace('/login');
       return;
     }
-    if (isPlanner) {
-      router.replace('/(planner)/home');
-      return;
+    if (!isDriver) {
+      router.replace('/(tabs)/home');
     }
-    if (isDriver) {
-      router.replace('/(driver)/jornada');
-    }
-  }, [isDriver, isPlanner, isLoading, user]);
+  }, [user, isDriver, isLoading]);
 
   return (
-    <AppShell role="citizen">
+    <AppShell role="driver">
       <Stack
         screenOptions={{
           headerShown: false,

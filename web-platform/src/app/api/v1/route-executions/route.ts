@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       filter.date = { $gte: start, $lte: end };
     }
 
-    if (user!.role === 'operator') {
+    if (user!.role === 'driver') {
       filter.operator = user!.sub;
     } else if (operatorId) {
       filter.operator = operatorId;
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { user, error } = requireRole(request, 'operator', 'admin');
+  const { user, error } = requireRole(request, 'driver', 'admin');
   if (error) return error;
 
   try {
@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
     const route = await Route.findById(routeId);
     if (!route) return errorResponse('Ruta no encontrada', 404);
 
-    // Operator can only start their own routes; admin can start any
-    if (user!.role === 'operator' && String(route.operator) !== user!.sub) {
+    // Driver can only start their own routes; admin can start any
+    if (user!.role === 'driver' && String(route.operator) !== user!.sub) {
       return errorResponse('No puedes iniciar una ruta que no te pertenece', 403);
     }
 

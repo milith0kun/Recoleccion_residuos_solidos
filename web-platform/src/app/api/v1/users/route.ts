@@ -84,8 +84,8 @@ export async function POST(request: NextRequest) {
       return errorResponse('La contraseña debe tener al menos 6 caracteres', 400);
     }
 
-    const finalRole: 'citizen' | 'operator' | 'admin' =
-      role === 'admin' || role === 'operator' ? role : 'operator';
+    const finalRole: 'citizen' | 'driver' | 'operator' | 'admin' =
+      role === 'admin' || role === 'operator' || role === 'driver' ? role : 'driver';
 
     const existing = await User.findOne({ $or: [{ email }, { dni }] });
     if (existing) {

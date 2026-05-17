@@ -15,7 +15,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'citizen' | 'operator' | 'admin';
+  role: 'citizen' | 'driver' | 'operator' | 'admin';
   dni?: string;
   zone?: string | ZoneRef | null;
   phone?: string;
@@ -30,6 +30,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   isOperator: boolean;
+  isDriver: boolean;
+  isPlanner: boolean;
   isCitizen: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
@@ -135,10 +137,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(next);
   }, []);
 
-  const { isAdmin, isOperator, isCitizen } = useMemo(
+  const { isAdmin, isOperator, isDriver, isPlanner, isCitizen } = useMemo(
     () => ({
       isAdmin: user?.role === 'admin',
-      isOperator: user?.role === 'operator' || user?.role === 'admin',
+      // isDriver: puede conducir (driver, operator, admin).
+      isDriver:
+        user?.role === 'driver' || user?.role === 'operator' || user?.role === 'admin',
+      // isPlanner: puede asignar salidas (operator, admin).
+      isPlanner: user?.role === 'operator' || user?.role === 'admin',
+      // isOperator se mantiene como alias de isDriver para compatibilidad con código previo.
+      isOperator:
+        user?.role === 'driver' || user?.role === 'operator' || user?.role === 'admin',
       isCitizen: user?.role === 'citizen',
     }),
     [user?.role]
@@ -152,6 +161,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAdmin,
         isOperator,
+        isDriver,
+        isPlanner,
         isCitizen,
         login,
         loginWithGoogle,

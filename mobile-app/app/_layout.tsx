@@ -31,7 +31,7 @@ async function checkForOtaUpdate() {
  * Subscriptor a notificaciones push.
  * - Solo dispara registro cuando hay sesión activa (`!!user`).
  * - Escucha taps en notificaciones para navegar al destino indicado en
- *   `data.url` (deep-link interno: ej. '/(tabs)/map', '/(operator)/jornada').
+ *   `data.url` (deep-link interno: ej. '/(tabs)/map', '/(driver)/jornada').
  */
 function PushSubscription() {
   const { user } = useAuth();

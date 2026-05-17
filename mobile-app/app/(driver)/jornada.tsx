@@ -391,7 +391,7 @@ export default function JornadaScreen() {
         <TouchableOpacity
           style={s.mapBtn}
           activeOpacity={0.85}
-          onPress={() => router.push('/(operator)/route')}
+          onPress={() => router.push('/(driver)/route')}
         >
           <View style={s.mapIconWrap}>
             <Feather name="map" size={16} color={colors.primary} />

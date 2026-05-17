@@ -171,14 +171,14 @@ export async function DELETE(
       return errorResponse('Usuario no encontrado', 404);
     }
 
-    if (target.role === 'operator') {
+    if (target.role === 'driver' || target.role === 'operator') {
       const activeRoute = await Route.findOne({
         operator: id,
         status: 'active',
       }).select('_id name');
       if (activeRoute) {
         return errorResponse(
-          'No se puede eliminar: el operador tiene rutas activas asignadas',
+          'No se puede eliminar: el conductor tiene rutas activas asignadas',
           409,
           'OPERATOR_HAS_ROUTES',
         );

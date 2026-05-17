@@ -16,7 +16,7 @@ interface TrackPostBody {
 }
 
 export async function POST(request: NextRequest) {
-  const { user, error } = requireRole(request, 'operator', 'admin');
+  const { user, error } = requireRole(request, 'driver', 'admin');
   if (error) return error;
 
   try {

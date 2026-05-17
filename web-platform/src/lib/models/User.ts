@@ -6,7 +6,7 @@ export interface IUser extends Document {
   dni?: string;
   firstName: string;
   lastName: string;
-  role: 'citizen' | 'operator' | 'admin';
+  role: 'citizen' | 'driver' | 'operator' | 'admin';
   phone?: string;
   address?: string;
   location?: {
@@ -55,7 +55,7 @@ const UserSchema = new Schema<IUser>(
     },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
-    role: { type: String, enum: ['citizen', 'operator', 'admin'], default: 'citizen' },
+    role: { type: String, enum: ['citizen', 'driver', 'operator', 'admin'], default: 'citizen' },
     phone: { type: String, trim: true },
     address: {
       type: String,

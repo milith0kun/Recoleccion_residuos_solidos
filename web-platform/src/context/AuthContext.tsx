@@ -15,7 +15,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'citizen' | 'operator' | 'admin';
+  role: 'citizen' | 'driver' | 'operator' | 'admin';
   dni?: string;
   phone?: string;
   address?: string;
@@ -31,6 +31,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   isOperator: boolean;
+  isDriver: boolean;
   isCitizen: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
@@ -125,10 +126,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(next);
   }, []);
 
-  const { isAdmin, isOperator, isCitizen } = useMemo(
+  const { isAdmin, isOperator, isDriver, isCitizen } = useMemo(
     () => ({
       isAdmin: user?.role === 'admin',
-      isOperator: user?.role === 'operator',
+      // operator = planificador (supervisor de operaciones).
+      isOperator: user?.role === 'operator' || user?.role === 'admin',
+      isDriver: user?.role === 'driver' || user?.role === 'operator' || user?.role === 'admin',
       isCitizen: user?.role === 'citizen',
     }),
     [user?.role]
@@ -142,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAdmin,
         isOperator,
+        isDriver,
         isCitizen,
         login,
         loginWithGoogle,
