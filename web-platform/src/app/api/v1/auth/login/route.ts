@@ -14,7 +14,9 @@ export async function POST(request: NextRequest) {
       return errorResponse('Correo y contraseña son obligatorios', 400);
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email })
+      .select('+password')
+      .populate('zone', 'name color district');
     if (!user) {
       return errorResponse('Credenciales incorrectas', 401, 'INVALID_CREDENTIALS');
     }
@@ -58,12 +60,17 @@ export async function POST(request: NextRequest) {
       refreshToken,
       user: {
         id: user._id,
+        _id: user._id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
         dni: user.dni,
+        phone: user.phone,
+        address: user.address,
         zone: user.zone,
+        avatar: user.avatar,
+        profileComplete: user.profileComplete,
       },
     }, 'Inicio de sesión exitoso');
   } catch (error: unknown) {
