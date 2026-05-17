@@ -1,29 +1,30 @@
 export const colors = {
-  bg: '#0F172A',
-  bgElevated: '#1E293B',
-  bgSoft: 'rgba(30,41,59,0.6)',
-  bgOverlay: 'rgba(15,23,42,0.6)',
+  bg: '#FAFAF8',
+  bgElevated: '#FFFFFF',
+  bgSoft: '#F7F6F4',
+  bgOverlay: 'rgba(255,255,255,0.85)',
 
-  border: '#334155',
-  borderSoft: 'rgba(51,65,85,0.5)',
+  border: '#ECEAE6',
+  borderSoft: '#F0EEEB',
 
-  textPrimary: '#F8FAFC',
-  textSecondary: '#CBD5E1',
-  textMuted: '#94A3B8',
-  textFaint: '#64748B',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#5A5750',
+  textMuted: '#8A8780',
+  textFaint: '#B0ADA8',
 
-  primary: '#10B981',
-  primarySoft: 'rgba(16,185,129,0.15)',
-  primaryBorder: 'rgba(16,185,129,0.4)',
+  primary: '#059669',
+  primaryDark: '#047857',
+  primarySoft: 'rgba(5,150,105,0.08)',
+  primaryBorder: 'rgba(5,150,105,0.35)',
 
-  info: '#3B82F6',
-  infoSoft: 'rgba(59,130,246,0.15)',
+  info: '#2563EB',
+  infoSoft: 'rgba(37,99,235,0.08)',
 
-  warn: '#F59E0B',
-  warnSoft: 'rgba(245,158,11,0.15)',
+  warn: '#D97706',
+  warnSoft: 'rgba(217,119,6,0.08)',
 
-  danger: '#EF4444',
-  dangerSoft: 'rgba(239,68,68,0.1)',
+  danger: '#DC2626',
+  dangerSoft: 'rgba(220,38,38,0.08)',
 } as const;
 
 export const spacing = {

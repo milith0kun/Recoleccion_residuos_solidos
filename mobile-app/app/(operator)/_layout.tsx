@@ -58,30 +58,30 @@ export default function OperatorTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: '#0F172A' },
+        headerStyle: { backgroundColor: '#FFFFFF' },
         headerShadowVisible: false,
-        headerTitleStyle: { color: '#F8FAFC', fontWeight: '800', fontSize: 18 },
-        headerTintColor: '#F8FAFC',
+        headerTitleStyle: { color: '#1A1A1A', fontWeight: '800', fontSize: 18 },
+        headerTintColor: '#1A1A1A',
         headerRight: () => (
           <View style={[s.badge, onRoute ? s.badgeActive : s.badgeIdle]}>
             <Animated.View
               style={[
                 s.dot,
                 {
-                  backgroundColor: onRoute ? '#10B981' : '#94A3B8',
+                  backgroundColor: onRoute ? '#059669' : '#8A8780',
                   transform: [{ scale: dotScale }],
                   opacity: dotOpacity,
                 },
               ]}
             />
-            <Text style={[s.badgeText, { color: onRoute ? '#10B981' : '#94A3B8' }]}>
+            <Text style={[s.badgeText, { color: onRoute ? '#059669' : '#8A8780' }]}>
               {onRoute ? 'EN RUTA' : 'FUERA DE SERVICIO'}
             </Text>
           </View>
         ),
         tabBarStyle: {
-          backgroundColor: '#0F172A',
-          borderTopColor: '#1E293B',
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#ECEAE6',
           borderTopWidth: 1,
           height: 65,
           paddingBottom: 8,
@@ -89,8 +89,8 @@ export default function OperatorTabsLayout() {
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarActiveTintColor: '#10B981',
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: '#059669',
+        tabBarInactiveTintColor: '#8A8780',
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
       }}
     >
@@ -137,12 +137,12 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   badgeActive: {
-    backgroundColor: 'rgba(16,185,129,0.12)',
-    borderColor: 'rgba(16,185,129,0.4)',
+    backgroundColor: 'rgba(5,150,105,0.1)',
+    borderColor: 'rgba(5,150,105,0.35)',
   },
   badgeIdle: {
-    backgroundColor: 'rgba(148,163,184,0.1)',
-    borderColor: 'rgba(148,163,184,0.3)',
+    backgroundColor: 'rgba(138,135,128,0.1)',
+    borderColor: 'rgba(138,135,128,0.3)',
   },
   dot: {
     width: 8,

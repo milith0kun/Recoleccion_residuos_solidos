@@ -138,7 +138,7 @@ export default function ReportScreen() {
   if (!execution) {
     return (
       <View style={s.empty}>
-        <Feather name="clipboard" size={48} color="#64748B" />
+        <Feather name="clipboard" size={48} color="#B0ADA8" />
         <Text style={s.emptyTitle}>Sin jornada activa</Text>
         <Text style={s.emptyDesc}>Inicia una jornada para registrar paradas y recolección.</Text>
       </View>
@@ -155,7 +155,7 @@ export default function ReportScreen() {
     <ScrollView
       style={s.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#059669" />
       }
     >
       <Text style={s.h1}>Historial de paradas</Text>
@@ -168,7 +168,7 @@ export default function ReportScreen() {
             const v = visited.get(wp.order);
             const state = !v ? 'pending' : v.skipped ? 'skipped' : 'done';
             const color =
-              state === 'done' ? '#10B981' : state === 'skipped' ? '#EF4444' : '#64748B';
+              state === 'done' ? '#059669' : state === 'skipped' ? '#EF4444' : '#B0ADA8';
             return (
               <View key={wp.order} style={s.item}>
                 <View style={[s.itemBadge, { backgroundColor: color }]}>
@@ -231,7 +231,7 @@ export default function ReportScreen() {
           editable={isActive}
           multiline
           placeholder="Comentarios, incidencias o detalles relevantes..."
-          placeholderTextColor="#64748B"
+          placeholderTextColor="#B0ADA8"
           value={observations}
           onChangeText={setObservations}
         />
@@ -269,13 +269,13 @@ function Field({
     <>
       <Text style={s.label}>{label}</Text>
       <View style={[s.inputRow, disabled && s.disabled]}>
-        <Feather name={icon} size={16} color="#94A3B8" />
+        <Feather name={icon} size={16} color="#8A8780" />
         <TextInput
           style={s.inputInner}
           editable={!disabled}
           keyboardType="numeric"
           placeholder="0.0"
-          placeholderTextColor="#64748B"
+          placeholderTextColor="#B0ADA8"
           value={value}
           onChangeText={onChange}
         />
@@ -285,27 +285,27 @@ function Field({
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A', padding: 20 },
+  container: { flex: 1, backgroundColor: '#FAFAF8', padding: 20 },
   empty: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FAFAF8',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
   },
-  emptyTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '800', marginTop: 16 },
-  emptyDesc: { color: '#94A3B8', fontSize: 13, textAlign: 'center', marginTop: 8 },
+  emptyTitle: { color: '#1A1A1A', fontSize: 18, fontWeight: '800', marginTop: 16 },
+  emptyDesc: { color: '#8A8780', fontSize: 13, textAlign: 'center', marginTop: 8 },
 
-  h1: { color: '#F8FAFC', fontSize: 20, fontWeight: '900', marginBottom: 4, marginTop: 12 },
-  subtitle: { color: '#94A3B8', fontSize: 13, marginBottom: 16 },
-  helper: { color: '#94A3B8', fontSize: 12, marginBottom: 12 },
+  h1: { color: '#1A1A1A', fontSize: 20, fontWeight: '900', marginBottom: 4, marginTop: 12 },
+  subtitle: { color: '#8A8780', fontSize: 13, marginBottom: 16 },
+  helper: { color: '#8A8780', fontSize: 12, marginBottom: 12 },
 
   list: { marginBottom: 24 },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#ECEAE6',
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
@@ -319,30 +319,30 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   itemBadgeText: { color: '#FFFFFF', fontWeight: '900', fontSize: 13 },
-  itemName: { color: '#F8FAFC', fontSize: 14, fontWeight: '700' },
+  itemName: { color: '#1A1A1A', fontSize: 14, fontWeight: '700' },
   itemStatus: { fontSize: 11, marginTop: 2, fontWeight: '600' },
 
-  form: { backgroundColor: '#1E293B', borderColor: '#334155', borderWidth: 1, borderRadius: 16, padding: 16 },
-  label: { color: '#94A3B8', fontSize: 12, fontWeight: '700', marginBottom: 6, marginTop: 12, letterSpacing: 0.3 },
+  form: { backgroundColor: '#FFFFFF', borderColor: '#ECEAE6', borderWidth: 1, borderRadius: 16, padding: 16 },
+  label: { color: '#8A8780', fontSize: 12, fontWeight: '700', marginBottom: 6, marginTop: 12, letterSpacing: 0.3 },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    borderColor: '#334155',
+    backgroundColor: '#FAFAF8',
+    borderColor: '#ECEAE6',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
     gap: 8,
   },
-  inputInner: { flex: 1, color: '#F8FAFC', fontSize: 15, paddingVertical: 12 },
+  inputInner: { flex: 1, color: '#1A1A1A', fontSize: 15, paddingVertical: 12 },
   input: {
-    backgroundColor: '#0F172A',
-    borderColor: '#334155',
+    backgroundColor: '#FAFAF8',
+    borderColor: '#ECEAE6',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    color: '#F8FAFC',
+    color: '#1A1A1A',
     fontSize: 14,
   },
   disabled: { opacity: 0.6 },
@@ -350,7 +350,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#059669',
     borderRadius: 14,
     paddingVertical: 14,
     marginTop: 20,

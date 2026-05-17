@@ -72,7 +72,7 @@ export default function OperatorProfileScreen() {
         <Text style={s.email}>{user?.email}</Text>
 
         <View style={s.badge}>
-          <Feather name="truck" size={11} color="#10B981" />
+          <Feather name="truck" size={11} color="#059669" />
           <Text style={s.badgeText}>
             {user?.role === 'admin' ? 'Administrador' : 'Operador'}
           </Text>
@@ -111,19 +111,19 @@ export default function OperatorProfileScreen() {
         onPress={() => router.push('/profile-edit')}
         activeOpacity={0.85}
       >
-        <Feather name="edit-2" size={14} color="#10B981" />
+        <Feather name="edit-2" size={14} color="#059669" />
         <Text style={s.editBtnText}>Editar mi perfil</Text>
       </TouchableOpacity>
 
       <View style={s.section}>
         <Text style={s.sectionTitle}>Configuración</Text>
         <View style={s.menuItem}>
-          <Feather name="bell" size={16} color="#94A3B8" />
+          <Feather name="bell" size={16} color="#8A8780" />
           <Text style={s.menuItemText}>Notificaciones</Text>
           <Text style={s.menuItemArrow}>›</Text>
         </View>
         <View style={s.menuItem}>
-          <Feather name="shield" size={16} color="#94A3B8" />
+          <Feather name="shield" size={16} color="#8A8780" />
           <Text style={s.menuItemText}>Privacidad y términos</Text>
           <Text style={s.menuItemArrow}>›</Text>
         </View>
@@ -140,15 +140,15 @@ export default function OperatorProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A', padding: 20 },
+  container: { flex: 1, backgroundColor: '#FAFAF8', padding: 20 },
   profileCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#ECEAE6',
   },
   avatarBox: {
     width: 80,
@@ -159,11 +159,11 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#10B981',
+    borderColor: '#059669',
   },
-  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#10B981' },
-  name: { fontSize: 20, fontWeight: 'bold', color: '#F8FAFC', marginBottom: 4 },
-  email: { fontSize: 14, color: '#94A3B8', marginBottom: 12 },
+  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#059669' },
+  name: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 4 },
+  email: { fontSize: 14, color: '#8A8780', marginBottom: 12 },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -175,7 +175,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(16,185,129,0.3)',
   },
-  badgeText: { color: '#10B981', fontSize: 12, fontWeight: '700' },
+  badgeText: { color: '#059669', fontSize: 12, fontWeight: '700' },
 
   statRow: { flexDirection: 'row', marginBottom: 16 },
   statBox: {
@@ -187,14 +187,14 @@ const s = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
   },
-  statNum: { color: '#10B981', fontWeight: '900', fontSize: 30, letterSpacing: -0.5 },
-  statLabel: { color: '#94A3B8', fontSize: 12, fontWeight: '600' },
+  statNum: { color: '#059669', fontWeight: '900', fontSize: 30, letterSpacing: -0.5 },
+  statLabel: { color: '#8A8780', fontSize: 12, fontWeight: '600' },
 
   section: { marginBottom: 20 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#8A8780',
     marginBottom: 10,
     letterSpacing: 1,
     textTransform: 'uppercase',
@@ -202,26 +202,26 @@ const s = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#0F172A',
+    borderBottomColor: '#FAFAF8',
     borderRadius: 0,
   },
-  infoLabel: { color: '#94A3B8', fontSize: 14 },
-  infoValue: { color: '#F8FAFC', fontSize: 14, fontWeight: '500' },
+  infoLabel: { color: '#8A8780', fontSize: 14 },
+  infoValue: { color: '#1A1A1A', fontSize: 14, fontWeight: '500' },
 
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#0F172A',
+    borderBottomColor: '#FAFAF8',
   },
-  menuItemText: { flex: 1, color: '#F8FAFC', fontSize: 14 },
-  menuItemArrow: { color: '#64748B', fontSize: 20 },
+  menuItemText: { flex: 1, color: '#1A1A1A', fontSize: 14 },
+  menuItemArrow: { color: '#B0ADA8', fontSize: 20 },
 
   logoutBtn: {
     flexDirection: 'row',
@@ -250,5 +250,5 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(16,185,129,0.35)',
   },
-  editBtnText: { color: '#10B981', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  editBtnText: { color: '#059669', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 });

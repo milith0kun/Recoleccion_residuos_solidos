@@ -231,7 +231,7 @@ export default function RouteMapScreen() {
   if (loading) {
     return (
       <View style={s.loading}>
-        <ActivityIndicator size="large" color="#10B981" />
+        <ActivityIndicator size="large" color="#059669" />
         <Text style={s.loadingText}>Cargando ruta...</Text>
       </View>
     );
@@ -240,7 +240,7 @@ export default function RouteMapScreen() {
   if (!execution) {
     return (
       <View style={s.empty}>
-        <Feather name="map" size={48} color="#64748B" />
+        <Feather name="map" size={48} color="#B0ADA8" />
         <Text style={s.emptyTitle}>Sin jornada activa</Text>
         <Text style={s.emptyDesc}>Inicia una jornada desde la pestaña "Jornada" para ver tu ruta.</Text>
       </View>
@@ -268,7 +268,7 @@ export default function RouteMapScreen() {
         {polylineCoords.length > 1 ? (
           <Polyline
             coordinates={polylineCoords}
-            strokeColor="#10B981"
+            strokeColor="#059669"
             strokeWidth={4}
           />
         ) : null}
@@ -278,8 +278,8 @@ export default function RouteMapScreen() {
           const color = visited
             ? visited.skipped
               ? '#EF4444'
-              : '#10B981'
-            : '#64748B';
+              : '#059669'
+            : '#B0ADA8';
           return (
             <Marker
               key={wp.order}
@@ -329,7 +329,7 @@ export default function RouteMapScreen() {
                 <View style={s.bottomMeta}>
                   {distanceToNext != null ? (
                     <Text style={s.metaText}>
-                      <Feather name="navigation" size={11} color="#94A3B8" />{' '}
+                      <Feather name="navigation" size={11} color="#8A8780" />{' '}
                       {distanceToNext < 1000
                         ? `${Math.round(distanceToNext)} m`
                         : `${(distanceToNext / 1000).toFixed(1)} km`}
@@ -337,7 +337,7 @@ export default function RouteMapScreen() {
                   ) : null}
                   {etaMinutes != null ? (
                     <Text style={s.metaText}>
-                      <Feather name="clock" size={11} color="#94A3B8" /> ~{etaMinutes} min
+                      <Feather name="clock" size={11} color="#8A8780" /> ~{etaMinutes} min
                     </Text>
                   ) : null}
                 </View>
@@ -360,7 +360,7 @@ export default function RouteMapScreen() {
           </>
         ) : (
           <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <Feather name="award" size={28} color="#10B981" />
+            <Feather name="award" size={28} color="#059669" />
             <Text style={s.allDoneText}>¡Todas las paradas registradas!</Text>
             <Text style={s.allDoneDesc}>Puedes finalizar la jornada desde la pestaña Jornada.</Text>
           </View>
@@ -385,7 +385,7 @@ export default function RouteMapScreen() {
             <TextInput
               style={s.input}
               placeholder="Ej. Calle bloqueada, contenedor inaccesible..."
-              placeholderTextColor="#64748B"
+              placeholderTextColor="#B0ADA8"
               value={skipReason}
               onChangeText={setSkipReason}
               multiline
@@ -418,13 +418,13 @@ const mapStyle = [
 ];
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
+  container: { flex: 1, backgroundColor: '#FAFAF8' },
   map: { flex: 1 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F172A' },
-  loadingText: { color: '#94A3B8', marginTop: 12 },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F172A', padding: 32 },
-  emptyTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '800', marginTop: 16 },
-  emptyDesc: { color: '#94A3B8', fontSize: 13, textAlign: 'center', marginTop: 8 },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAF8' },
+  loadingText: { color: '#8A8780', marginTop: 12 },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAF8', padding: 32 },
+  emptyTitle: { color: '#1A1A1A', fontSize: 18, fontWeight: '800', marginTop: 16 },
+  emptyDesc: { color: '#8A8780', fontSize: 13, textAlign: 'center', marginTop: 8 },
 
   wpMarker: {
     width: 30,
@@ -453,7 +453,7 @@ const s = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: '#059669',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
@@ -463,8 +463,8 @@ const s = StyleSheet.create({
     left: 16,
     right: 16,
     bottom: 24,
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#ECEAE6',
     borderWidth: 1,
     borderRadius: 20,
     padding: 16,
@@ -484,11 +484,11 @@ const s = StyleSheet.create({
     minWidth: 50,
     alignItems: 'center',
   },
-  nextBadgeText: { color: '#10B981', fontWeight: '900', fontSize: 16 },
-  bottomLabel: { color: '#94A3B8', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  bottomTitle: { color: '#F8FAFC', fontSize: 17, fontWeight: '800', marginTop: 2 },
+  nextBadgeText: { color: '#059669', fontWeight: '900', fontSize: 16 },
+  bottomLabel: { color: '#8A8780', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  bottomTitle: { color: '#1A1A1A', fontSize: 17, fontWeight: '800', marginTop: 2 },
   bottomMeta: { flexDirection: 'row', gap: 14, marginTop: 6 },
-  metaText: { color: '#94A3B8', fontSize: 12, fontWeight: '600' },
+  metaText: { color: '#8A8780', fontSize: 12, fontWeight: '600' },
 
   bottomActions: { flexDirection: 'row', gap: 10 },
   arrivedBtn: {
@@ -496,7 +496,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#059669',
     paddingVertical: 14,
     borderRadius: 14,
     gap: 8,
@@ -516,8 +516,8 @@ const s = StyleSheet.create({
   },
   skipBtnText: { color: '#EF4444', fontWeight: '700', fontSize: 13 },
 
-  allDoneText: { color: '#F8FAFC', fontWeight: '800', fontSize: 17, marginTop: 10 },
-  allDoneDesc: { color: '#94A3B8', fontSize: 12, marginTop: 4, textAlign: 'center' },
+  allDoneText: { color: '#1A1A1A', fontWeight: '800', fontSize: 17, marginTop: 10 },
+  allDoneDesc: { color: '#8A8780', fontSize: 12, marginTop: 4, textAlign: 'center' },
 
   fab: {
     position: 'absolute',
@@ -526,7 +526,7 @@ const s = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#10B981',
+    backgroundColor: '#059669',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -537,21 +537,21 @@ const s = StyleSheet.create({
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
   modalCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 24,
-    borderColor: '#334155',
+    borderColor: '#ECEAE6',
     borderWidth: 1,
   },
-  modalTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '800', marginTop: 12, textAlign: 'center' },
-  modalDesc: { color: '#94A3B8', fontSize: 13, textAlign: 'center', marginTop: 6 },
+  modalTitle: { color: '#1A1A1A', fontSize: 18, fontWeight: '800', marginTop: 12, textAlign: 'center' },
+  modalDesc: { color: '#8A8780', fontSize: 13, textAlign: 'center', marginTop: 6 },
   input: {
-    backgroundColor: '#0F172A',
-    borderColor: '#334155',
+    backgroundColor: '#FAFAF8',
+    borderColor: '#ECEAE6',
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
-    color: '#F8FAFC',
+    color: '#1A1A1A',
     fontSize: 14,
     marginTop: 16,
     minHeight: 70,
@@ -561,13 +561,13 @@ const s = StyleSheet.create({
   modalCancel: {
     flex: 1,
     backgroundColor: 'rgba(15,23,42,0.6)',
-    borderColor: '#334155',
+    borderColor: '#ECEAE6',
     borderWidth: 1,
     paddingVertical: 13,
     borderRadius: 12,
     alignItems: 'center',
   },
-  modalCancelText: { color: '#F8FAFC', fontWeight: '700' },
+  modalCancelText: { color: '#1A1A1A', fontWeight: '700' },
   modalConfirm: {
     flex: 1,
     backgroundColor: '#EF4444',

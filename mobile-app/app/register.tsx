@@ -115,7 +115,7 @@ export default function RegisterScreen() {
 
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       if (zone) {
-        setDetectedZone({ id: zone._id, name: zone.name, color: zone.color || '#10B981' });
+        setDetectedZone({ id: zone._id, name: zone.name, color: zone.color || '#059669' });
         setDetectionStatus('found');
       } else {
         setDetectionStatus('notfound');
@@ -176,7 +176,7 @@ export default function RegisterScreen() {
     if (detectionStatus === 'loading') {
       return (
         <View style={[s.chipBase, s.chipLoading]}>
-          <ActivityIndicator size="small" color="#94A3B8" />
+          <ActivityIndicator size="small" color="#8A8780" />
           <Text style={s.chipLoadingText}>Detectando tu zona...</Text>
         </View>
       );
@@ -231,7 +231,7 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Feather name="arrow-left" size={24} color="#F8FAFC" />
+            <Feather name="arrow-left" size={24} color="#1A1A1A" />
           </TouchableOpacity>
           <View style={s.headerText}>
             <Text style={s.title}>Crear Cuenta</Text>
@@ -244,11 +244,11 @@ export default function RegisterScreen() {
             <View key={f.key} style={s.fieldGroup}>
               <Text style={s.label}>{f.label}</Text>
               <View style={s.inputContainer}>
-                <Feather name={f.icon} size={18} color="#64748B" style={s.inputIcon} />
+                <Feather name={f.icon} size={18} color="#B0ADA8" style={s.inputIcon} />
                 <TextInput
                   style={s.input}
                   placeholder={f.placeholder}
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor="#B0ADA8"
                   value={form[f.key]}
                   onChangeText={(v) => update(f.key, v)}
                   keyboardType={f.keyboard || 'default'}
@@ -263,11 +263,11 @@ export default function RegisterScreen() {
           <View style={s.fieldGroup}>
             <Text style={s.label}>Dirección *</Text>
             <View style={s.inputContainer}>
-              <Feather name="map-pin" size={18} color="#64748B" style={s.inputIcon} />
+              <Feather name="map-pin" size={18} color="#B0ADA8" style={s.inputIcon} />
               <TextInput
                 style={s.input}
                 placeholder="Av. Sol 123, Cusco"
-                placeholderTextColor="#64748B"
+                placeholderTextColor="#B0ADA8"
                 value={form.address}
                 onChangeText={(v) => update('address', v)}
                 autoCapitalize="words"
@@ -289,7 +289,7 @@ export default function RegisterScreen() {
                 <Feather
                   name={form.address.trim().length === 0 ? 'navigation' : 'search'}
                   size={14}
-                  color="#10B981"
+                  color="#059669"
                   style={{ marginRight: 6 }}
                 />
                 <Text style={s.detectBtnText}>
@@ -312,7 +312,7 @@ export default function RegisterScreen() {
 
           <TouchableOpacity onPress={() => router.back()} style={s.linkBtn}>
             <Text style={s.linkText}>
-              ¿Ya tienes cuenta? <Text style={{ color: '#10B981', fontWeight: 'bold' }}>Inicia sesión</Text>
+              ¿Ya tienes cuenta? <Text style={{ color: '#059669', fontWeight: 'bold' }}>Inicia sesión</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -322,50 +322,50 @@ export default function RegisterScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flexGrow: 1, padding: 24, backgroundColor: '#0F172A', paddingTop: 60 },
+  container: { flexGrow: 1, padding: 24, backgroundColor: '#FAFAF8', paddingTop: 60 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 32 },
   backBtn: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(30,41,59,0.8)',
-    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#334155', marginRight: 16,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7F6F4',
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#ECEAE6', marginRight: 16,
   },
   headerText: { flex: 1 },
-  title: { fontSize: 26, fontWeight: '900', color: '#10B981', letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: '#94A3B8', fontWeight: '500', marginTop: 2 },
+  title: { fontSize: 26, fontWeight: '900', color: '#059669', letterSpacing: -0.5 },
+  subtitle: { fontSize: 14, color: '#8A8780', fontWeight: '500', marginTop: 2 },
   card: {
-    backgroundColor: 'rgba(30,41,59,0.7)', borderRadius: 24, padding: 28, borderWidth: 1,
-    borderColor: 'rgba(51,65,85,0.8)', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10,
+    backgroundColor: '#FFFFFF', borderRadius: 24, padding: 28, borderWidth: 1,
+    borderColor: '#F0EEEB', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 }, elevation: 5,
   },
   fieldGroup: { marginBottom: 16 },
-  label: { fontSize: 13, color: '#94A3B8', marginBottom: 8, fontWeight: '600', marginLeft: 4 },
+  label: { fontSize: 13, color: '#8A8780', marginBottom: 8, fontWeight: '600', marginLeft: 4 },
   inputContainer: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#0F172A',
-    borderWidth: 1, borderColor: '#334155', borderRadius: 16, paddingHorizontal: 16,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FAFAF8',
+    borderWidth: 1, borderColor: '#ECEAE6', borderRadius: 16, paddingHorizontal: 16,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, paddingVertical: Platform.OS === 'ios' ? 14 : 12, color: '#F8FAFC', fontSize: 15 },
+  input: { flex: 1, paddingVertical: Platform.OS === 'ios' ? 14 : 12, color: '#1A1A1A', fontSize: 15 },
   btn: {
-    backgroundColor: '#10B981', borderRadius: 16, paddingVertical: 16, alignItems: 'center',
-    marginTop: 12, flexDirection: 'row', justifyContent: 'center', shadowColor: '#10B981',
+    backgroundColor: '#059669', borderRadius: 16, paddingVertical: 16, alignItems: 'center',
+    marginTop: 12, flexDirection: 'row', justifyContent: 'center', shadowColor: '#059669',
     shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5,
   },
   btnDisabled: { opacity: 0.7 },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   linkBtn: { marginTop: 24, alignItems: 'center' },
-  linkText: { color: '#94A3B8', fontSize: 14 },
+  linkText: { color: '#8A8780', fontSize: 14 },
   detectBtn: { alignSelf: 'flex-start', marginTop: 10 },
   detectBtnInner: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 999, borderWidth: 1, borderColor: 'rgba(16,185,129,0.4)',
   },
-  detectBtnText: { color: '#10B981', fontSize: 12, fontWeight: '700' },
+  detectBtnText: { color: '#059669', fontSize: 12, fontWeight: '700' },
   chipWrap: { marginTop: 10, flexDirection: 'row' },
   chipBase: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 999, borderWidth: 1,
   },
   chipLoading: { backgroundColor: 'rgba(148,163,184,0.1)', borderColor: 'rgba(148,163,184,0.3)' },
-  chipLoadingText: { color: '#94A3B8', fontSize: 12, fontWeight: '600', marginLeft: 8 },
+  chipLoadingText: { color: '#8A8780', fontSize: 12, fontWeight: '600', marginLeft: 8 },
   chipDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
   chipText: { fontSize: 12, fontWeight: '700' },
 });
