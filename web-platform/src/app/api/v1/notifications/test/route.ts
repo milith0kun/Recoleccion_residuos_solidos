@@ -87,6 +87,10 @@ export async function GET(request: NextRequest) {
       tokenPreview: dbUser.pushToken
         ? dbUser.pushToken.slice(0, 24) + '…'
         : null,
+      // Token completo: lo devolvemos solo al dueño del token para que
+      // pueda copiarlo y probar manualmente desde
+      // https://expo.dev/notifications sin necesidad de development build.
+      token: dbUser.pushToken ?? null,
       tokenUpdatedAt: dbUser.pushTokenUpdatedAt ?? null,
     });
   } catch (err) {

@@ -10,6 +10,7 @@ import {
   StatusBar,
   Platform,
   Alert,
+  TextInput,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -59,6 +60,7 @@ function relativeTime(iso: string): string {
 interface PushStatus {
   registered: boolean;
   tokenPreview: string | null;
+  token: string | null;
   tokenUpdatedAt: string | null;
 }
 
@@ -79,7 +81,7 @@ export default function NotificationsScreen() {
       setPushStatus(data?.data as PushStatus);
     } catch (e) {
       if (__DEV__) console.warn('[notif] push status fail', e);
-      setPushStatus({ registered: false, tokenPreview: null, tokenUpdatedAt: null });
+      setPushStatus({ registered: false, tokenPreview: null, token: null, tokenUpdatedAt: null });
     }
   }, []);
 
@@ -238,6 +240,21 @@ export default function NotificationsScreen() {
                 </>
               )}
             </TouchableOpacity>
+
+            {pushStatus.token ? (
+              <View style={s.tokenBox}>
+                <Text style={s.tokenLabel}>
+                  Tu Expo Push Token (mantené presionado para copiar y probar en expo.dev/notifications):
+                </Text>
+                <TextInput
+                  style={s.tokenInput}
+                  value={pushStatus.token}
+                  editable={false}
+                  multiline
+                  selectTextOnFocus
+                />
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -399,6 +416,30 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: fontFamily.sansSemibold,
     fontSize: 12.5,
+  },
+  tokenBox: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  tokenLabel: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 15,
+    marginBottom: 6,
+  },
+  tokenInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    padding: 10,
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
+    fontSize: 11,
+    color: colors.ink,
+    minHeight: 60,
   },
 
   empty: {
