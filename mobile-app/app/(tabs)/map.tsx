@@ -71,6 +71,8 @@ export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [routes, setRoutes] = useState<RouteData[]>([]);
   const [executions, setExecutions] = useState<ActiveExecution[]>([]);
+  // routeId -> array de [lng,lat] de la traza oficial vigente
+  const [officialTraces, setOfficialTraces] = useState<Record<string, [number, number][]>>({});
   const [trail, setTrail] = useState<{
     executionId: string;
     points: [number, number][];
@@ -92,7 +94,28 @@ export default function MapScreen() {
       const zoneId = getZoneId(user?.zone);
       if (zoneId) params.zone = zoneId;
       const { data } = await api.get('/routes', { params });
-      setRoutes((data?.data || []) as RouteData[]);
+      const list = (data?.data || []) as RouteData[];
+      setRoutes(list);
+      // Cargar trazas oficiales de cada ruta en paralelo. Si una ruta no tiene
+      // traza oficial aún (404), no rompemos: simplemente no la mapeamos y se
+      // pinta la programada como fallback.
+      const entries = await Promise.all(
+        list.map(async (r) => {
+          try {
+            const { data: t } = await api.get(`/routes/${r._id}/traces/official`);
+            const coords = t?.data?.points?.coordinates as [number, number][] | undefined;
+            if (!coords || coords.length < 2) return null;
+            return [r._id, coords] as [string, [number, number][]];
+          } catch {
+            return null;
+          }
+        }),
+      );
+      const map: Record<string, [number, number][]> = {};
+      for (const e of entries) {
+        if (e) map[e[0]] = e[1];
+      }
+      setOfficialTraces(map);
     } catch (e) {
       if (__DEV__) console.warn('[map] /routes failed', e);
     }
@@ -155,21 +178,31 @@ export default function MapScreen() {
   const polylines = useMemo<MapPolyline[]>(() => {
     const items: MapPolyline[] = [];
     filteredRoutes.forEach((r) => {
+      const status = (r.status || 'pending') as RouteStatus;
+      const official = officialTraces[r._id];
+
+      if (official && official.length > 1) {
+        // Traza oficial: el recorrido REAL que los conductores ya hicieron.
+        // Verde sólido sin dash — esto es la realidad observada, no la planificación.
+        items.push({
+          id: `trace-${r._id}`,
+          points: official.map((c) => [c[1], c[0]]),
+          color: status === 'active' ? colors.primary : '#00684A',
+          width: status === 'active' ? 5 : 4,
+          dashed: false,
+        });
+        return;
+      }
+
+      // Sin traza oficial todavía → pintamos la ruta programada como referencia.
       const coords = r.path?.coordinates;
       if (!coords || coords.length === 0) return;
-      const status = (r.status || 'pending') as RouteStatus;
-      const color =
-        status === 'active'
-          ? colors.primary
-          : status === 'completed'
-          ? '#1E5180'
-          : '#5C6C75';
       items.push({
         id: r._id,
         points: coords.map((c) => [c[1], c[0]]),
-        color,
-        width: status === 'active' ? 5 : 3,
-        dashed: status !== 'active',
+        color: '#94A3B8',
+        width: 3,
+        dashed: true,
       });
     });
     if (trail && trail.points.length > 1) {
@@ -181,7 +214,7 @@ export default function MapScreen() {
       });
     }
     return items;
-  }, [filteredRoutes, trail]);
+  }, [filteredRoutes, officialTraces, trail]);
 
   const markers = useMemo<MapMarker[]>(() => {
     const items: MapMarker[] = [];
