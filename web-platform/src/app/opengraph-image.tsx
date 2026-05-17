@@ -20,25 +20,27 @@ export default function OpenGraphImage() {
           position: 'relative',
         }}
       >
+        {/* Layer decorativo de fondo */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
+            display: 'flex',
             background:
               'radial-gradient(circle at 85% 15%, rgba(255,255,255,0.10), transparent 45%), radial-gradient(circle at 15% 95%, rgba(16,185,129,0.35), transparent 50%)',
-            display: 'flex',
           }}
         />
 
+        {/* Columna izquierda: copy */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             width: '58%',
-            zIndex: 1,
           }}
         >
+          {/* Eyebrow */}
           <div
             style={{
               display: 'flex',
@@ -57,6 +59,7 @@ export default function OpenGraphImage() {
           >
             <div
               style={{
+                display: 'flex',
                 width: 10,
                 height: 10,
                 borderRadius: 999,
@@ -67,9 +70,12 @@ export default function OpenGraphImage() {
             SRSS · Cusco
           </div>
 
+          {/* Title + sub */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div
               style={{
+                display: 'flex',
+                flexDirection: 'column',
                 fontSize: 86,
                 fontWeight: 800,
                 lineHeight: 1.02,
@@ -78,14 +84,13 @@ export default function OpenGraphImage() {
                 color: '#FFFFFF',
               }}
             >
-              Recolección de
-              <br />
-              residuos
-              <br />
+              <span>Recolección de</span>
+              <span>residuos</span>
               <span style={{ color: '#6EE7B7' }}>segregados.</span>
             </div>
             <div
               style={{
+                display: 'flex',
                 fontSize: 26,
                 lineHeight: 1.35,
                 fontWeight: 500,
@@ -97,6 +102,7 @@ export default function OpenGraphImage() {
             </div>
           </div>
 
+          {/* Footer */}
           <div
             style={{
               display: 'flex',
@@ -113,13 +119,13 @@ export default function OpenGraphImage() {
           </div>
         </div>
 
+        {/* Columna derecha: BrandMark grande */}
         <div
           style={{
             width: '42%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1,
           }}
         >
           <div
