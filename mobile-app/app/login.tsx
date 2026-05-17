@@ -37,7 +37,7 @@ const palette = {
 
 export default function LoginScreen() {
   const { login, loginWithGoogle } = useAuth();
-  const { request, response, promptAsync } = useGoogleAuth();
+  const { ready: googleReady, signIn: googleSignIn } = useGoogleAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,36 +66,6 @@ export default function LoginScreen() {
     ]).start();
   }, [fade, slide]);
 
-  useEffect(() => {
-    const exchangeGoogleToken = async (idToken: string) => {
-      setGoogleLoading(true);
-      try {
-        await loginWithGoogle(idToken);
-        router.replace('/');
-      } catch (err: unknown) {
-        const message =
-          (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-            ?.message ||
-          (err as Error)?.message ||
-          'No se pudo iniciar sesión con Google';
-        Alert.alert('Error', message);
-      } finally {
-        setGoogleLoading(false);
-      }
-    };
-
-    if (response?.type === 'success') {
-      const idToken = response.params?.id_token;
-      if (typeof idToken === 'string' && idToken.length > 0) {
-        exchangeGoogleToken(idToken);
-      } else {
-        Alert.alert('Error', 'Google no devolvió un token válido');
-      }
-    } else if (response?.type === 'error') {
-      Alert.alert('Error', response.error?.message ?? 'Error en autenticación con Google');
-    }
-  }, [response, loginWithGoogle, router]);
-
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Datos incompletos', 'Ingresa correo y contraseña');
@@ -118,12 +88,26 @@ export default function LoginScreen() {
   };
 
   const handleGoogle = async () => {
-    if (!request) return;
+    if (!googleReady || googleLoading) return;
+    setGoogleLoading(true);
     try {
-      await promptAsync();
+      const outcome = await googleSignIn();
+      if (outcome.type === 'cancelled') return;
+      if (outcome.type === 'error') {
+        Alert.alert('Error', outcome.message);
+        return;
+      }
+      await loginWithGoogle(outcome.idToken);
+      router.replace('/');
     } catch (err: unknown) {
-      const message = (err as Error)?.message || 'No se pudo abrir Google';
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ||
+        (err as Error)?.message ||
+        'No se pudo iniciar sesión con Google';
       Alert.alert('Error', message);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -151,7 +135,7 @@ export default function LoginScreen() {
     }).start();
   };
 
-  const googleDisabled = !request || googleLoading || loading;
+  const googleDisabled = !googleReady || googleLoading || loading;
 
   return (
     <View style={s.root}>
@@ -245,7 +229,7 @@ export default function LoginScreen() {
             )}
           </Pressable>
 
-          {!request && (
+          {!googleReady && (
             <Text style={s.googleHint}>
               Configura las credenciales de Google en .env
             </Text>
