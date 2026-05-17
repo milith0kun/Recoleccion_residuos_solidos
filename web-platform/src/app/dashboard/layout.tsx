@@ -24,17 +24,48 @@ import {
 } from 'lucide-react';
 import AccessRestricted from '@/components/AccessRestricted';
 
-const menuItems = [
-  { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard },
-  { href: '/dashboard/users', label: 'Usuarios', icon: Users, roles: ['admin'] },
-  { href: '/dashboard/zones', label: 'Zonas', icon: MapIcon },
-  { href: '/dashboard/waste-types', label: 'Residuos', icon: Recycle },
-  { href: '/dashboard/routes', label: 'Rutas', icon: Truck },
-  { href: '/dashboard/vehicles', label: 'Vehículos', icon: Car },
-  { href: '/dashboard/incidents', label: 'Incidentes', icon: AlertTriangle },
-  { href: '/dashboard/reports', label: 'Reportes', icon: BarChart3 },
-  { href: '/dashboard/tracking', label: 'Seguimiento', icon: Radio },
-  { href: '/dashboard/profile', label: 'Mi Perfil', icon: UserIcon },
+interface MenuItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  roles?: string[];
+}
+
+interface MenuGroup {
+  label: string | null;
+  items: MenuItem[];
+}
+
+const menuGroups: MenuGroup[] = [
+  {
+    label: null,
+    items: [{ href: '/dashboard', label: 'Resumen', icon: LayoutDashboard }],
+  },
+  {
+    label: 'Gestión',
+    items: [
+      { href: '/dashboard/users', label: 'Usuarios', icon: Users, roles: ['admin'] },
+      { href: '/dashboard/zones', label: 'Zonas', icon: MapIcon },
+      { href: '/dashboard/routes', label: 'Rutas', icon: Truck },
+      { href: '/dashboard/vehicles', label: 'Vehículos', icon: Car },
+    ],
+  },
+  {
+    label: 'Catálogo',
+    items: [{ href: '/dashboard/waste-types', label: 'Residuos', icon: Recycle }],
+  },
+  {
+    label: 'Operaciones',
+    items: [
+      { href: '/dashboard/incidents', label: 'Incidentes', icon: AlertTriangle },
+      { href: '/dashboard/tracking', label: 'Seguimiento', icon: Radio },
+      { href: '/dashboard/reports', label: 'Reportes', icon: BarChart3 },
+    ],
+  },
+  {
+    label: 'Cuenta',
+    items: [{ href: '/dashboard/profile', label: 'Mi Perfil', icon: UserIcon }],
+  },
 ];
 
 const roleLabels: Record<string, string> = {
@@ -59,7 +90,7 @@ const pageTitles: Record<string, string> = {
 interface SidebarContentProps {
   isMobile?: boolean;
   collapsed: boolean;
-  filteredMenu: typeof menuItems;
+  groups: MenuGroup[];
   pathname: string;
   user: { firstName: string; lastName: string; role: string };
   onNavigate: () => void;
@@ -100,7 +131,7 @@ function BrandMark() {
 function SidebarContent({
   isMobile = false,
   collapsed,
-  filteredMenu,
+  groups,
   pathname,
   user,
   onNavigate,
@@ -120,21 +151,30 @@ function SidebarContent({
       </div>
 
       <nav className="sb-nav">
-        {expanded && <span className="sb-nav-label">Navegación</span>}
-        {filteredMenu.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
+        {groups.map((group, gi) => {
+          if (group.items.length === 0) return null;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onNavigate}
-              className={`sb-link ${isActive ? 'sb-link--active' : ''}`}
-            >
-              <Icon style={{ width: 18, height: 18, flexShrink: 0 }} />
-              {expanded && <span>{item.label}</span>}
-              {isActive && expanded && <span className="sb-link-pill" />}
-            </Link>
+            <div key={gi} className="sb-group">
+              {expanded && group.label && (
+                <span className="sb-group-label">{group.label}</span>
+              )}
+              {group.items.map((item) => {
+                const isActive = pathname === item.href;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onNavigate}
+                    className={`sb-link ${isActive ? 'sb-link--active' : ''}`}
+                  >
+                    <Icon style={{ width: 18, height: 18, flexShrink: 0 }} />
+                    {expanded && <span>{item.label}</span>}
+                    {isActive && expanded && <span className="sb-link-pill" />}
+                  </Link>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
@@ -189,9 +229,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <AccessRestricted />;
   }
 
-  const filteredMenu = menuItems.filter(
-    (item) => !item.roles || item.roles.includes(user.role)
-  );
+  const filteredGroups: MenuGroup[] = menuGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.roles || item.roles.includes(user.role)),
+  }));
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -202,7 +243,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className={`sb ${collapsed ? 'sb--collapsed' : ''}`}>
         <SidebarContent
           collapsed={collapsed}
-          filteredMenu={filteredMenu}
+          groups={filteredGroups}
           pathname={pathname}
           user={user}
           onNavigate={closeMobileMenu}
@@ -224,7 +265,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarContent
           isMobile
           collapsed={collapsed}
-          filteredMenu={filteredMenu}
+          groups={filteredGroups}
           pathname={pathname}
           user={user}
           onNavigate={closeMobileMenu}
@@ -363,6 +404,25 @@ const dashStyles = `
     text-transform: uppercase;
     letter-spacing: 0.14em;
     padding: 0 0.85rem 0.5rem;
+  }
+  .sb-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 0 8px;
+  }
+  .sb-group:not(:first-child) {
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px solid #F4F2EF;
+  }
+  .sb-group-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #B0ADA8;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 6px 0.95rem 6px;
   }
 
   .sb-link {
