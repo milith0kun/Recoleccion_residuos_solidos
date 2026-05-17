@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" fill="none">
+  <!-- Versión monocromática del BrandMark — blanco sobre transparente.
+       Para notificaciones Android (que exigen iconos monocromos según Material Design). -->
+  <!-- Tacho 1 — orgánicos -->
+  <rect x="0.5" y="6.5" width="11" height="2.6" rx="1.1" fill="#FFFFFF"/>
+  <rect x="1.5" y="9.5" width="9" height="20" rx="1.5" fill="#FFFFFF"/>
+
+  <!-- Tacho 2 — reciclables -->
+  <rect x="12.5" y="6.5" width="11" height="2.6" rx="1.1" fill="#FFFFFF"/>
+  <rect x="13.5" y="9.5" width="9" height="20" rx="1.5" fill="#FFFFFF"/>
+
+  <!-- Tacho 3 — peligrosos -->
+  <rect x="24.5" y="6.5" width="11" height="2.6" rx="1.1" fill="#FFFFFF"/>
+  <rect x="25.5" y="9.5" width="9" height="20" rx="1.5" fill="#FFFFFF"/>
+</svg>

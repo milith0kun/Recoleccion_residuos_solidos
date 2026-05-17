@@ -61,6 +61,15 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.378647499793-placeholder"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#00684A",
+          "defaultChannel": "default",
+          "sounds": []
+        }
       ]
     ],
     "extra": {

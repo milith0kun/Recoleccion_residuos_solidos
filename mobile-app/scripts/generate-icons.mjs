@@ -20,14 +20,15 @@ const ROOT = join(__dirname, '..');
 const ASSETS = join(ROOT, 'assets');
 
 const SOURCE = join(ASSETS, 'brand-mark.svg');
+const SOURCE_MONO = join(ASSETS, 'brand-mark-mono.svg');
 const BG = '#FFFFFF';
 
 /**
- * Renderiza el SVG en un PNG cuadrado con padding (safe zone) y opcionalmente
+ * Renderiza un SVG en un PNG cuadrado con padding (safe zone) y opcionalmente
  * fondo sólido. El padding es porcentaje del tamaño total (0–1).
  */
-async function render({ size, padding, bg, outFile }) {
-  const svg = await readFile(SOURCE);
+async function render({ size, padding, bg, outFile, source = SOURCE }) {
+  const svg = await readFile(source);
   const inner = Math.round(size * (1 - padding * 2));
 
   // 1) renderizar SVG al tamaño "inner" (mantiene proporciones del viewBox 36×32 — width pleno, alto recortado)
@@ -68,20 +69,22 @@ async function render({ size, padding, bg, outFile }) {
 }
 
 async function main() {
-  // icon.png — legacy / iOS: padding mínimo para que el logo respire pero ocupe ancho.
+  // icon.png — legacy / iOS. Padding mínimo para que el logo se vea prominente.
   await render({
     size: 1024,
-    padding: 0.10,
+    padding: 0.06,
     bg: null,
     outFile: join(ASSETS, 'icon.png'),
   });
 
   // adaptive-icon.png — Android adaptive foreground.
-  // Safe zone Android: contenido en círculo radius 33% del canvas (padding mínimo 18%).
-  // Vamos al borde para que el SO no recorte pero el logo se vea grande.
+  // El SO recorta en máscara (círculo/squircle) con safe zone ~ 18%.
+  // Usamos 12% para que el logo se vea ~20% más grande que el estándar.
+  // El SVG ya tiene su propio padding interno (18% top/bottom dentro del viewBox),
+  // así que el contenido visible queda dentro de la safe zone aún con 12%.
   await render({
     size: 1024,
-    padding: 0.18,
+    padding: 0.12,
     bg: null,
     outFile: join(ASSETS, 'adaptive-icon.png'),
   });
@@ -89,7 +92,7 @@ async function main() {
   // splash-icon.png — splash screen con resizeMode contain.
   await render({
     size: 1024,
-    padding: 0.24,
+    padding: 0.20,
     bg: null,
     outFile: join(ASSETS, 'splash-icon.png'),
   });
@@ -97,9 +100,20 @@ async function main() {
   // favicon.png — web tab. Mantiene fondo blanco por legibilidad.
   await render({
     size: 48,
-    padding: 0.08,
+    padding: 0.06,
     bg: BG,
     outFile: join(ASSETS, 'favicon.png'),
+  });
+
+  // notification-icon.png — Android status bar.
+  // Material Design exige icono monocromo blanco sobre transparente.
+  // El SO le aplica color (definido en app.json plugin).
+  await render({
+    size: 96,
+    padding: 0.18,
+    bg: null,
+    outFile: join(ASSETS, 'notification-icon.png'),
+    source: SOURCE_MONO,
   });
 }
 
