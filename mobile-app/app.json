@@ -29,7 +29,7 @@
     },
     "android": {
       "package": "pe.gob.cusco.srss",
-      "googleServicesFile": "./google-services.json",
+      "googleServicesFile": "$GOOGLE_SERVICES_JSON",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
