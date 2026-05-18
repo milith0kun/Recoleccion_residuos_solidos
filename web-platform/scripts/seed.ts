@@ -123,6 +123,8 @@ async function main() {
     { upsert: true, new: true }
   );
   console.log('✓ citizen:', citizen.email);
+  // Nota: la zona del citizen se asigna más abajo, después de crear las
+  // zonas (necesitamos el _id de Centro Histórico).
 
   // ── Zonas ────────────────────────────────────────────────────────────────
   const zone1 = await Zone.findOneAndUpdate(
@@ -188,6 +190,14 @@ async function main() {
     { upsert: true, new: true }
   );
   console.log('✓ zonas: 3');
+
+  // Asignar la zona Centro Histórico al ciudadano del seed para que pueda
+  // ver inMyZone=true cuando un camión opere allí y reciba los pushes
+  // por zona.
+  await User.findByIdAndUpdate(citizen._id, {
+    $set: { zone: zone1._id, profileComplete: true },
+  });
+  console.log(`✓ citizen.zone asignada a "Centro Histórico"`);
 
   // ── Waste types ───────────────────────────────────────────────────────────
   const wasteTypes = [

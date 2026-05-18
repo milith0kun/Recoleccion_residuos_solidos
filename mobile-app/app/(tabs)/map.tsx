@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
@@ -38,6 +39,8 @@ interface ActiveExecution {
   executionId: string;
   routeId: string;
   routeName: string;
+  zone: { _id: string; name?: string; color?: string } | null;
+  inMyZone: boolean;
   operatorName: string;
   vehicle: { plate: string; type?: string };
   lastLocation: { lng: number; lat: number; timestamp: string; speed?: number } | null;
@@ -69,6 +72,7 @@ const CUSCO_CENTER = { lat: -13.52264, lng: -71.96734 };
 
 export default function MapScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [routes, setRoutes] = useState<RouteData[]>([]);
   const [executions, setExecutions] = useState<ActiveExecution[]>([]);
@@ -87,6 +91,9 @@ export default function MapScreen() {
   });
   const [selectedExecution, setSelectedExecution] = useState<ActiveExecution | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // Toggle: si el ciudadano quiere ver SOLO los camiones de su zona
+  // (default false → ve todos los activos de la ciudad).
+  const [onlyMyZone, setOnlyMyZone] = useState(false);
   const mapRef = useRef<OSMMapRef>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -232,18 +239,28 @@ export default function MapScreen() {
         });
       });
     });
-    executions.forEach((exec) => {
+    const visibleExecutions = onlyMyZone
+      ? executions.filter((e) => e.inMyZone)
+      : executions;
+    visibleExecutions.forEach((exec) => {
       if (!exec.lastLocation) return;
+      // Verde brillante para camiones de mi zona, gris-azul para los
+      // de otras zonas, ámbar si están sin señal hace rato.
+      const color = exec.isStale
+        ? colors.warn
+        : exec.inMyZone
+          ? colors.primary
+          : '#5C6C75';
       items.push({
         id: `exec-${exec.executionId}`,
         lat: exec.lastLocation.lat,
         lng: exec.lastLocation.lng,
-        color: exec.isStale ? colors.warn : colors.primary,
+        color,
         variant: 'pulse',
       });
     });
     return items;
-  }, [filteredRoutes, executions]);
+  }, [filteredRoutes, executions, onlyMyZone]);
 
   const onTrackExecution = async (exec: ActiveExecution) => {
     setSelectedExecution(exec);
@@ -385,7 +402,10 @@ export default function MapScreen() {
     );
   }
 
-  const activeTrucks = executions.length;
+  const trucksInMyZone = executions.filter((e) => e.inMyZone).length;
+  const totalActiveTrucks = executions.length;
+  const visibleCount = onlyMyZone ? trucksInMyZone : totalActiveTrucks;
+  const hasZone = Boolean(getZoneId(user?.zone));
   const userLoc = location ? { lat: location.coords.latitude, lng: location.coords.longitude } : null;
 
   return (
@@ -412,54 +432,62 @@ export default function MapScreen() {
             <View
               style={[
                 s.statusDot,
-                { backgroundColor: activeTrucks > 0 ? colors.primary : colors.textMuted },
+                { backgroundColor: visibleCount > 0 ? colors.primary : colors.textMuted },
               ]}
             />
             <Text style={s.cardTitle}>
-              {activeTrucks > 0
-                ? `${activeTrucks} camión${activeTrucks === 1 ? '' : 'es'} en tu zona`
-                : 'Sin recolección activa'}
+              {visibleCount > 0
+                ? `${visibleCount} camión${visibleCount === 1 ? '' : 'es'} ${
+                    onlyMyZone ? 'en tu zona' : 'operando en Cusco'
+                  }`
+                : onlyMyZone
+                  ? 'Sin camiones en tu zona ahora'
+                  : 'Sin recolección activa'}
             </Text>
           </View>
           <Text style={s.cardDesc}>
-            {activeTrucks > 0
-              ? 'Tocá un camión para ver detalles y rastreo en vivo.'
-              : 'Te avisaremos cuando un camión esté en ruta.'}
+            {visibleCount > 0
+              ? hasZone && !onlyMyZone && trucksInMyZone > 0
+                ? `${trucksInMyZone} en tu zona (verde). Tocá un camión para detalles.`
+                : 'Tocá un camión para ver detalles y rastreo en vivo.'
+              : onlyMyZone && totalActiveTrucks > 0
+                ? `Hay ${totalActiveTrucks} en otras zonas. Desactivá "Sólo mi zona" para verlos.`
+                : 'Te avisaremos cuando un camión esté en ruta.'}
           </Text>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.filtersRow}
-          >
-            {(Object.keys(FILTER_META) as FilterKey[]).map((key) => {
-              const meta = FILTER_META[key];
-              const active = filters[key];
-              return (
-                <TouchableOpacity
-                  key={key}
-                  onPress={() => toggleFilter(key)}
-                  activeOpacity={0.8}
-                  style={[
-                    s.filterChip,
-                    active && {
-                      borderColor: `${meta.color}80`,
-                      backgroundColor: `${meta.color}18`,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      s.filterChipText,
-                      { color: active ? meta.color : colors.textSecondary },
-                    ]}
-                  >
-                    {meta.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          {hasZone ? (
+            <TouchableOpacity
+              onPress={() => setOnlyMyZone((v) => !v)}
+              activeOpacity={0.8}
+              style={[s.zoneFilterChip, onlyMyZone && s.zoneFilterChipActive]}
+            >
+              <Feather
+                name={onlyMyZone ? 'check-square' : 'square'}
+                size={13}
+                color={onlyMyZone ? colors.primary : colors.textSecondary}
+              />
+              <Text
+                style={[
+                  s.zoneFilterText,
+                  { color: onlyMyZone ? colors.primary : colors.textSecondary },
+                ]}
+              >
+                Sólo mi zona
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => router.push('/profile-edit' as never)}
+              activeOpacity={0.8}
+              style={s.assignZoneBanner}
+            >
+              <Feather name="map-pin" size={13} color={colors.warn} />
+              <Text style={s.assignZoneText}>
+                Asigná tu zona para identificar tus camiones
+              </Text>
+              <Feather name="chevron-right" size={14} color={colors.warn} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -499,7 +527,7 @@ export default function MapScreen() {
         <Feather name="refresh-cw" size={16} color={colors.primary} />
       </TouchableOpacity>
 
-      {activeTrucks > 0 && (
+      {totalActiveTrucks > 0 && (
         <TouchableOpacity
           style={s.confirmBtn}
           onPress={confirmTruckHere}
@@ -596,6 +624,46 @@ const s = StyleSheet.create({
   filterChipText: {
     fontFamily: fontFamily.sansSemibold,
     fontSize: 11,
+  },
+
+  zoneFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+  },
+  zoneFilterChipActive: {
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primarySoft,
+  },
+  zoneFilterText: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 11.5,
+  },
+  assignZoneBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.warnBorder,
+    backgroundColor: colors.warnSoft,
+    marginTop: spacing.sm,
+  },
+  assignZoneText: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 11.5,
+    color: colors.warn,
+    flex: 1,
   },
 
   fab: {

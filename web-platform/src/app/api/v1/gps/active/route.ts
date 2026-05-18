@@ -19,7 +19,9 @@ const STALE_THRESHOLD_MS = 30 * 1000;
 interface PopulatedRoute {
   _id: mongoose.Types.ObjectId;
   name: string;
-  zone?: mongoose.Types.ObjectId;
+  // Cuando se hace deep-populate, route.zone llega como ZoneLite en vez
+  // de solo ObjectId. Aceptamos ambos para tolerar diferencias.
+  zone?: mongoose.Types.ObjectId | ZoneLite | null;
 }
 
 interface PopulatedVehicle {
@@ -42,6 +44,12 @@ interface PopulatedExecution {
   startedAt: Date;
 }
 
+interface ZoneLite {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  color?: string;
+}
+
 interface GpsTrackLean {
   _id: mongoose.Types.ObjectId;
   routeExecution: mongoose.Types.ObjectId;
@@ -54,6 +62,12 @@ interface ActiveItem {
   executionId: string;
   routeId: string;
   routeName: string;
+  /** Zona donde opera la ruta — sirve al ciudadano para saber si el
+   *  camión está en su barrio o en otro. */
+  zone: { _id: string; name?: string; color?: string } | null;
+  /** True si el camión está operando en la zona del usuario actual.
+   *  El ciudadano puede filtrar por esto en la UI. */
+  inMyZone: boolean;
   operatorName: string;
   vehicle: { plate: string; type: string } | null;
   lastLocation: { lng: number; lat: number; timestamp: Date; speed?: number } | null;
@@ -62,7 +76,7 @@ interface ActiveItem {
   startedAt: Date;
 }
 
-interface CitizenUser {
+interface UserWithZone {
   _id: mongoose.Types.ObjectId;
   zone?: mongoose.Types.ObjectId | null;
 }
@@ -74,28 +88,24 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
+    // Devolvemos TODAS las ejecuciones activas (no filtramos por zona).
+    // El ciudadano puede ver camiones de toda la ciudad — el flag
+    // `inMyZone` por execution le permite enfocar visualmente las suyas
+    // o filtrarlas desde el cliente.
     const filter: Record<string, unknown> = { status: 'in_progress' };
 
-    if (user!.role === 'citizen') {
-      const citizen = (await User.findById(user!.sub)
-        .select('zone')
-        .lean()) as CitizenUser | null;
-      if (!citizen?.zone) {
-        return successResponse([]);
-      }
-      // Routes inside the citizen's zone
-      const routesInZone = await Route.find({ zone: citizen.zone })
-        .select('_id')
-        .lean();
-      const routeIds = routesInZone.map((r) => (r as { _id: mongoose.Types.ObjectId })._id);
-      if (routeIds.length === 0) {
-        return successResponse([]);
-      }
-      filter.route = { $in: routeIds };
-    }
+    // Resolvemos la zona del usuario (si la tiene) para marcar inMyZone.
+    const me = (await User.findById(user!.sub)
+      .select('zone')
+      .lean()) as UserWithZone | null;
+    const myZoneId = me?.zone ? String(me.zone) : null;
 
     const executionsRaw = await RouteExecution.find(filter)
-      .populate('route', 'name zone')
+      .populate({
+        path: 'route',
+        select: 'name zone',
+        populate: { path: 'zone', select: 'name color' },
+      })
       .populate('vehicle', 'plate type')
       .populate('operator', 'firstName lastName')
       .sort({ startedAt: -1 })
@@ -146,10 +156,31 @@ export async function GET(request: NextRequest) {
         ? `${exec.operator.firstName} ${exec.operator.lastName}`.trim()
         : 'Operador';
 
+      // Extraer zone tanto si vino como ObjectId pelado como si vino
+      // populado con name/color.
+      const routeZone = exec.route?.zone;
+      let zonePayload: ActiveItem['zone'] = null;
+      let routeZoneId: string | null = null;
+      if (routeZone) {
+        if (typeof routeZone === 'object' && '_id' in routeZone) {
+          routeZoneId = String((routeZone as ZoneLite)._id);
+          zonePayload = {
+            _id: routeZoneId,
+            name: (routeZone as ZoneLite).name,
+            color: (routeZone as ZoneLite).color,
+          };
+        } else {
+          routeZoneId = String(routeZone);
+          zonePayload = { _id: routeZoneId };
+        }
+      }
+
       return {
         executionId: String(exec._id),
         routeId: exec.route ? String(exec.route._id) : '',
         routeName: exec.route?.name || 'Ruta',
+        zone: zonePayload,
+        inMyZone: Boolean(myZoneId && routeZoneId && myZoneId === routeZoneId),
         operatorName,
         vehicle: exec.vehicle
           ? { plate: exec.vehicle.plate, type: exec.vehicle.type }
