@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       phone,
       address,
       role: 'citizen',
+      isVerified: false,
       location: location ?? undefined,
       zone: zone ?? undefined,
       emailVerificationCode: verificationCode,

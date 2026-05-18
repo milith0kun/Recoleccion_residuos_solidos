@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
-import { ArrowRight, BookOpen, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, BookOpen, Eye, EyeOff, MailWarning } from 'lucide-react';
 import { BrandLockup, BrandMark } from '@/components/branding/BrandMark';
 
 interface GoogleCredentialResponse {
@@ -54,12 +54,13 @@ const FEATURES = [
 ];
 
 export default function HomePage() {
-  const { user, login, loginWithGoogle, isLoading } = useAuth();
+  const { user, loginWithGoogle, isLoading, setUser } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [gisReady, setGisReady] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
@@ -114,9 +115,26 @@ export default function HomePage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setUnverifiedEmail('');
     setSubmitting(true);
     try {
-      await login(email, password);
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        if (data.error?.code === 'EMAIL_NOT_VERIFIED') {
+          setUnverifiedEmail(email);
+          return;
+        }
+        throw new Error(data.error?.message || 'Error de autenticación');
+      }
+      localStorage.setItem('accessToken', data.data.accessToken);
+      localStorage.setItem('refreshToken', data.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(data.data.user));
+      setUser(data.data.user);
       router.push('/dashboard');
     } catch (err: unknown) {
       setError((err as Error).message);
@@ -249,6 +267,21 @@ export default function HomePage() {
                 </div>
               </div>
 
+              {unverifiedEmail && (
+                <div className="home-unverified" role="alert">
+                  <MailWarning size={15} className="home-unverified-icon" />
+                  <div>
+                    <span>Correo no verificado. </span>
+                    <Link
+                      href={`/register?email=${encodeURIComponent(unverifiedEmail)}&step=verify`}
+                      className="home-unverified-link"
+                    >
+                      Verificar ahora
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {error && (
                 <div className="home-error" role="alert">
                   <span className="home-error-dot" aria-hidden />
@@ -277,6 +310,14 @@ export default function HomePage() {
                 </Link>
               </div>
             </form>
+
+            <div className="home-register-row">
+              <span>¿Sos ciudadano del Cusco?</span>
+              <Link href="/register" className="home-register-link">
+                Crear cuenta
+                <ArrowRight size={12} strokeWidth={2.2} />
+              </Link>
+            </div>
 
             <div className="home-divider" role="separator" aria-label="o">
               <span className="home-divider-line" />
@@ -577,6 +618,56 @@ const styles = `
     transition: color 0.15s ease;
   }
   .home-link:hover { color: var(--color-atlas); }
+
+  /* ─── Unverified email banner ─── */
+  .home-unverified {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    background: #FFF9EC;
+    border: 1px solid #FFE9A8;
+    color: #7A5400;
+    font-size: 12.5px;
+    font-weight: 500;
+    margin-top: -4px;
+  }
+  .home-unverified-icon { flex-shrink: 0; margin-top: 1px; }
+  .home-unverified-link {
+    font-weight: 600;
+    color: #7A5400;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.15s ease;
+  }
+  .home-unverified-link:hover { color: var(--color-atlas); }
+
+  /* ─── Register row ─── */
+  .home-register-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: var(--color-surface-soft);
+    border: 1px solid var(--color-line);
+    border-radius: 7px;
+    font-size: 12.5px;
+    color: var(--color-ink-muted);
+  }
+  .home-register-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-atlas);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .home-register-link:hover { color: var(--color-atlas-dark); }
 
   /* ─── Divider "o" estilo Claude ─── */
   .home-divider {

@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
       return errorResponse(`Cuenta bloqueada. Intente en ${minutes} minutos.`, 423, 'LOCKED');
     }
 
+    if (!user.isVerified) {
+      return errorResponse(
+        'Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.',
+        403,
+        'EMAIL_NOT_VERIFIED'
+      );
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       user.failedLoginAttempts += 1;
