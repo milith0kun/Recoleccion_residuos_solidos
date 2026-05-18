@@ -38,6 +38,12 @@ yarn-error.*
 # google oauth credentials — never commit
 client_secret_*.json
 
+# Firebase / FCM — never commit (contienen secrets de tu proyecto)
+google-services.json
+GoogleService-Info.plist
+fcm-service-account.json
+*firebase-adminsdk*.json
+
 # typescript
 *.tsbuildinfo
 

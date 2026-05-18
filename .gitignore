@@ -5,6 +5,12 @@ service-account*.json
 *.pem
 *.key
 
+# Firebase / FCM — NUNCA commitear (contienen secrets del proyecto)
+google-services.json
+GoogleService-Info.plist
+fcm-service-account.json
+*firebase-adminsdk*.json
+
 # Variables de entorno
 .env
 .env.local

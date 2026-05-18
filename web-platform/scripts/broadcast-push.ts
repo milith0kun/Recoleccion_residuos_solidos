@@ -118,9 +118,12 @@ async function main() {
 
   let ok = 0;
   const errors: { email: string; reason: string }[] = [];
+  const ticketIds: { email: string; id: string }[] = [];
   tickets.forEach((t, i) => {
-    if (t.status === 'ok') ok++;
-    else {
+    if (t.status === 'ok') {
+      ok++;
+      if (t.id) ticketIds.push({ email: valid[i]?.email ?? `#${i}`, id: t.id });
+    } else {
       errors.push({
         email: valid[i]?.email ?? `#${i}`,
         reason: t.message || t.details?.error || 'unknown',
@@ -129,9 +132,65 @@ async function main() {
   });
 
   console.log('\n═══════════════════════════════════════════');
-  console.log(` ✓ Enviados OK : ${ok} / ${messages.length}`);
-  console.log(` ✗ Con error  : ${errors.length}`);
+  console.log(` ✓ Aceptados por Expo : ${ok} / ${messages.length}`);
+  console.log(` ✗ Rechazados         : ${errors.length}`);
   console.log('═══════════════════════════════════════════');
+
+  // Esperar 6 segundos y consultar receipts — esto dice si el push
+  // efectivamente fue ENTREGADO al dispositivo o si FCM/APNs lo rechazó.
+  if (ticketIds.length > 0) {
+    console.log('\nEsperando 6s para consultar receipts (entrega real)...');
+    await new Promise((r) => setTimeout(r, 6000));
+    const receiptRes = await fetch('https://exp.host/--/api/v2/push/getReceipts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ ids: ticketIds.map((t) => t.id) }),
+    });
+    if (receiptRes.ok) {
+      const receiptJson = (await receiptRes.json()) as {
+        data?: Record<string, { status: string; message?: string; details?: { error?: string } }>;
+      };
+      const receipts = receiptJson.data ?? {};
+      console.log('\n▶ Receipts (estado real de entrega):');
+      console.log('─'.repeat(80));
+      let delivered = 0;
+      for (const { email, id } of ticketIds) {
+        const r = receipts[id];
+        if (!r) {
+          console.log(`  ${email.padEnd(40)} → ⏳ pendiente (revisar luego)`);
+        } else if (r.status === 'ok') {
+          delivered++;
+          console.log(`  ${email.padEnd(40)} → ✓ ENTREGADO`);
+        } else {
+          const reason = r.message || r.details?.error || 'unknown';
+          console.log(`  ${email.padEnd(40)} → ✗ ${reason}`);
+        }
+      }
+      console.log('─'.repeat(80));
+      console.log(` Entregados al dispositivo: ${delivered} / ${ticketIds.length}`);
+      console.log('');
+      const errorReceipts = ticketIds
+        .map(({ id }) => receipts[id])
+        .filter((r) => r && r.status !== 'ok');
+      if (errorReceipts.length > 0) {
+        const hasDeviceNotRegistered = errorReceipts.some(
+          (r) =>
+            r?.details?.error === 'DeviceNotRegistered' ||
+            (r?.message ?? '').includes('DeviceNotRegistered'),
+        );
+        if (hasDeviceNotRegistered) {
+          console.log(
+            '⚠ DeviceNotRegistered = el token Expo apunta a un APK que ya no existe\n' +
+              '  (probablemente Expo Go que se desinstaló).\n' +
+              '  Solución: el usuario debe abrir el APK SRSS Cusco nuevo y loggearse.\n' +
+              '  Eso regenera un token nuevo que reemplaza el viejo en la DB.\n',
+          );
+        }
+      }
+    } else {
+      console.log('No se pudieron consultar receipts:', await receiptRes.text());
+    }
+  }
 
   if (errors.length > 0) {
     console.log('\nDetalles de los errores:');
