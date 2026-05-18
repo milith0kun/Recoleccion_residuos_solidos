@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useFocusEffect, useRouter } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
@@ -97,6 +98,19 @@ export default function JornadaScreen() {
 
   const activeId = execution?._id ?? null;
   const tracker = useGpsTracker(execution?.status === 'in_progress' ? activeId : null);
+
+  // Mantener la pantalla encendida durante la jornada. Sin esto, Android
+  // puede pausar el watchPositionAsync cuando la pantalla se apaga, y
+  // los puntos GPS dejan de llegar. (Background tracking real requiere
+  // expo-task-manager + nuevo build EAS, fuera del alcance del OTA.)
+  useEffect(() => {
+    if (execution?.status === 'in_progress') {
+      activateKeepAwakeAsync('srss-jornada').catch(() => {});
+      return () => {
+        deactivateKeepAwake('srss-jornada');
+      };
+    }
+  }, [execution?.status]);
 
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -279,7 +293,13 @@ export default function JornadaScreen() {
         await setActiveExecutionId(exec._id);
         setExecution(exec);
       }
-      Alert.alert('Jornada iniciada', 'Tu ubicación se enviará automáticamente cada 10s.');
+      Alert.alert(
+        'Jornada iniciada',
+        'Tu ubicación se enviará automáticamente cada 10s.\n\n' +
+          'IMPORTANTE: mantené esta app abierta en pantalla durante el recorrido. ' +
+          'Si la cerrás o pasás a otra app por mucho tiempo, el GPS deja de transmitir ' +
+          'y los ciudadanos no podrán ver el camión en vivo.',
+      );
       await loadData();
     } catch (err: unknown) {
       const message =
