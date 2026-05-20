@@ -103,6 +103,7 @@ export default function RoutesPage() {
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<RouteStatus | 'all'>('all');
+  const [zoneFilter, setZoneFilter] = useState<string>('all');
   const [showInactive, setShowInactive] = useState(false);
 
   // Edit mode for waypoints
@@ -166,10 +167,19 @@ export default function RoutesPage() {
     return routes.filter(r => {
       if (!showInactive && r.status === 'inactive') return false;
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+      if (zoneFilter !== 'all' && r.zone?._id !== zoneFilter) return false;
       if (search.trim() && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [routes, search, statusFilter, showInactive]);
+  }, [routes, search, statusFilter, zoneFilter, showInactive]);
+
+  const zones = useMemo(() => {
+    const map = new Map<string, string>();
+    routes.forEach((r) => {
+      if (r.zone?._id && r.zone?.name) map.set(r.zone._id, r.zone.name);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [routes]);
 
   const visibleOnMap = useMemo(() => {
     return routes.filter(r => showInactive || r.status !== 'inactive');
@@ -324,6 +334,19 @@ export default function RoutesPage() {
               />
             </div>
 
+            <div style={{ marginTop: 8 }}>
+              <select
+                className="adm-filter"
+                value={zoneFilter}
+                onChange={(e) => setZoneFilter(e.target.value)}
+              >
+                <option value="all">Todas las zonas</option>
+                {zones.map(([id, name]) => (
+                  <option key={id} value={id}>{name}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Status chips */}
             <div className="rt-chips">
               <button
@@ -358,7 +381,11 @@ export default function RoutesPage() {
             </div>
           ) : filteredRoutes.length === 0 ? (
             <div className="adm-section rt-empty">
-              <p>Sin resultados</p>
+              <p>
+                {zoneFilter !== 'all'
+                  ? 'No existen rutas registradas para la zona seleccionada.'
+                  : 'Sin resultados'}
+              </p>
             </div>
           ) : filteredRoutes.map((route) => {
             const m = statusMeta[route.status];

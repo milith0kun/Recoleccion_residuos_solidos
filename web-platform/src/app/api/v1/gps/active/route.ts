@@ -71,6 +71,7 @@ interface ActiveItem {
   operatorName: string;
   vehicle: { plate: string; type: string } | null;
   lastLocation: { lng: number; lat: number; timestamp: Date; speed?: number } | null;
+  distanceToUserMeters?: number | null;
   lastSeenAt: Date | null;
   isStale: boolean;
   startedAt: Date;
@@ -79,6 +80,18 @@ interface ActiveItem {
 interface UserWithZone {
   _id: mongoose.Types.ObjectId;
   zone?: mongoose.Types.ObjectId | null;
+  location?: { coordinates: [number, number] } | null;
+}
+
+function haversineMeters(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371000;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const x =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * R * Math.asin(Math.sqrt(x));
 }
 
 export async function GET(request: NextRequest) {
@@ -96,9 +109,10 @@ export async function GET(request: NextRequest) {
 
     // Resolvemos la zona del usuario (si la tiene) para marcar inMyZone.
     const me = (await User.findById(user!.sub)
-      .select('zone')
+      .select('zone location')
       .lean()) as UserWithZone | null;
     const myZoneId = me?.zone ? String(me.zone) : null;
+    const userCoords = me?.location?.coordinates;
 
     const executionsRaw = await RouteExecution.find(filter)
       .populate({
@@ -148,6 +162,12 @@ export async function GET(request: NextRequest) {
           }
         : null;
       const lastSeenAt = lastTrack ? lastTrack.timestamp : null;
+      const distanceToUserMeters =
+        userCoords && lastLocation
+          ? Math.round(
+              haversineMeters(userCoords[1], userCoords[0], lastLocation.lat, lastLocation.lng)
+            )
+          : null;
       const isStale = lastSeenAt
         ? now - new Date(lastSeenAt).getTime() > STALE_THRESHOLD_MS
         : true;
@@ -186,6 +206,7 @@ export async function GET(request: NextRequest) {
           ? { plate: exec.vehicle.plate, type: exec.vehicle.type }
           : null,
         lastLocation,
+        distanceToUserMeters,
         lastSeenAt,
         isStale,
         startedAt: exec.startedAt,

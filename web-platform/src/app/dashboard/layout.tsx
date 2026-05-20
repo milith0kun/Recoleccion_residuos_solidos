@@ -59,7 +59,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { href: '/dashboard/users', label: 'Usuarios', icon: Users, roles: ['admin'] },
       { href: '/dashboard/zones', label: 'Zonas', icon: MapIcon, roles: ['admin', 'operator'] },
-      { href: '/dashboard/routes', label: 'Rutas', icon: Truck, roles: ['admin', 'operator'] },
+      { href: '/dashboard/routes', label: 'Rutas', icon: Truck, roles: ['admin', 'operator', 'citizen'] },
       { href: '/dashboard/vehicles', label: 'Vehículos', icon: Car, roles: ['admin', 'operator'] },
     ],
   },

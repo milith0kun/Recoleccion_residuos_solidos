@@ -23,7 +23,15 @@ export interface GpsTrackerState {
   lastCoords: { latitude: number; longitude: number } | null;
 }
 
-const MIN_INTERVAL_MS = 10_000;
+const DEFAULT_GPS_INTERVAL_MS = 10_000;
+const configuredInterval = Number.parseInt(
+  process.env.EXPO_PUBLIC_GPS_INTERVAL_MS || `${DEFAULT_GPS_INTERVAL_MS}`,
+  10
+);
+const MIN_INTERVAL_MS = Math.max(
+  5_000,
+  Number.isFinite(configuredInterval) ? configuredInterval : DEFAULT_GPS_INTERVAL_MS
+);
 
 export function useGpsTracker(routeExecutionId: string | null): GpsTrackerState {
   const [isTracking, setIsTracking] = useState(false);

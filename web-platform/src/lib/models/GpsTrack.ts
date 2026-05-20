@@ -28,5 +28,7 @@ const GpsTrackSchema = new Schema<IGpsTrack>({
 
 GpsTrackSchema.index({ routeExecution: 1, timestamp: 1 });
 GpsTrackSchema.index({ location: '2dsphere' });
+// Conserva histórico suficiente para auditoría/reportes (>=30 días).
+GpsTrackSchema.index({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 });
 
 export default mongoose.models.GpsTrack || mongoose.model<IGpsTrack>('GpsTrack', GpsTrackSchema);

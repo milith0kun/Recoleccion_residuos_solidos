@@ -21,7 +21,12 @@ const CircleMarker = dynamic(() => import('react-leaflet').then(m => m.CircleMar
 const Polyline = dynamic(() => import('react-leaflet').then(m => m.Polyline), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(m => m.Popup), { ssr: false });
 
-const POLL_INTERVAL_MS = 5000;
+const DEFAULT_POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = Math.max(
+  3000,
+  Number.parseInt(process.env.NEXT_PUBLIC_TRACKING_POLL_MS || `${DEFAULT_POLL_INTERVAL_MS}`, 10) ||
+    DEFAULT_POLL_INTERVAL_MS
+);
 
 interface ActiveVehicle {
   executionId: string;
@@ -30,6 +35,7 @@ interface ActiveVehicle {
   operatorName: string;
   vehicle: { plate: string; type: string } | null;
   lastLocation: { lng: number; lat: number; timestamp: string; speed?: number } | null;
+  distanceToUserMeters?: number | null;
   lastSeenAt: string | null;
   isStale: boolean;
   startedAt: string;
@@ -274,6 +280,17 @@ export default function TrackingPage() {
                                 {formatSecondsAgo(v.lastSeenAt)}
                               </span>
                             </div>
+                            {typeof v.distanceToUserMeters === 'number' && (
+                              <div className="trk-popup-row">
+                                <Navigation size={12} />
+                                <span className="trk-popup-label">Distancia</span>
+                                <span className="trk-popup-value">
+                                  {v.distanceToUserMeters < 1000
+                                    ? `${v.distanceToUserMeters} m`
+                                    : `${(v.distanceToUserMeters / 1000).toFixed(1)} km`}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </Popup>
@@ -367,6 +384,16 @@ export default function TrackingPage() {
                           <Navigation size={11} />
                           <span>{v.routeName}</span>
                         </span>
+                        {typeof v.distanceToUserMeters === 'number' && (
+                          <span className="trk-vehicle-meta">
+                            <Navigation size={11} />
+                            <span>
+                              Aprox. {v.distanceToUserMeters < 1000
+                                ? `${v.distanceToUserMeters} m`
+                                : `${(v.distanceToUserMeters / 1000).toFixed(1)} km`} de tu domicilio
+                            </span>
+                          </span>
+                        )}
                         <span className="trk-vehicle-meta">
                           <User size={11} />
                           <span>{v.operatorName}</span>
