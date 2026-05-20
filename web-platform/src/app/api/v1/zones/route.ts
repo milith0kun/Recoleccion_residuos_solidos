@@ -1,16 +1,19 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db/connection';
 import Zone from '@/lib/models/Zone';
-import { requireAuth, requireRole } from '@/lib/middleware/auth';
+import { requireRole } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 
 export async function GET(request: NextRequest) {
-  const { error } = requireAuth(request);
+  const { error } = requireRole(request, 'admin');
   if (error) return error;
 
   try {
     await connectDB();
-    const zones = await Zone.find({ isActive: true }).sort({ name: 1 });
+    const { searchParams } = new URL(request.url);
+    const includeInactive = searchParams.get('includeInactive') === 'true';
+    const filter = includeInactive ? {} : { isActive: true };
+    const zones = await Zone.find(filter).sort({ name: 1 });
     return successResponse(zones);
   } catch (err) {
     console.error(err);

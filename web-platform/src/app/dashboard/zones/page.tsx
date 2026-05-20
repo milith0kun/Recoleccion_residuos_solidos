@@ -10,7 +10,6 @@ import {
   Plus,
   Edit2,
   Trash2,
-  ChevronRight,
   Undo2,
   CheckCircle2,
   RotateCcw,
@@ -264,9 +263,14 @@ export default function ZonesPage() {
   }, []);
 
   const fetchZones = useCallback(async () => {
-    const data = await apiFetch('/api/v1/zones');
+    const data = await apiFetch('/api/v1/zones?includeInactive=true');
     return data.data as ZoneData[];
   }, [apiFetch]);
+
+  const activeZonesCount = useMemo(
+    () => zones.filter((zone) => zone.isActive).length,
+    [zones]
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -479,7 +483,7 @@ export default function ZonesPage() {
           <span className="adm-stat-pill"><strong>{zones.length}</strong> total</span>
           <span className="adm-stat-pill adm-stat-pill--green">
             <Layers size={12} />
-            <strong>{zones.length}</strong> activas
+            <strong>{activeZonesCount}</strong> activas
           </span>
         </div>
       </div>
@@ -579,6 +583,7 @@ export default function ZonesPage() {
                 <th>Zona</th>
                 <th>Distrito</th>
                 <th>Color</th>
+                <th>Estado</th>
                 <th>Vértices</th>
                 <th>Descripción</th>
                 <th className="adm-th-actions" />
@@ -617,6 +622,11 @@ export default function ZonesPage() {
                       <span className="adm-cell-mono adm-cell-muted">{zone.color.toUpperCase()}</span>
                     </div>
                   </td>
+                  <td>
+                    <span className={`adm-chip ${zone.isActive ? 'adm-chip--ok' : 'adm-chip--muted'}`}>
+                      {zone.isActive ? 'Activa' : 'Desactivada'}
+                    </span>
+                  </td>
                   <td className="adm-cell-mono">
                     {Math.max(0, zone.geometry.coordinates[0].length - 1)} pts
                   </td>
@@ -638,6 +648,7 @@ export default function ZonesPage() {
                         onClick={() => handleDelete(zone._id)}
                         className="adm-icon-btn adm-icon-btn--danger"
                         title="Eliminar zona"
+                        disabled={!zone.isActive}
                       >
                         <Trash2 size={14} />
                       </button>
