@@ -9,12 +9,13 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const { email, password } = await request.json();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return errorResponse('Correo y contraseña son obligatorios', 400);
     }
 
-    const user = await User.findOne({ email })
+    const user = await User.findOne({ email: normalizedEmail })
       .select('+password')
       .populate('zone', 'name color district');
     if (!user) {
@@ -43,10 +44,21 @@ export async function POST(request: NextRequest) {
       user.failedLoginAttempts += 1;
       if (user.failedLoginAttempts >= 5) {
         user.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
-        user.failedLoginAttempts = 0;
+        user.failedLoginAttempts = 5;
+        await user.save();
+        return errorResponse(
+          'Cuenta bloqueada por múltiples intentos fallidos. Intenta nuevamente en 15 minutos.',
+          423,
+          'LOCKED'
+        );
       }
       await user.save();
-      return errorResponse('Credenciales incorrectas', 401, 'INVALID_CREDENTIALS');
+      const remainingAttempts = Math.max(0, 5 - user.failedLoginAttempts);
+      return errorResponse(
+        `Credenciales incorrectas. Te quedan ${remainingAttempts} intento(s).`,
+        401,
+        'INVALID_CREDENTIALS'
+      );
     }
 
     user.failedLoginAttempts = 0;

@@ -53,6 +53,19 @@ const FEATURES = [
   'Catálogo NTP 900.058',
 ];
 
+function resolveHomeByRole(role?: string): string {
+  switch (role) {
+    case 'citizen':
+      return '/dashboard/tracking';
+    case 'driver':
+      return '/dashboard/dispatches';
+    case 'operator':
+    case 'admin':
+    default:
+      return '/dashboard';
+  }
+}
+
 export default function HomePage() {
   const { user, loginWithGoogle, isLoading, setUser } = useAuth();
   const router = useRouter();
@@ -69,7 +82,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.push('/dashboard');
+      router.push(resolveHomeByRole(user.role));
     }
   }, [user, isLoading, router]);
 
@@ -79,14 +92,14 @@ export default function HomePage() {
       setError('');
       try {
         await loginWithGoogle(resp.credential);
-        router.push('/dashboard');
+        router.push(resolveHomeByRole(user?.role));
       } catch (err: unknown) {
         setError((err as Error).message || 'Error con Google');
       } finally {
         setSubmitting(false);
       }
     },
-    [loginWithGoogle, router],
+    [loginWithGoogle, router, user?.role],
   );
 
   useEffect(() => {
@@ -135,7 +148,7 @@ export default function HomePage() {
       localStorage.setItem('refreshToken', data.data.refreshToken);
       localStorage.setItem('user', JSON.stringify(data.data.user));
       setUser(data.data.user);
-      router.push('/dashboard');
+      router.push(resolveHomeByRole(data.data.user?.role));
     } catch (err: unknown) {
       setError((err as Error).message);
     } finally {

@@ -9,15 +9,16 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const { email } = await request.json();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!email) {
+    if (!normalizedEmail) {
       return errorResponse('Correo es obligatorio', 400);
     }
 
     const genericMsg =
       'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.';
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return successResponse({ sent: true }, genericMsg);
     }
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
     await user.save();
 
-    await sendPasswordResetEmail(email, token);
+    await sendPasswordResetEmail(normalizedEmail, token);
 
     return successResponse({ sent: true }, genericMsg);
   } catch (error: unknown) {
