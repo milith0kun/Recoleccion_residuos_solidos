@@ -212,6 +212,27 @@ export default function RoutesPage() {
     }
   };
 
+  const duplicateRoute = async (route: RouteData) => {
+    try {
+      setBusy(true);
+      await apiFetch('/api/v1/routes', {
+        method: 'POST',
+        body: JSON.stringify({
+          templateFrom: route._id,
+          name: `${route.name} (copia)`,
+          status: 'draft',
+        }),
+      });
+      toast.success('Ruta duplicada como plantilla editable');
+      await refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error';
+      toast.error(msg);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   /* --------------------- Waypoint edit-mode handlers -------------------- */
   const enterEdit = () => {
     if (!activeRoute) return;
@@ -528,6 +549,13 @@ export default function RoutesPage() {
                     </button>
                   </>
                 )}
+                <button
+                  disabled={busy}
+                  onClick={() => duplicateRoute(activeRoute)}
+                  className="adm-btn-secondary"
+                >
+                  Duplicar ruta
+                </button>
               </div>
             </section>
           )}
