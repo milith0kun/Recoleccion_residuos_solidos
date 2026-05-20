@@ -7,12 +7,13 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const { email, code } = await request.json();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!email || !code) {
+    if (!normalizedEmail || !code) {
       return errorResponse('Correo y código son obligatorios', 400);
     }
 
-    const user = await User.findOne({ email }).select(
+    const user = await User.findOne({ email: normalizedEmail }).select(
       '+emailVerificationCode +emailVerificationExpires'
     );
     if (!user) {
@@ -28,8 +29,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
+      if (!user.isVerified) {
+        await User.deleteOne({ _id: user._id });
+      }
       return errorResponse(
-        'El código ha expirado. Solicita uno nuevo.',
+        'El código ha expirado y la cuenta temporal fue eliminada. Debes registrarte nuevamente.',
         400,
         'CODE_EXPIRED'
       );

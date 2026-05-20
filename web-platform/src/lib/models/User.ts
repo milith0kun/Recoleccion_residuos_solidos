@@ -89,5 +89,15 @@ const UserSchema = new Schema<IUser>(
 
 UserSchema.index({ location: '2dsphere' }, { sparse: true });
 UserSchema.index({ zone: 1 });
+UserSchema.index(
+  { emailVerificationExpires: 1 },
+  {
+    expireAfterSeconds: 0,
+    partialFilterExpression: {
+      isVerified: false,
+      emailVerificationExpires: { $type: 'date' },
+    },
+  }
+);
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

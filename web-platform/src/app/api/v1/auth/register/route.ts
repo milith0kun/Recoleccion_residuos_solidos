@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/db/connection';
 import User from '@/lib/models/User';
+import Zone from '@/lib/models/Zone';
 import { signAccessToken, signRefreshToken } from '@/lib/utils/jwt';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 import { sendVerificationEmail } from '@/lib/utils/email';
@@ -11,13 +12,44 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const body = await request.json();
-    const { email, password, dni, firstName, lastName, phone, address } = body;
+    const {
+      email,
+      password,
+      dni,
+      firstName,
+      lastName,
+      phone,
+      address,
+      district,
+      zoneId,
+      zone: zoneInput,
+    } = body;
 
-    if (!email || !password || !dni || !firstName || !lastName || !address) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedDni = String(dni || '').trim();
+    const normalizedFirstName = String(firstName || '').trim();
+    const normalizedLastName = String(lastName || '').trim();
+    const normalizedPhone = String(phone || '').trim();
+    const normalizedAddress = String(address || '').trim();
+    const normalizedDistrict = String(district || '').trim();
+    const normalizedZoneId = String(zoneId || zoneInput || '').trim();
+
+    if (
+      !normalizedEmail ||
+      !password ||
+      !normalizedDni ||
+      !normalizedFirstName ||
+      !normalizedLastName ||
+      !normalizedAddress
+    ) {
       return errorResponse('Todos los campos obligatorios deben ser completados', 400);
     }
 
-    if (!/^\d{8}$/.test(dni)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return errorResponse('El correo electrónico no tiene un formato válido', 400);
+    }
+
+    if (!/^\d{8}$/.test(normalizedDni)) {
       return errorResponse('El DNI debe tener exactamente 8 dígitos', 400);
     }
 
@@ -25,10 +57,27 @@ export async function POST(request: NextRequest) {
       return errorResponse('La contraseña debe tener al menos 6 caracteres', 400);
     }
 
-    const existingUser = await User.findOne({ $or: [{ email }, { dni }] });
-    if (existingUser) {
+    const existingUser = await User.findOne({
+      $or: [{ email: normalizedEmail }, { dni: normalizedDni }],
+    }).select('+emailVerificationExpires');
+
+    if (
+      existingUser &&
+      !existingUser.isVerified &&
+      existingUser.emailVerificationExpires &&
+      existingUser.emailVerificationExpires < new Date()
+    ) {
+      await User.deleteOne({ _id: existingUser._id });
+    }
+
+    const conflictUser = await User.findOne({
+      $or: [{ email: normalizedEmail }, { dni: normalizedDni }],
+    });
+    if (conflictUser) {
       return errorResponse(
-        existingUser.email === email ? 'El correo ya está registrado' : 'El DNI ya está registrado',
+        conflictUser.email === normalizedEmail
+          ? 'El correo ya está registrado'
+          : 'El DNI ya está registrado',
         409,
         'DUPLICATE'
       );
@@ -38,26 +87,44 @@ export async function POST(request: NextRequest) {
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    const { location, zone } = await assignZoneByAddress(address);
-    const zonePending = !zone;
+    let selectedZone = null;
+    if (normalizedZoneId) {
+      selectedZone = await Zone.findOne({ _id: normalizedZoneId, isActive: true }).select(
+        '_id district'
+      );
+      if (!selectedZone) {
+        return errorResponse('La zona seleccionada no es válida', 400);
+      }
+      if (
+        normalizedDistrict &&
+        selectedZone.district &&
+        selectedZone.district.toLowerCase() !== normalizedDistrict.toLowerCase()
+      ) {
+        return errorResponse('La zona no corresponde al distrito seleccionado', 400);
+      }
+    }
+
+    const { location, zone } = await assignZoneByAddress(normalizedAddress);
+    const finalZone = selectedZone?._id ?? zone ?? undefined;
+    const zonePending = !finalZone;
 
     const user = await User.create({
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
-      dni,
-      firstName,
-      lastName,
-      phone,
-      address,
+      dni: normalizedDni,
+      firstName: normalizedFirstName,
+      lastName: normalizedLastName,
+      phone: normalizedPhone || undefined,
+      address: normalizedAddress,
       role: 'citizen',
       isVerified: false,
       location: location ?? undefined,
-      zone: zone ?? undefined,
+      zone: finalZone,
       emailVerificationCode: verificationCode,
       emailVerificationExpires: verificationExpires,
     });
 
-    await sendVerificationEmail(email, verificationCode);
+    await sendVerificationEmail(normalizedEmail, verificationCode);
 
     const payload = {
       sub: user._id.toString(),

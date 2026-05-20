@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
@@ -15,6 +15,13 @@ import { BrandMark } from '@/components/branding/BrandMark';
 import { useAuth } from '@/context/AuthContext';
 
 type Step = 'form' | 'verify' | 'done';
+
+type PublicZone = {
+  _id: string;
+  name: string;
+  district: string;
+  color?: string;
+};
 
 function RegisterInner() {
   const router = useRouter();
@@ -35,6 +42,10 @@ function RegisterInner() {
   const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [district, setDistrict] = useState('');
+  const [zoneId, setZoneId] = useState('');
+  const [zones, setZones] = useState<PublicZone[]>([]);
+  const [zonesLoading, setZonesLoading] = useState(false);
 
   const [code, setCode] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
@@ -48,6 +59,32 @@ function RegisterInner() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadZones = async () => {
+      setZonesLoading(true);
+      try {
+        const res = await fetch('/api/v1/public/zones');
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.data)) {
+          setZones(data.data as PublicZone[]);
+        }
+      } catch {
+        setZones([]);
+      } finally {
+        setZonesLoading(false);
+      }
+    };
+
+    void loadZones();
+  }, []);
+
+  const districts = Array.from(new Set(zones.map((z) => z.district))).sort((a, b) =>
+    a.localeCompare(b)
+  );
+  const filteredZones = district
+    ? zones.filter((z) => z.district.toLowerCase() === district.toLowerCase())
+    : zones;
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +102,8 @@ function RegisterInner() {
           password,
           phone: phone.trim() || undefined,
           address,
+          district: district || undefined,
+          zoneId: zoneId || undefined,
         }),
       });
       const data = await res.json();
@@ -252,6 +291,55 @@ function RegisterInner() {
                   required
                   autoComplete="email"
                 />
+              </div>
+
+              <div className="reg-grid">
+                <div className="auth-field">
+                  <label className="adm-form-label" htmlFor="reg-district">
+                    Distrito
+                  </label>
+                  <select
+                    id="reg-district"
+                    value={district}
+                    onChange={(e) => {
+                      setDistrict(e.target.value);
+                      setZoneId('');
+                    }}
+                    className="adm-form-input"
+                  >
+                    <option value="">Selecciona un distrito</option>
+                    {districts.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="auth-field">
+                  <label className="adm-form-label" htmlFor="reg-zone">
+                    Zona de recolección
+                  </label>
+                  <select
+                    id="reg-zone"
+                    value={zoneId}
+                    onChange={(e) => setZoneId(e.target.value)}
+                    className="adm-form-input"
+                    disabled={zonesLoading || filteredZones.length === 0}
+                  >
+                    <option value="">
+                      {zonesLoading
+                        ? 'Cargando zonas...'
+                        : filteredZones.length === 0
+                          ? 'No hay zonas disponibles'
+                          : 'Selecciona una zona'}
+                    </option>
+                    {filteredZones.map((z) => (
+                      <option key={z._id} value={z._id}>
+                        {z.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="auth-field">

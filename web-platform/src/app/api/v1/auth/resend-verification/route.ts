@@ -8,16 +8,30 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const { email } = await request.json();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!email) {
+    if (!normalizedEmail) {
       return errorResponse('Correo es obligatorio', 400);
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return successResponse(
         { sent: true },
         'Si el correo existe, se envió un nuevo código de verificación'
+      );
+    }
+
+    if (user.isVerified) {
+      return successResponse({ sent: false }, 'La cuenta ya está verificada');
+    }
+
+    if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
+      await User.deleteOne({ _id: user._id });
+      return errorResponse(
+        'La cuenta temporal expiró y fue eliminada. Debes registrarte nuevamente.',
+        400,
+        'ACCOUNT_EXPIRED'
       );
     }
 
@@ -26,7 +40,7 @@ export async function POST(request: NextRequest) {
     user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save();
 
-    await sendVerificationEmail(email, code);
+    await sendVerificationEmail(normalizedEmail, code);
 
     return successResponse({ sent: true }, 'Código de verificación reenviado');
   } catch (error: unknown) {
