@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/db/connection';
 import User from '@/lib/models/User';
 import Zone from '@/lib/models/Zone';
+import Notification from '@/lib/models/Notification';
 import { signAccessToken, signRefreshToken } from '@/lib/utils/jwt';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 import { sendVerificationEmail } from '@/lib/utils/email';
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     let selectedZone = null;
     if (normalizedZoneId) {
       selectedZone = await Zone.findOne({ _id: normalizedZoneId, isActive: true }).select(
-        '_id district'
+        '_id district name'
       );
       if (!selectedZone) {
         return errorResponse('La zona seleccionada no es válida', 400);
@@ -123,6 +124,27 @@ export async function POST(request: NextRequest) {
       emailVerificationCode: verificationCode,
       emailVerificationExpires: verificationExpires,
     });
+
+    if (finalZone) {
+      const zoneDoc = selectedZone ?? (await Zone.findById(finalZone).select('name'));
+      await Notification.create({
+        recipient: user._id,
+        kind: 'system',
+        title: 'Zona de recolección asignada',
+        body: zoneDoc?.name
+          ? `Tu zona de recolección asignada es ${zoneDoc.name}.`
+          : 'Tu zona de recolección fue asignada automáticamente.',
+        data: { type: 'zone_assignment', zoneId: String(finalZone), zoneName: zoneDoc?.name },
+      });
+    } else {
+      await Notification.create({
+        recipient: user._id,
+        kind: 'system',
+        title: 'Zona pendiente de asignación',
+        body: 'No se encontró una zona para tu dirección. Un administrador revisará tu caso.',
+        data: { type: 'zone_assignment', status: 'pending' },
+      });
+    }
 
     await sendVerificationEmail(normalizedEmail, verificationCode);
 
