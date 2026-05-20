@@ -58,25 +58,28 @@ const menuGroups: MenuGroup[] = [
     icon: Users,
     items: [
       { href: '/dashboard/users', label: 'Usuarios', icon: Users, roles: ['admin'] },
-      { href: '/dashboard/zones', label: 'Zonas', icon: MapIcon },
-      { href: '/dashboard/routes', label: 'Rutas', icon: Truck },
-      { href: '/dashboard/vehicles', label: 'Vehículos', icon: Car },
+      { href: '/dashboard/zones', label: 'Zonas', icon: MapIcon, roles: ['admin', 'operator'] },
+      { href: '/dashboard/routes', label: 'Rutas', icon: Truck, roles: ['admin', 'operator'] },
+      { href: '/dashboard/vehicles', label: 'Vehículos', icon: Car, roles: ['admin', 'operator'] },
     ],
   },
   {
     label: 'Catálogo',
     icon: Recycle,
-    items: [{ href: '/dashboard/waste-types', label: 'Tipos de residuos', icon: Recycle }],
+    items: [
+      { href: '/dashboard/waste-types', label: 'Tipos de residuos', icon: Recycle, roles: ['admin', 'operator'] },
+      { href: '/dashboard/learn-segregate', label: 'Aprende a segregar', icon: Recycle, roles: ['citizen', 'admin', 'operator'] },
+    ],
   },
   {
     label: 'Operaciones',
     icon: Radio,
     items: [
-      { href: '/dashboard/dispatches', label: 'Asignaciones', icon: ClipboardList },
-      { href: '/dashboard/incidents', label: 'Incidentes', icon: AlertTriangle },
-      { href: '/dashboard/tracking', label: 'Seguimiento GPS', icon: Radio },
-      { href: '/dashboard/historic-traces', label: 'Trazas históricas', icon: RouteHistoryIcon },
-      { href: '/dashboard/reports', label: 'Reportes', icon: BarChart3 },
+      { href: '/dashboard/dispatches', label: 'Asignaciones', icon: ClipboardList, roles: ['admin', 'operator', 'driver'] },
+      { href: '/dashboard/incidents', label: 'Incidentes', icon: AlertTriangle, roles: ['admin', 'operator', 'citizen'] },
+      { href: '/dashboard/tracking', label: 'Seguimiento GPS', icon: Radio, roles: ['admin', 'operator', 'citizen'] },
+      { href: '/dashboard/historic-traces', label: 'Trazas históricas', icon: RouteHistoryIcon, roles: ['admin', 'operator'] },
+      { href: '/dashboard/reports', label: 'Reportes', icon: BarChart3, roles: ['admin', 'operator'] },
     ],
   },
   {
@@ -98,6 +101,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard/users': 'Gestión de Usuarios',
   '/dashboard/zones': 'Zonas de Recolección',
   '/dashboard/waste-types': 'Tipos de Residuos',
+  '/dashboard/learn-segregate': 'Aprende a Segregar',
   '/dashboard/routes': 'Rutas de Recolección',
   '/dashboard/vehicles': 'Vehículos',
   '/dashboard/dispatches': 'Asignaciones',
@@ -358,7 +362,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (user.role !== 'admin' && user.role !== 'operator') {
+  if (user.role !== 'admin' && user.role !== 'operator' && user.role !== 'citizen') {
     return <AccessRestricted />;
   }
 
@@ -492,14 +496,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Briefcase style={{ width: 17, height: 17 }} />
             </a>
 
-            <button
-              className="header-icon-btn"
-              aria-label="Invitar usuario"
-              title="Invitar usuario"
-              onClick={() => router.push('/dashboard/users')}
-            >
-              <UserPlus style={{ width: 17, height: 17 }} />
-            </button>
+            {(user.role === 'admin' || user.role === 'operator') && (
+              <button
+                className="header-icon-btn"
+                aria-label="Invitar usuario"
+                title="Invitar usuario"
+                onClick={() => router.push('/dashboard/users')}
+              >
+                <UserPlus style={{ width: 17, height: 17 }} />
+              </button>
+            )}
 
             <div className="header-menu-wrap">
               <button

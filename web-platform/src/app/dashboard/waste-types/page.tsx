@@ -13,7 +13,10 @@ interface WasteTypeData {
   description: string;
   examples: string[];
   handlingInstructions: string;
+  handlingInstructionsQuechua?: string;
+  descriptionQuechua?: string;
   colorCode: string;
+  iconUrl?: string;
   isActive: boolean;
 }
 
@@ -37,6 +40,7 @@ export default function WasteTypesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -46,7 +50,10 @@ export default function WasteTypesPage() {
     description: '',
     examples: [],
     handlingInstructions: '',
+    handlingInstructionsQuechua: '',
+    descriptionQuechua: '',
     colorCode: '#00684A',
+    iconUrl: '',
   });
   const [examplesInput, setExamplesInput] = useState('');
 
@@ -54,9 +61,10 @@ export default function WasteTypesPage() {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (categoryFilter) params.set('category', categoryFilter);
+    if (showInactive) params.set('includeInactive', 'true');
     const data = await apiFetch(`/api/v1/waste-types?${params}`);
     return data.data || [];
-  }, [apiFetch, search, categoryFilter]);
+  }, [apiFetch, search, categoryFilter, showInactive]);
 
   const load = useCallback(async () => {
     try {
@@ -93,7 +101,11 @@ export default function WasteTypesPage() {
         description: wasteType.description,
         examples: wasteType.examples,
         handlingInstructions: wasteType.handlingInstructions,
+        handlingInstructionsQuechua: wasteType.handlingInstructionsQuechua,
+        descriptionQuechua: wasteType.descriptionQuechua,
         colorCode: wasteType.colorCode,
+        iconUrl: wasteType.iconUrl,
+        isActive: wasteType.isActive,
       });
       setExamplesInput(wasteType.examples.join(', '));
     } else {
@@ -104,7 +116,11 @@ export default function WasteTypesPage() {
         description: '',
         examples: [],
         handlingInstructions: '',
+        handlingInstructionsQuechua: '',
+        descriptionQuechua: '',
         colorCode: '#00684A',
+        iconUrl: '',
+        isActive: true,
       });
       setExamplesInput('');
     }
@@ -146,16 +162,44 @@ export default function WasteTypesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('¿Eliminar este residuo?')) {
+    if (confirm('¿Deshabilitar este residuo?')) {
       try {
         await apiFetch(`/api/v1/waste-types/${id}`, { method: 'DELETE' });
-        toast.success('Residuo eliminado');
+        toast.success('Residuo deshabilitado');
         load();
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Error al eliminar residuo';
         toast.error(message);
       }
     }
+  };
+
+  const handleToggleActive = async (wt: WasteTypeData) => {
+    try {
+      await apiFetch(`/api/v1/waste-types/${wt._id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ isActive: !wt.isActive }),
+      });
+      toast.success(!wt.isActive ? 'Residuo habilitado' : 'Residuo deshabilitado');
+      load();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al actualizar estado';
+      toast.error(message);
+    }
+  };
+
+  const onIconFileChange = (file: File | undefined) => {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+      toast.error('Solo se permite PNG o JPG');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      setFormData((prev) => ({ ...prev, iconUrl: result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const stats = useMemo(() => ({
@@ -204,6 +248,15 @@ export default function WasteTypesPage() {
           <option value="non_recyclable">No Reciclable</option>
           <option value="hazardous">Peligroso</option>
         </select>
+        <label className="adm-stat-pill" style={{ cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+            style={{ marginRight: 6 }}
+          />
+          Mostrar deshabilitados
+        </label>
         <div className="adm-stat-pills">
           <span className="adm-stat-pill"><strong>{stats.total}</strong> total</span>
           <span className="adm-stat-pill adm-stat-pill--green"><strong>{stats.organic}</strong> orgánicos</span>
@@ -233,6 +286,7 @@ export default function WasteTypesPage() {
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Color</th>
+                <th>Estado</th>
                 <th>Ejemplos</th>
                 <th className="adm-th-actions" />
               </tr>
@@ -267,6 +321,11 @@ export default function WasteTypesPage() {
                     </span>
                   </td>
                   <td>
+                    <span className={`adm-chip ${wt.isActive ? 'adm-chip--ok' : 'adm-chip--muted'}`}>
+                      {wt.isActive ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       <span
                         style={{
@@ -290,9 +349,17 @@ export default function WasteTypesPage() {
                         <Edit2 size={14} />
                       </button>
                       <button
+                        onClick={() => handleToggleActive(wt)}
+                        className="adm-icon-btn"
+                        title={wt.isActive ? 'Deshabilitar' : 'Habilitar'}
+                      >
+                        {wt.isActive ? 'Off' : 'On'}
+                      </button>
+                      <button
                         onClick={() => handleDelete(wt._id)}
                         className="adm-icon-btn adm-icon-btn--danger"
-                        title="Eliminar"
+                        title="Deshabilitar"
+                        disabled={!wt.isActive}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -350,6 +417,15 @@ export default function WasteTypesPage() {
               />
             </div>
             <div className="adm-form-field adm-form-field--full">
+              <label className="adm-form-label">Descripción (Quechua)</label>
+              <textarea
+                className="adm-form-textarea"
+                rows={2}
+                value={formData.descriptionQuechua || ''}
+                onChange={(e) => setFormData({ ...formData, descriptionQuechua: e.target.value })}
+              />
+            </div>
+            <div className="adm-form-field adm-form-field--full">
               <label className="adm-form-label">Ejemplos (separados por coma)</label>
               <input
                 required
@@ -369,6 +445,34 @@ export default function WasteTypesPage() {
                 value={formData.handlingInstructions || ''}
                 onChange={(e) => setFormData({ ...formData, handlingInstructions: e.target.value })}
               />
+            </div>
+            <div className="adm-form-field adm-form-field--full">
+              <label className="adm-form-label">Instrucciones (Quechua)</label>
+              <textarea
+                className="adm-form-textarea"
+                rows={2}
+                value={formData.handlingInstructionsQuechua || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, handlingInstructionsQuechua: e.target.value })
+                }
+              />
+            </div>
+            <div className="adm-form-field adm-form-field--full">
+              <label className="adm-form-label">Ícono representativo (PNG/JPG)</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                className="adm-form-input"
+                onChange={(e) => onIconFileChange(e.target.files?.[0])}
+              />
+              {formData.iconUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={formData.iconUrl}
+                  alt="Ícono de residuo"
+                  style={{ width: 56, height: 56, marginTop: 8, borderRadius: 8, border: '1px solid #E8EDEB' }}
+                />
+              )}
             </div>
             <div className="adm-form-field">
               <label className="adm-form-label">Color de identificación</label>

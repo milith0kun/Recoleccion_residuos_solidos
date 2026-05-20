@@ -4,6 +4,24 @@ import WasteType from '@/lib/models/WasteType';
 import { requireRole } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 
+const IMAGE_MIME_REGEX = /^data:(image\/png|image\/jpeg);base64,/i;
+
+function normalizeName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function validateIcon(iconUrl?: string): { ok: boolean; mimeType?: 'image/png' | 'image/jpeg' } {
+  if (!iconUrl) return { ok: true };
+  const trimmed = iconUrl.trim();
+  if (IMAGE_MIME_REGEX.test(trimmed)) {
+    const mime = trimmed.toLowerCase().startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+    return { ok: true, mimeType: mime };
+  }
+  if (/\.(png)$/i.test(trimmed)) return { ok: true, mimeType: 'image/png' };
+  if (/\.(jpg|jpeg)$/i.test(trimmed)) return { ok: true, mimeType: 'image/jpeg' };
+  return { ok: false };
+}
+
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { error } = requireRole(request, 'admin');
   if (error) return error;
@@ -12,13 +30,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await connectDB();
     const { id } = await params;
     const body = await request.json();
+    const nextName = body.name ? normalizeName(String(body.name)) : undefined;
+
+    if (body.iconUrl !== undefined) {
+      const iconValidation = validateIcon(body.iconUrl);
+      if (!iconValidation.ok) {
+        return errorResponse('El ícono debe estar en formato PNG o JPG', 400);
+      }
+      body.iconMimeType = iconValidation.mimeType;
+    }
     
     // Check if updating name to an existing one
-    if (body.name) {
-      const existing = await WasteType.findOne({ name: body.name, _id: { $ne: id } });
+    if (nextName) {
+      const existing = await WasteType.findOne({
+        name: new RegExp(`^${nextName}$`, 'i'),
+        _id: { $ne: id },
+      });
       if (existing) {
         return errorResponse('Ya existe otro tipo de residuo con ese nombre', 409);
       }
+      body.name = nextName;
     }
 
     const wasteType = await WasteType.findByIdAndUpdate(
