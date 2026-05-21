@@ -51,7 +51,7 @@ interface RouteData {
   _id: string;
   name: string;
   status: RouteStatus;
-  zone: { _id: string; name: string; district: string; color: string; geometry?: { coordinates: number[][][] } };
+  zone: { _id: string; name: string; district: string; color: string; geometry?: { coordinates: number[][][] } } | null;
   vehicle: { plate: string; type: string };
   operator: { firstName: string; lastName: string; email: string };
   wasteTypes: { name: string; category: string; colorCode: string }[];
@@ -826,20 +826,20 @@ export default function RoutesPage() {
                   <div className="rt-zone-grid">
                     <div className="rt-zone-row">
                       <span className="rt-zone-label">Sector</span>
-                      <span className="rt-zone-value">{activeRoute.zone.name}</span>
+                      <span className="rt-zone-value">{activeRoute.zone?.name ?? 'Sin zona asignada'}</span>
                     </div>
                     <div className="rt-zone-row">
                       <span className="rt-zone-label">Distrito</span>
-                      <span className="rt-zone-value">{activeRoute.zone.district}</span>
+                      <span className="rt-zone-value">{activeRoute.zone?.district ?? '—'}</span>
                     </div>
                     <div className="rt-zone-row">
                       <span className="rt-zone-label">Color en mapa</span>
                       <span className="rt-zone-value rt-zone-value--color">
                         <span
                           className="rt-zone-swatch"
-                          style={{ background: activeRoute.zone.color }}
+                          style={{ background: activeRoute.zone?.color ?? '#CBD5E1' }}
                         />
-                        {activeRoute.zone.color}
+                        {activeRoute.zone?.color ?? '#CBD5E1'}
                       </span>
                     </div>
                     <div className="rt-zone-row">

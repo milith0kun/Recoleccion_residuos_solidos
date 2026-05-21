@@ -98,19 +98,32 @@ async function applyUpdate(id: string, body: Record<string, unknown>, actorId: s
   const existing = await Route.findById(id);
   if (!existing) return { error: errorResponse('Ruta no encontrada', 404) };
 
-  const nextSchedule = (body.schedule as { dayOfWeek: number[]; startTime: string; estimatedDuration: number } | undefined) ||
-    (existing.schedule as { dayOfWeek: number[]; startTime: string; estimatedDuration: number });
-  const nextOperator = String(body.operator || existing.operator);
-  const nextVehicle = String(body.vehicle || existing.vehicle);
+  const scheduleChanged = typeof body.schedule !== 'undefined';
+  const operatorChanged = typeof body.operator !== 'undefined';
+  const vehicleChanged = typeof body.vehicle !== 'undefined';
 
-  const conflict = await validateScheduleConflict({
-    id,
-    operator: nextOperator,
-    vehicle: nextVehicle,
-    schedule: nextSchedule,
-  });
-  if (conflict.conflict) {
-    return { error: errorResponse(conflict.message || 'Conflicto de horario', 409) };
+  if (scheduleChanged || operatorChanged || vehicleChanged) {
+    const nextSchedule =
+      (body.schedule as
+        | { dayOfWeek: number[]; startTime: string; estimatedDuration: number }
+        | undefined) ||
+      (existing.schedule as {
+        dayOfWeek: number[];
+        startTime: string;
+        estimatedDuration: number;
+      });
+    const nextOperator = String(body.operator || existing.operator);
+    const nextVehicle = String(body.vehicle || existing.vehicle);
+
+    const conflict = await validateScheduleConflict({
+      id,
+      operator: nextOperator,
+      vehicle: nextVehicle,
+      schedule: nextSchedule,
+    });
+    if (conflict.conflict) {
+      return { error: errorResponse(conflict.message || 'Conflicto de horario', 409) };
+    }
   }
 
   if (typeof body.status !== 'undefined') {
