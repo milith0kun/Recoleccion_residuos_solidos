@@ -10,10 +10,13 @@ interface IncidentData {
   _id: string;
   title: string;
   description: string;
+  type: string;
   severity: string;
   status: string;
-  location: string;
-  date: string;
+  address?: string;
+  location?: { type: 'Point'; coordinates: [number, number] };
+  createdAt: string;
+  resolutionNote?: string;
 }
 
 const severityLabels: Record<string, string> = {
@@ -54,42 +57,19 @@ export default function IncidentsPage() {
   const [formData, setFormData] = useState<Partial<IncidentData>>({
     title: '',
     description: '',
+    type: 'other',
     severity: 'medium',
     status: 'open',
-    location: '',
-    date: new Date().toISOString().split('T')[0],
+    address: '',
+    resolutionNote: '',
   });
 
   const fetchIncidents = useCallback(async (): Promise<IncidentData[]> => {
-    const mockData: IncidentData[] = [
-      {
-        _id: '1',
-        title: 'Camión averiado',
-        description: 'El camión recolector de la ruta 3 sufrió un desperfecto mecánico.',
-        severity: 'high',
-        status: 'in_progress',
-        location: 'Av. El Sol',
-        date: '2026-05-12',
-      },
-      {
-        _id: '2',
-        title: 'Vía bloqueada',
-        description: 'Trabajos de mantenimiento impiden el paso a la zona sur.',
-        severity: 'medium',
-        status: 'open',
-        location: 'Calle Belén',
-        date: '2026-05-15',
-      },
-    ];
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      if (statusFilter) params.set('status', statusFilter);
-      const data = await apiFetch(`/api/v1/incidents?${params}`);
-      return data.data || mockData;
-    } catch {
-      return mockData;
-    }
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (statusFilter) params.set('status', statusFilter);
+    const data = await apiFetch(`/api/v1/incidents?${params}`);
+    return (data.data || []) as IncidentData[];
   }, [apiFetch, search, statusFilter]);
 
   const load = useCallback(async () => {
@@ -127,10 +107,11 @@ export default function IncidentsPage() {
       setFormData({
         title: '',
         description: '',
+        type: 'other',
         severity: 'medium',
         status: 'open',
-        location: '',
-        date: new Date().toISOString().split('T')[0],
+        address: '',
+        resolutionNote: '',
       });
     }
     setIsModalOpen(true);
@@ -145,8 +126,26 @@ export default function IncidentsPage() {
     e.preventDefault();
     try {
       if (editingId) {
+        await apiFetch(`/api/v1/incidents/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            severity: formData.severity,
+            status: formData.status,
+            resolutionNote: formData.resolutionNote,
+          }),
+        });
         toast.success('Incidente actualizado correctamente');
       } else {
+        await apiFetch('/api/v1/incidents', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: formData.title,
+            description: formData.description,
+            type: formData.type,
+            severity: formData.severity,
+            address: formData.address,
+          }),
+        });
         toast.success('Incidente reportado correctamente');
       }
       handleCloseModal();
@@ -159,9 +158,19 @@ export default function IncidentsPage() {
 
   const handleDelete = async (_id: string) => {
     if (confirm('¿Eliminar este reporte de incidente?')) {
+      await apiFetch(`/api/v1/incidents/${_id}`, { method: 'DELETE' });
       toast.success('Incidente eliminado');
       load();
     }
+  };
+
+  const prettyLocation = (inc: IncidentData): string => {
+    if (inc.address) return inc.address;
+    if (inc.location?.coordinates?.length === 2) {
+      const [lng, lat] = inc.location.coordinates;
+      return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    }
+    return 'Sin ubicación';
   };
 
   const stats = useMemo(() => ({
@@ -276,13 +285,13 @@ export default function IncidentsPage() {
                       {statusLabels[inc.status] || inc.status}
                     </span>
                   </td>
-                  <td className="adm-cell-muted">{inc.location}</td>
-                  <td className="adm-cell-muted adm-cell-mono">
-                    {inc.date
-                      ? new Date(inc.date).toLocaleDateString('es-PE', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: '2-digit',
+                   <td className="adm-cell-muted">{prettyLocation(inc)}</td>
+                   <td className="adm-cell-muted adm-cell-mono">
+                     {inc.createdAt
+                       ? new Date(inc.createdAt).toLocaleDateString('es-PE', {
+                           day: '2-digit',
+                           month: '2-digit',
+                           year: '2-digit',
                         })
                       : '—'}
                   </td>
@@ -338,6 +347,21 @@ export default function IncidentsPage() {
               />
             </div>
             <div className="adm-form-field">
+              <label className="adm-form-label">Tipo</label>
+              <select
+                required
+                className="adm-form-select"
+                value={formData.type || 'other'}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                disabled={Boolean(editingId)}
+              >
+                <option value="accumulation">Acumulación</option>
+                <option value="damaged_container">Contenedor dañado</option>
+                <option value="missed_collection">Recolección no realizada</option>
+                <option value="other">Otro</option>
+              </select>
+            </div>
+            <div className="adm-form-field">
               <label className="adm-form-label">Severidad</label>
               <select
                 required
@@ -365,25 +389,26 @@ export default function IncidentsPage() {
               </select>
             </div>
             <div className="adm-form-field">
-              <label className="adm-form-label">Ubicación</label>
+              <label className="adm-form-label">Dirección</label>
               <input
-                required
                 type="text"
                 className="adm-form-input"
-                value={formData.location || ''}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                value={formData.address || ''}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                disabled={Boolean(editingId)}
               />
             </div>
-            <div className="adm-form-field">
-              <label className="adm-form-label">Fecha</label>
-              <input
-                required
-                type="date"
-                className="adm-form-input"
-                value={formData.date || ''}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              />
-            </div>
+            {editingId && (
+              <div className="adm-form-field adm-form-field--full">
+                <label className="adm-form-label">Nota de resolución</label>
+                <textarea
+                  className="adm-form-textarea"
+                  rows={2}
+                  value={formData.resolutionNote || ''}
+                  onChange={(e) => setFormData({ ...formData, resolutionNote: e.target.value })}
+                />
+              </div>
+            )}
           </div>
 
           <div className="adm-form-actions">

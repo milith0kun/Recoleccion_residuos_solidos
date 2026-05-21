@@ -54,6 +54,8 @@ interface OSMMapProps {
   onMarkerPress?: (id: string) => void;
   /** Disparado cuando el mapa terminó de inicializarse. */
   onReady?: () => void;
+  /** Disparado al tocar un punto del mapa. */
+  onMapPress?: (lat: number, lng: number) => void;
   style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
 }
 
@@ -80,6 +82,7 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
     userLocation = null,
     onMarkerPress,
     onReady,
+    onMapPress,
     style,
   },
   ref
@@ -124,6 +127,8 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
           type: string;
           id?: string;
           message?: string;
+          lat?: number;
+          lng?: number;
         };
         if (data.type === 'ready') {
           isReadyRef.current = true;
@@ -134,6 +139,12 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
           onReady?.();
         } else if (data.type === 'markerPress' && data.id) {
           onMarkerPress?.(data.id);
+        } else if (
+          data.type === 'mapPress' &&
+          typeof data.lat === 'number' &&
+          typeof data.lng === 'number'
+        ) {
+          onMapPress?.(data.lat, data.lng);
         } else if (data.type === 'loadError' || data.type === 'jsError') {
           // Loguear pero NO usar setState para evitar re-render loop con el WebView.
           if (__DEV__) console.warn('[OSMMap]', data.type, data.message);
@@ -143,7 +154,7 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onReady, onMarkerPress]
+    [onReady, onMarkerPress, onMapPress]
   );
 
   return (
@@ -253,6 +264,9 @@ function buildHtml(center: { lat: number; lng: number }, zoom: number): string {
       L.control.zoom({ position: 'topright' }).addTo(map);
       markerLayer = L.layerGroup().addTo(map);
       polylineLayer = L.layerGroup().addTo(map);
+      map.on('click', function(e) {
+        send({ type: 'mapPress', lat: e.latlng.lat, lng: e.latlng.lng });
+      });
 
       // Crítico: invalidateSize despues de que el container tenga dimensión real.
       // Sin esto Leaflet calcula el tile range con tamaño 0 y NO descarga tiles → mapa blanco.

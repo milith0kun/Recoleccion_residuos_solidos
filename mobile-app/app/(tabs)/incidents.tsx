@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { AppHeader } from '../../src/components/layout/AppShell';
+import { OSMMap, type MapMarker } from '../../src/components/OSMMap';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
 
 type IncidentType = 'accumulation' | 'damaged_container' | 'missed_collection' | 'other';
@@ -86,11 +87,25 @@ export default function ReportIncidentScreen() {
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [pickOnMap, setPickOnMap] = useState(false);
   const [locating, setLocating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [history, setHistory] = useState<IncidentSummary[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+
+  const mapMarkers: MapMarker[] = coords
+    ? [
+        {
+          id: 'incident-point',
+          lat: coords.lat,
+          lng: coords.lng,
+          color: '#C62828',
+          popup: 'Punto exacto del reporte',
+          variant: 'pin',
+        },
+      ]
+    : [];
 
   const syncQueuedIncidents = async () => {
     const queue = await readQueue();
@@ -310,6 +325,31 @@ export default function ReportIncidentScreen() {
         </View>
 
         <TouchableOpacity
+          style={[s.mapToggleBtn, pickOnMap && s.mapToggleBtnActive]}
+          onPress={() => setPickOnMap((v) => !v)}
+          activeOpacity={0.85}
+        >
+          <Feather name="crosshair" size={14} color={pickOnMap ? colors.primaryDark : colors.textSecondary} />
+          <Text style={[s.mapToggleText, pickOnMap && s.mapToggleTextActive]}>
+            {pickOnMap ? 'Ocultar mapa' : 'Marcar punto exacto en mapa'}
+          </Text>
+        </TouchableOpacity>
+
+        {pickOnMap && (
+          <View style={s.mapWrap}>
+            <OSMMap
+              center={coords ?? { lat: -13.517088, lng: -71.978536 }}
+              zoom={16}
+              markers={mapMarkers}
+              showUserLocation={Boolean(coords)}
+              userLocation={coords}
+              onMapPress={(lat, lng) => setCoords({ lat, lng })}
+            />
+            <Text style={s.mapHint}>Tocá el mapa para fijar el punto rojo exacto del problema.</Text>
+          </View>
+        )}
+
+        <TouchableOpacity
           style={[s.submitBtn, submitting && { opacity: 0.6 }]}
           activeOpacity={0.85}
           onPress={handleSubmit}
@@ -504,6 +544,45 @@ const s = StyleSheet.create({
     fontFamily: fontFamily.sansSemibold,
     fontSize: 12,
     color: colors.primaryDark,
+  },
+  mapToggleBtn: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingVertical: 10,
+    backgroundColor: colors.bg,
+  },
+  mapToggleBtnActive: {
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primarySoft,
+  },
+  mapToggleText: {
+    fontFamily: fontFamily.sansSemibold,
+    fontSize: 12.5,
+    color: colors.textSecondary,
+  },
+  mapToggleTextActive: {
+    color: colors.primaryDark,
+  },
+  mapWrap: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.bg,
+  },
+  mapHint: {
+    fontFamily: fontFamily.sansRegular,
+    fontSize: 11.5,
+    color: colors.textSecondary,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
 
   submitBtn: {
