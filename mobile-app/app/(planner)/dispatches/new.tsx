@@ -20,8 +20,15 @@ interface RouteItem {
   _id: string;
   name: string;
   zone?: { name?: string };
-  vehicle?: { plate?: string };
+  vehicle?: { _id?: string; plate?: string };
   schedule?: { startTime?: string };
+}
+
+interface VehicleItem {
+  _id: string;
+  plate: string;
+  type: 'compactor' | 'open_truck' | 'mini_truck';
+  status: 'available' | 'in_route' | 'maintenance' | 'inactive';
 }
 
 interface DriverItem {
@@ -45,11 +52,13 @@ export default function NewDispatchScreen() {
   const router = useRouter();
   const [routes, setRoutes] = useState<RouteItem[]>([]);
   const [drivers, setDrivers] = useState<DriverItem[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
   const [loadingLists, setLoadingLists] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const [routeId, setRouteId] = useState<string | null>(null);
   const [driverId, setDriverId] = useState<string | null>(null);
+  const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [date, setDate] = useState(defaultDateString());
   const [time, setTime] = useState(defaultTimeString());
   const [notes, setNotes] = useState('');
@@ -57,9 +66,10 @@ export default function NewDispatchScreen() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [routesRes, usersRes] = await Promise.all([
+        const [routesRes, usersRes, vehiclesRes] = await Promise.all([
           api.get('/routes', { params: { status: 'active' } }),
           api.get('/users', { params: { role: 'driver' } }),
+          api.get('/vehicles'),
         ]);
         setRoutes((routesRes.data?.data ?? []) as RouteItem[]);
         const userPayload = usersRes.data?.data;
@@ -72,6 +82,7 @@ export default function NewDispatchScreen() {
           (u) => u.role === 'driver' || u.role === 'operator' || u.role === 'admin'
         );
         setDrivers(ds);
+        setVehicles((vehiclesRes.data?.data ?? []) as VehicleItem[]);
       } catch (e) {
         if (__DEV__) console.warn('[new dispatch] load fail', e);
         Alert.alert(
@@ -85,9 +96,18 @@ export default function NewDispatchScreen() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (!routeId) return;
+    const selectedRoute = routes.find((r) => r._id === routeId);
+    if (selectedRoute?.vehicle?._id) {
+      setVehicleId(selectedRoute.vehicle._id);
+    }
+  }, [routeId, routes]);
+
   const validate = (): string | null => {
     if (!routeId) return 'Elegí una ruta';
     if (!driverId) return 'Elegí un conductor';
+    if (!vehicleId) return 'Elegí un vehículo';
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'Fecha inválida (YYYY-MM-DD)';
     if (!/^\d{2}:\d{2}$/.test(time)) return 'Hora inválida (HH:MM)';
     const parsed = new Date(`${date}T${time}:00`);
@@ -107,6 +127,7 @@ export default function NewDispatchScreen() {
       const { data } = await api.post('/dispatches', {
         routeId,
         driverId,
+        vehicleId,
         scheduledFor,
         notes: notes.trim() || undefined,
       });
@@ -194,6 +215,39 @@ export default function NewDispatchScreen() {
                       {name}
                     </Text>
                     <Text style={s.optionMeta}>{d.role}</Text>
+                  </View>
+                  <Feather
+                    name={active ? 'check-circle' : 'circle'}
+                    size={18}
+                    color={active ? colors.primary : colors.textMuted}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        <Text style={s.label}>Vehículo</Text>
+        {loadingLists ? null : vehicles.length === 0 ? (
+          <Text style={s.muted}>No hay vehículos activos registrados.</Text>
+        ) : (
+          <View style={s.optionGroup}>
+            {vehicles.map((v) => {
+              const active = vehicleId === v._id;
+              return (
+                <TouchableOpacity
+                  key={v._id}
+                  style={[s.optionRow, active && s.optionRowActive]}
+                  activeOpacity={0.85}
+                  onPress={() => setVehicleId(v._id)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.optionTitle, active && s.optionTitleActive]} numberOfLines={1}>
+                      {v.plate}
+                    </Text>
+                    <Text style={s.optionMeta}>
+                      {v.type} · {v.status === 'available' ? 'Disponible' : v.status}
+                    </Text>
                   </View>
                   <Feather
                     name={active ? 'check-circle' : 'circle'}

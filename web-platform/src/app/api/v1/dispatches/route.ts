@@ -95,6 +95,9 @@ export async function POST(request: NextRequest) {
     }
     if (!mongoose.Types.ObjectId.isValid(routeId)) return errorResponse('routeId inválido', 400);
     if (!mongoose.Types.ObjectId.isValid(driverId)) return errorResponse('driverId inválido', 400);
+    if (vehicleId && !mongoose.Types.ObjectId.isValid(vehicleId)) {
+      return errorResponse('vehicleId inválido', 400);
+    }
 
     const scheduledDate = new Date(scheduledFor);
     if (Number.isNaN(scheduledDate.getTime())) {
@@ -111,6 +114,17 @@ export async function POST(request: NextRequest) {
       return errorResponse('El usuario asignado no es conductor', 400);
     }
 
+    const effectiveVehicleId = vehicleId || String(route.vehicle || '');
+    if (!effectiveVehicleId) {
+      return errorResponse('Debes asignar un vehículo para la salida', 400);
+    }
+
+    const vehicle = await Vehicle.findById(effectiveVehicleId).select('_id isActive status plate');
+    if (!vehicle) return errorResponse('Vehículo no encontrado', 404);
+    if (!vehicle.isActive || vehicle.status === 'inactive' || vehicle.status === 'maintenance') {
+      return errorResponse('El vehículo seleccionado no está disponible para programar', 400);
+    }
+
     const code = await generateCode();
     const dispatch = await Dispatch.create({
       code,
@@ -118,7 +132,7 @@ export async function POST(request: NextRequest) {
       driver: driver._id,
       assignedBy: user!.sub,
       scheduledFor: scheduledDate,
-      vehicle: vehicleId || route.vehicle,
+      vehicle: vehicle._id,
       notes,
       status: 'pending',
     });

@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { getZoneId } from '../../src/utils/zone';
@@ -48,6 +50,11 @@ interface RouteData {
 }
 
 type RouteBadge = 'active' | 'upcoming' | 'completed' | 'idle';
+
+const SCHEDULE_CACHE_PREFIX = '@schedule:zone:';
+const SCHEDULE_REMINDERS_KEY = '@schedule:reminders';
+
+type ReminderMap = Record<string, string>;
 
 function parseHHMM(time: string | undefined): { hours: number; minutes: number } | null {
   if (!time) return null;
@@ -88,16 +95,46 @@ export default function ScheduleScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
+  const [reminders, setReminders] = useState<ReminderMap>({});
 
   const today = new Date().getDay();
   const userZoneId = getZoneId(user?.zone);
+
+  const reminderKey = (routeId: string, day: number) => `${routeId}:${day}`;
+
+  const loadCachedRoutes = async () => {
+    if (!userZoneId) return;
+    const raw = await AsyncStorage.getItem(`${SCHEDULE_CACHE_PREFIX}${userZoneId}`);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as RouteData[];
+      if (Array.isArray(parsed)) setRoutes(parsed);
+    } catch {
+      // ignore invalid cache
+    }
+  };
+
+  const loadReminders = async () => {
+    const raw = await AsyncStorage.getItem(SCHEDULE_REMINDERS_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as ReminderMap;
+      setReminders(parsed || {});
+    } catch {
+      setReminders({});
+    }
+  };
 
   const loadRoutes = async () => {
     try {
       const params: Record<string, string> = {};
       if (userZoneId) params.zone = userZoneId;
       const { data } = await api.get('/routes', { params });
-      setRoutes((data?.data || []) as RouteData[]);
+      const next = (data?.data || []) as RouteData[];
+      setRoutes(next);
+      if (userZoneId) {
+        await AsyncStorage.setItem(`${SCHEDULE_CACHE_PREFIX}${userZoneId}`, JSON.stringify(next));
+      }
     } catch (e) {
       if (__DEV__) console.warn('[schedule] /routes failed', e);
     } finally {
@@ -106,13 +143,52 @@ export default function ScheduleScreen() {
   };
 
   useEffect(() => {
+    loadReminders();
     if (!userZoneId) {
       setLoading(false);
       return;
     }
-    loadRoutes();
+    loadCachedRoutes().finally(loadRoutes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userZoneId]);
+
+  const toggleReminder = async (route: RouteData) => {
+    const schedule = route.schedule;
+    if (!schedule || schedule.dayOfWeek.length === 0) return;
+    const key = reminderKey(route._id, selectedDay);
+    const existingId = reminders[key];
+    if (existingId) {
+      await Notifications.cancelScheduledNotificationAsync(existingId).catch(() => null);
+      const next = { ...reminders };
+      delete next[key];
+      setReminders(next);
+      await AsyncStorage.setItem(SCHEDULE_REMINDERS_KEY, JSON.stringify(next));
+      return;
+    }
+
+    const p = parseHHMM(schedule.startTime);
+    if (!p) {
+      return;
+    }
+    const triggerHour = p.minutes >= 30 ? p.hours : Math.max(0, p.hours - 1);
+    const triggerMinute = p.minutes >= 30 ? p.minutes - 30 : p.minutes + 30;
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Recordatorio de recolección',
+        body: `${route.name} inicia hoy a las ${schedule.startTime}`,
+        data: { routeId: route._id, day: selectedDay },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday: selectedDay + 1,
+        hour: triggerHour,
+        minute: triggerMinute,
+      },
+    });
+    const next = { ...reminders, [key]: id };
+    setReminders(next);
+    await AsyncStorage.setItem(SCHEDULE_REMINDERS_KEY, JSON.stringify(next));
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -249,13 +325,26 @@ export default function ScheduleScreen() {
               <Text style={s.routeName} numberOfLines={1}>
                 {route.name}
               </Text>
-              <View
-                style={[
-                  s.statusBadge,
-                  { backgroundColor: meta.bg, borderColor: meta.border },
-                ]}
-              >
-                <Text style={[s.statusBadgeText, { color: meta.color }]}>{meta.label}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => toggleReminder(route)}
+                  style={s.reminderBtn}
+                  activeOpacity={0.8}
+                >
+                  <Feather
+                    name={reminders[reminderKey(route._id, selectedDay)] ? 'bell-off' : 'bell'}
+                    size={13}
+                    color={colors.primaryDark}
+                  />
+                </TouchableOpacity>
+                <View
+                  style={[
+                    s.statusBadge,
+                    { backgroundColor: meta.bg, borderColor: meta.border },
+                  ]}
+                >
+                  <Text style={[s.statusBadgeText, { color: meta.color }]}>{meta.label}</Text>
+                </View>
               </View>
             </View>
 
@@ -456,6 +545,16 @@ const s = StyleSheet.create({
     fontFamily: fontFamily.sansBold,
     fontSize: 10.5,
     letterSpacing: 0.3,
+  },
+  reminderBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   zoneRow: {

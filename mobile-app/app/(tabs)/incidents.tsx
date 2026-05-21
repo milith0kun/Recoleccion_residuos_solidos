@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import api from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
@@ -43,6 +44,33 @@ interface IncidentSummary {
   createdAt: string;
 }
 
+interface QueuedIncidentPayload {
+  title: string;
+  description: string;
+  type: IncidentType;
+  severity: IncidentSeverity;
+  address?: string;
+  lat?: number;
+  lng?: number;
+}
+
+const INCIDENT_QUEUE_KEY = '@incidents:pending-queue';
+
+async function readQueue(): Promise<QueuedIncidentPayload[]> {
+  const raw = await AsyncStorage.getItem(INCIDENT_QUEUE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as QueuedIncidentPayload[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeQueue(items: QueuedIncidentPayload[]) {
+  await AsyncStorage.setItem(INCIDENT_QUEUE_KEY, JSON.stringify(items));
+}
+
 const STATUS_LABELS: Record<IncidentSummary['status'], { label: string; color: string; bg: string }> = {
   open: { label: 'Abierto', color: colors.danger, bg: colors.dangerSoft },
   in_progress: { label: 'En proceso', color: colors.warn, bg: colors.warnSoft },
@@ -64,6 +92,23 @@ export default function ReportIncidentScreen() {
   const [history, setHistory] = useState<IncidentSummary[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
+  const syncQueuedIncidents = async () => {
+    const queue = await readQueue();
+    if (queue.length === 0) return;
+    const remaining: QueuedIncidentPayload[] = [];
+    for (const payload of queue) {
+      try {
+        await api.post('/incidents', payload);
+      } catch {
+        remaining.push(payload);
+      }
+    }
+    await writeQueue(remaining);
+    if (queue.length > remaining.length) {
+      Alert.alert('Reportes sincronizados', `Se enviaron ${queue.length - remaining.length} reporte(s) pendientes.`);
+    }
+  };
+
   const loadHistory = async () => {
     try {
       const { data } = await api.get('/incidents');
@@ -76,7 +121,8 @@ export default function ReportIncidentScreen() {
   };
 
   useEffect(() => {
-    loadHistory();
+    syncQueuedIncidents().finally(loadHistory);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const requestLocation = async () => {
@@ -103,7 +149,7 @@ export default function ReportIncidentScreen() {
     }
     setSubmitting(true);
     try {
-      const payload: Record<string, unknown> = {
+      const payload: QueuedIncidentPayload = {
         title: TYPE_OPTIONS.find((t) => t.key === type)?.label ?? 'Reporte',
         description: description.trim(),
         type,
@@ -128,6 +174,30 @@ export default function ReportIncidentScreen() {
       setSeverity('medium');
       loadHistory();
     } catch (err: unknown) {
+      const isNetworkError = !(err as { response?: unknown })?.response;
+      if (isNetworkError) {
+        const queue = await readQueue();
+        const payload: QueuedIncidentPayload = {
+          title: TYPE_OPTIONS.find((t) => t.key === type)?.label ?? 'Reporte',
+          description: description.trim(),
+          type,
+          severity,
+          ...(address.trim() ? { address: address.trim() } : {}),
+          ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+        };
+        queue.push(payload);
+        await writeQueue(queue);
+        Alert.alert(
+          'Sin conexión',
+          'Guardamos tu reporte en el dispositivo. Se enviará automáticamente cuando recuperes conexión.'
+        );
+        setDescription('');
+        setAddress('');
+        setCoords(null);
+        setType('accumulation');
+        setSeverity('medium');
+        return;
+      }
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
           ?.message ||

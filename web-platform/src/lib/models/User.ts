@@ -30,6 +30,8 @@ export interface IUser extends Document {
   pushToken?: string;
   /** Última fecha en que la app móvil actualizó el push token. */
   pushTokenUpdatedAt?: Date;
+  nearAlertRadiusMeters?: number;
+  notificationsEnabled?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -83,6 +85,8 @@ const UserSchema = new Schema<IUser>(
     profileComplete: { type: Boolean, default: true },
     pushToken: { type: String, trim: true, default: null },
     pushTokenUpdatedAt: { type: Date },
+    nearAlertRadiusMeters: { type: Number, default: 500, min: 100, max: 2000 },
+    notificationsEnabled: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

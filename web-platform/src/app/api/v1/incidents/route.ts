@@ -26,6 +26,7 @@ interface CreateIncidentBody {
   address?: string;
   lat?: number;
   lng?: number;
+  photoUrl?: string;
 }
 
 const TYPE_LABELS: Record<IncidentType, string> = {
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const body = (await request.json()) as CreateIncidentBody;
-    const { title, description, type, severity, address, lat, lng } = body;
+    const { title, description, type, severity, address, lat, lng, photoUrl } = body;
 
     if (!description || description.trim().length < 5) {
       return errorResponse('La descripción es obligatoria (mín. 5 caracteres)', 400);
@@ -132,6 +133,7 @@ export async function POST(request: NextRequest) {
       severity: incidentSeverity,
       status: 'open',
       address: address?.trim(),
+      photoUrl: typeof photoUrl === 'string' ? photoUrl.trim() : undefined,
       location: coords ? { type: 'Point', coordinates: coords } : undefined,
       zone: zoneId,
       reportedBy: user!.sub,

@@ -6,7 +6,16 @@ import Zone from '@/lib/models/Zone';
 import { requireAuth } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 
-const ALLOWED_FIELDS = ['firstName', 'lastName', 'phone', 'dni', 'zone', 'pushToken'] as const;
+const ALLOWED_FIELDS = [
+  'firstName',
+  'lastName',
+  'phone',
+  'dni',
+  'zone',
+  'pushToken',
+  'nearAlertRadiusMeters',
+  'notificationsEnabled',
+] as const;
 type AllowedField = (typeof ALLOWED_FIELDS)[number];
 
 const EXPO_PUSH_TOKEN_RE = /^ExponentPushToken\[[A-Za-z0-9_-]+\]$/;
@@ -42,6 +51,22 @@ export async function PATCH(request: NextRequest) {
       const value = body[key];
       if (value === undefined) continue;
       update[key] = typeof value === 'string' ? value.trim() : value;
+    }
+
+    if ('nearAlertRadiusMeters' in update) {
+      const raw = Number(update.nearAlertRadiusMeters);
+      if (!Number.isFinite(raw) || raw < 100 || raw > 2000) {
+        return errorResponse(
+          'nearAlertRadiusMeters debe estar entre 100 y 2000 metros',
+          400,
+          'INVALID_RADIUS'
+        );
+      }
+      update.nearAlertRadiusMeters = Math.round(raw);
+    }
+
+    if ('notificationsEnabled' in update) {
+      update.notificationsEnabled = Boolean(update.notificationsEnabled);
     }
 
     if ('pushToken' in update) {

@@ -41,6 +41,7 @@ export interface IIncident extends Document {
   assignedTo?: mongoose.Types.ObjectId;
   /** Nota interna del admin/operador al cerrar el caso. */
   resolutionNote?: string;
+  photoUrl?: string;
   resolvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -63,6 +64,7 @@ const IncidentSchema = new Schema<IIncident>(
     reportedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
     resolutionNote: { type: String, trim: true },
+    photoUrl: { type: String, trim: true },
     resolvedAt: { type: Date },
   },
   { timestamps: true }
