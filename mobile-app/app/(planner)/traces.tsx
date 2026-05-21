@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import api from '../../src/api/client';
 import { AppHeader } from '../../src/components/layout/AppShell';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
@@ -87,6 +88,13 @@ export default function PlannerTraces() {
   useEffect(() => {
     loadExecutions();
   }, [loadExecutions]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDrivers();
+      loadExecutions();
+    }, [loadDrivers, loadExecutions])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

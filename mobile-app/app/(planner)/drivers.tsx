@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import api from '../../src/api/client';
 import { AppHeader } from '../../src/components/layout/AppShell';
 import { colors, fontFamily, radius, spacing } from '../../src/theme/tokens';
@@ -52,6 +53,14 @@ export default function PlannerDrivers() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      const id = setInterval(load, 8000);
+      return () => clearInterval(id);
+    }, [load])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import api from '../../../src/api/client';
 import { AppHeader } from '../../../src/components/layout/AppShell';
 import { colors, fontFamily, radius, spacing } from '../../../src/theme/tokens';
@@ -63,38 +63,61 @@ export default function NewDispatchScreen() {
   const [time, setTime] = useState(defaultTimeString());
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [routesRes, usersRes, vehiclesRes] = await Promise.all([
-          api.get('/routes', { params: { status: 'active' } }),
-          api.get('/users', { params: { role: 'driver' } }),
-          api.get('/vehicles'),
-        ]);
-        setRoutes((routesRes.data?.data ?? []) as RouteItem[]);
-        const userPayload = usersRes.data?.data;
-        const rawDrivers = Array.isArray(userPayload)
-          ? userPayload
-          : Array.isArray(userPayload?.users)
-            ? userPayload.users
-            : [];
-        const ds = (rawDrivers as DriverItem[]).filter(
-          (u) => u.role === 'driver' || u.role === 'operator' || u.role === 'admin'
-        );
-        setDrivers(ds);
-        setVehicles((vehiclesRes.data?.data ?? []) as VehicleItem[]);
-      } catch (e) {
-        if (__DEV__) console.warn('[new dispatch] load fail', e);
-        Alert.alert(
-          'No se pudo cargar',
-          'Verificá tu conexión. Si el problema persiste, contactá al administrador.'
-        );
-      } finally {
-        setLoadingLists(false);
-      }
-    };
-    load();
+  const loadLists = useCallback(async () => {
+    setLoadingLists(true);
+    const [routesRes, usersRes, vehiclesRes] = await Promise.allSettled([
+      api.get('/routes', { params: { status: 'active' } }),
+      api.get('/users', { params: { role: 'driver', status: 'active', limit: 100 } }),
+      api.get('/vehicles'),
+    ]);
+
+    if (routesRes.status === 'fulfilled') {
+      setRoutes((routesRes.value.data?.data ?? []) as RouteItem[]);
+    } else {
+      setRoutes([]);
+      if (__DEV__) console.warn('[new dispatch] routes fail', routesRes.reason);
+    }
+
+    if (usersRes.status === 'fulfilled') {
+      const userPayload = usersRes.value.data?.data;
+      const rawDrivers = Array.isArray(userPayload)
+        ? userPayload
+        : Array.isArray(userPayload?.users)
+          ? userPayload.users
+          : [];
+      const ds = (rawDrivers as DriverItem[]).filter((u) => u.role === 'driver');
+      setDrivers(ds);
+    } else {
+      setDrivers([]);
+      if (__DEV__) console.warn('[new dispatch] drivers fail', usersRes.reason);
+    }
+
+    if (vehiclesRes.status === 'fulfilled') {
+      setVehicles((vehiclesRes.value.data?.data ?? []) as VehicleItem[]);
+    } else {
+      setVehicles([]);
+      if (__DEV__) console.warn('[new dispatch] vehicles fail', vehiclesRes.reason);
+    }
+
+    setLoadingLists(false);
   }, []);
+
+  useEffect(() => {
+    loadLists().catch((e) => {
+      if (__DEV__) console.warn('[new dispatch] load lists fail', e);
+      setLoadingLists(false);
+      Alert.alert(
+        'No se pudo cargar',
+        'Verificá tu conexión. Si el problema persiste, contactá al administrador.'
+      );
+    });
+  }, [loadLists]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadLists().catch(() => {});
+    }, [loadLists])
+  );
 
   useEffect(() => {
     if (!routeId) return;
