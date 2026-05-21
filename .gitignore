@@ -1,4 +1,4 @@
-# Credenciales — NUNCA commitear
+# Credenciales — NUNCA Commitear
 client_secret_*.json
 *.client_secret.json
 service-account*.json
