@@ -44,7 +44,7 @@ Quedan fuera del alcance la fabricación o instalación de hardware específico 
 
 ---
 
-## 5. Resumen de requisitos funcionales
+## 5. Resumen de Requisitos Funcionales
 
 | Código | Nombre del requisito | Módulo | Prioridad |
 |--------|----------------------|--------|-----------|
