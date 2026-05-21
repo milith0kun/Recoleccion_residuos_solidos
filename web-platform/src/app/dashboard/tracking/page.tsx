@@ -28,6 +28,15 @@ const POLL_INTERVAL_MS = Math.max(
     DEFAULT_POLL_INTERVAL_MS
 );
 
+const DEFAULT_STALE_THRESHOLD_MS = 120000;
+const STALE_THRESHOLD_MS = Math.max(
+  30000,
+  Number.parseInt(
+    process.env.NEXT_PUBLIC_TRACKING_STALE_MS || `${DEFAULT_STALE_THRESHOLD_MS}`,
+    10
+  ) || DEFAULT_STALE_THRESHOLD_MS
+);
+
 interface ActiveVehicle {
   executionId: string;
   routeId: string;
@@ -161,10 +170,12 @@ export default function TrackingPage() {
   const staleNow = useCallback(
     (lastSeen: string | null): boolean => {
       if (!lastSeen) return true;
-      return now - new Date(lastSeen).getTime() > 30 * 1000;
+      return now - new Date(lastSeen).getTime() > STALE_THRESHOLD_MS;
     },
     [now]
   );
+
+  const staleThresholdLabel = `${Math.floor(STALE_THRESHOLD_MS / 1000)}s`;
 
   const liveCount = vehicles.filter(v => !staleNow(v.lastSeenAt)).length;
 
@@ -314,7 +325,7 @@ export default function TrackingPage() {
               </div>
               <div className="trk-legend-row">
                 <span className="trk-legend-dot" style={{ background: '#D97706' }} />
-                <span>Sin señal &gt; 30s</span>
+                <span>Sin señal &gt; {staleThresholdLabel}</span>
               </div>
               <div className="trk-legend-row">
                 <span className="trk-legend-line" />

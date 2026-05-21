@@ -14,7 +14,12 @@ void Vehicle;
 void Route;
 void User;
 
-const STALE_THRESHOLD_MS = 30 * 1000;
+const DEFAULT_STALE_THRESHOLD_MS = 120000;
+const STALE_THRESHOLD_MS = Math.max(
+  30000,
+  Number.parseInt(process.env.TRACKING_STALE_MS || `${DEFAULT_STALE_THRESHOLD_MS}`, 10) ||
+    DEFAULT_STALE_THRESHOLD_MS
+);
 
 interface PopulatedRoute {
   _id: mongoose.Types.ObjectId;
