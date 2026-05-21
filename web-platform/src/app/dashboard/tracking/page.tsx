@@ -85,7 +85,7 @@ export default function TrackingPage() {
 
   const fetchActiveData = useCallback(async (): Promise<ActiveVehicle[]> => {
     const res = await apiFetch('/api/v1/gps/active');
-    return res.data?.data ?? [];
+    return (res.data as ActiveVehicle[]) ?? [];
   }, [apiFetch]);
 
   const fetchTrailData = useCallback(
