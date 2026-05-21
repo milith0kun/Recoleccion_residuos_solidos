@@ -1,6 +1,6 @@
 # ESPECIFICACIÓN DE REQUISITOS FUNCIONALES
 
-## Diseño e Implementación de un Sistema Inteligente de Recolección de Residuos Sólidos Segregados para la Gestión Ambiental Urbana en la ciudad del Cusco
+## Diseño e implementación de un Sistema Inteligente de Recolección de Residuos Sólidos Segregados para la Gestión Ambiental Urbana en la ciudad del Cusco
 
 **Documento académico — Proyecto universitario**
 **Metodología:** SCRUM
