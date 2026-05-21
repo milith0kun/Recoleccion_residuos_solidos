@@ -19,7 +19,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://srss.ecosdelseo.com"
+        "EXPO_PUBLIC_API_URL": "https://srss.ecosdelseo.com",
+        "EXPO_PUBLIC_GPS_INTERVAL_MS": "8000"
       }
     },
     "production": {
@@ -29,7 +30,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://srss.ecosdelseo.com"
+        "EXPO_PUBLIC_API_URL": "https://srss.ecosdelseo.com",
+        "EXPO_PUBLIC_GPS_INTERVAL_MS": "8000"
       }
     }
   },

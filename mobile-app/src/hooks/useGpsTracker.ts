@@ -23,7 +23,7 @@ export interface GpsTrackerState {
   lastCoords: { latitude: number; longitude: number } | null;
 }
 
-const DEFAULT_GPS_INTERVAL_MS = 10_000;
+const DEFAULT_GPS_INTERVAL_MS = 8_000;
 const configuredInterval = Number.parseInt(
   process.env.EXPO_PUBLIC_GPS_INTERVAL_MS || `${DEFAULT_GPS_INTERVAL_MS}`,
   10
