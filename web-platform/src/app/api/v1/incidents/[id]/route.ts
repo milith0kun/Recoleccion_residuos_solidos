@@ -11,15 +11,22 @@ import Zone from '@/lib/models/Zone';
 import { requireAuth, requireRole } from '@/lib/middleware/auth';
 import { successResponse, errorResponse } from '@/lib/utils/response';
 import { pushToUser } from '@/lib/utils/push';
+import { findZoneContaining } from '@/lib/utils/geolocation';
 
 void User;
 void Zone;
 
 interface PatchBody {
+  title?: string;
+  description?: string;
+  type?: 'accumulation' | 'damaged_container' | 'missed_collection' | 'other';
   status?: IncidentStatus;
   severity?: IncidentSeverity;
   assignedTo?: string | null;
   resolutionNote?: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export async function GET(
@@ -64,6 +71,19 @@ export async function PATCH(
     const body = (await request.json()) as PatchBody;
     const previousStatus = incident.status;
 
+    if (typeof body.title === 'string' && body.title.trim()) {
+      incident.title = body.title.trim();
+    }
+    if (typeof body.description === 'string' && body.description.trim()) {
+      incident.description = body.description.trim();
+    }
+    if (
+      body.type &&
+      ['accumulation', 'damaged_container', 'missed_collection', 'other'].includes(body.type)
+    ) {
+      incident.type = body.type;
+    }
+
     if (body.status && INCIDENT_STATUS.includes(body.status)) {
       incident.status = body.status;
       if (body.status === 'resolved' && !incident.resolvedAt) {
@@ -78,6 +98,14 @@ export async function PATCH(
     }
     if (typeof body.resolutionNote === 'string') {
       incident.resolutionNote = body.resolutionNote.trim();
+    }
+    if (typeof body.address === 'string') {
+      incident.address = body.address.trim();
+    }
+    if (typeof body.lat === 'number' && typeof body.lng === 'number') {
+      incident.location = { type: 'Point', coordinates: [body.lng, body.lat] };
+      const zone = await findZoneContaining(body.lng, body.lat);
+      incident.zone = zone?._id;
     }
 
     await incident.save();

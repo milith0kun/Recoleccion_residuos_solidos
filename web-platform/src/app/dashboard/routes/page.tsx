@@ -60,6 +60,13 @@ interface RouteData {
   path: { coordinates: number[][] };
 }
 
+interface IncidentHotspot {
+  _id: string;
+  title: string;
+  status: 'open' | 'in_progress' | 'resolved';
+  location?: { type: 'Point'; coordinates: [number, number] };
+}
+
 const dayLabels = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 const statusMeta: Record<RouteStatus, {
@@ -105,6 +112,8 @@ export default function RoutesPage() {
   const [statusFilter, setStatusFilter] = useState<RouteStatus | 'all'>('all');
   const [zoneFilter, setZoneFilter] = useState<string>('all');
   const [showInactive, setShowInactive] = useState(false);
+  const [showHotspots, setShowHotspots] = useState(true);
+  const [hotspots, setHotspots] = useState<IncidentHotspot[]>([]);
 
   // Edit mode for waypoints
   const [editMode, setEditMode] = useState(false);
@@ -127,8 +136,12 @@ export default function RoutesPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const list = await fetchRoutes();
+      const [list, incidentsRes] = await Promise.all([
+        fetchRoutes(),
+        apiFetch('/api/v1/incidents?status=open').catch(() => ({ data: [] as IncidentHotspot[] })),
+      ]);
       setRoutes(list);
+      setHotspots((incidentsRes.data as IncidentHotspot[]) || []);
       setSelectedRoute(prev => (prev && list.some(r => r._id === prev) ? prev : list[0]?._id ?? null));
     } catch (err) {
       console.error(err);
@@ -136,15 +149,19 @@ export default function RoutesPage() {
     } finally {
       setLoading(false);
     }
-  }, [fetchRoutes]);
+  }, [fetchRoutes, apiFetch]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const list = await fetchRoutes();
+        const [list, incidentsRes] = await Promise.all([
+          fetchRoutes(),
+          apiFetch('/api/v1/incidents?status=open').catch(() => ({ data: [] as IncidentHotspot[] })),
+        ]);
         if (cancelled) return;
         setRoutes(list);
+        setHotspots((incidentsRes.data as IncidentHotspot[]) || []);
         if (list.length > 0) setSelectedRoute(list[0]._id);
       } catch (err) {
         console.error(err);
@@ -154,7 +171,7 @@ export default function RoutesPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [fetchRoutes]);
+  }, [fetchRoutes, apiFetch]);
 
   const activeRoute = useMemo(
     () => routes.find(r => r._id === selectedRoute) || null,
@@ -556,6 +573,14 @@ export default function RoutesPage() {
                 >
                   Duplicar ruta
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowHotspots((v) => !v)}
+                  className="adm-btn-secondary"
+                >
+                  {showHotspots ? <EyeOff size={13} /> : <Eye size={13} />} 
+                  {showHotspots ? 'Ocultar hotspots' : 'Mostrar hotspots'}
+                </button>
               </div>
             </section>
           )}
@@ -657,6 +682,34 @@ export default function RoutesPage() {
                       </CircleMarker>
                     );
                   })}
+
+                  {showHotspots &&
+                    hotspots
+                      .filter((h) => h.location?.coordinates?.length === 2)
+                      .map((h) => {
+                        const lng = h.location!.coordinates[0];
+                        const lat = h.location!.coordinates[1];
+                        return (
+                          <CircleMarker
+                            key={`hs-${h._id}`}
+                            center={[lat, lng]}
+                            radius={6}
+                            pathOptions={{
+                              color: '#FFFFFF',
+                              fillColor: h.status === 'in_progress' ? '#F59E0B' : '#DC2626',
+                              fillOpacity: 0.95,
+                              weight: 2,
+                            }}
+                          >
+                            <Popup>
+                              <div className="rt-popup">
+                                <strong>{h.title}</strong>
+                                <div className="rt-popup-time">Estado: {h.status}</div>
+                              </div>
+                            </Popup>
+                          </CircleMarker>
+                        );
+                      })}
                 </MapContainer>
               ) : (
                 <div className="rt-map-loading">

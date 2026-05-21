@@ -2,9 +2,16 @@
 
 import { useApi } from '@/hooks/useApi';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Search, AlertTriangle, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'sonner';
+import type { LeafletMouseEvent } from 'leaflet';
+
+const MapContainer = dynamic(() => import('react-leaflet').then((m) => m.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then((m) => m.TileLayer), { ssr: false });
+const CircleMarker = dynamic(() => import('react-leaflet').then((m) => m.CircleMarker), { ssr: false });
+const MapClickCapture = dynamic(() => import('@/components/map/MapClickCapture'), { ssr: false });
 
 interface IncidentData {
   _id: string;
@@ -17,6 +24,7 @@ interface IncidentData {
   location?: { type: 'Point'; coordinates: [number, number] };
   createdAt: string;
   resolutionNote?: string;
+  zone?: { _id: string; name?: string; district?: string } | null;
 }
 
 const severityLabels: Record<string, string> = {
@@ -53,6 +61,7 @@ export default function IncidentsPage() {
   const [statusFilter, setStatusFilter] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<IncidentData>>({
     title: '',
@@ -62,7 +71,12 @@ export default function IncidentsPage() {
     status: 'open',
     address: '',
     resolutionNote: '',
+    location: { type: 'Point', coordinates: [-71.978536, -13.517088] },
   });
+
+  useEffect(() => {
+    import('leaflet/dist/leaflet.css').then(() => setLeafletLoaded(true));
+  }, []);
 
   const fetchIncidents = useCallback(async (): Promise<IncidentData[]> => {
     const params = new URLSearchParams();
@@ -112,6 +126,7 @@ export default function IncidentsPage() {
         status: 'open',
         address: '',
         resolutionNote: '',
+        location: { type: 'Point', coordinates: [-71.978536, -13.517088] },
       });
     }
     setIsModalOpen(true);
@@ -129,9 +144,15 @@ export default function IncidentsPage() {
         await apiFetch(`/api/v1/incidents/${editingId}`, {
           method: 'PATCH',
           body: JSON.stringify({
+            title: formData.title,
+            description: formData.description,
+            type: formData.type,
             severity: formData.severity,
             status: formData.status,
             resolutionNote: formData.resolutionNote,
+            address: formData.address,
+            lat: formData.location?.coordinates?.[1],
+            lng: formData.location?.coordinates?.[0],
           }),
         });
         toast.success('Incidente actualizado correctamente');
@@ -144,6 +165,8 @@ export default function IncidentsPage() {
             type: formData.type,
             severity: formData.severity,
             address: formData.address,
+            lat: formData.location?.coordinates?.[1],
+            lng: formData.location?.coordinates?.[0],
           }),
         });
         toast.success('Incidente reportado correctamente');
@@ -171,6 +194,16 @@ export default function IncidentsPage() {
       return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     }
     return 'Sin ubicación';
+  };
+
+  const selectedLat = formData.location?.coordinates?.[1] ?? -13.517088;
+  const selectedLng = formData.location?.coordinates?.[0] ?? -71.978536;
+
+  const onMapPick = (e: LeafletMouseEvent) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: { type: 'Point', coordinates: [e.latlng.lng, e.latlng.lat] },
+    }));
   };
 
   const stats = useMemo(() => ({
@@ -285,7 +318,10 @@ export default function IncidentsPage() {
                       {statusLabels[inc.status] || inc.status}
                     </span>
                   </td>
-                   <td className="adm-cell-muted">{prettyLocation(inc)}</td>
+                   <td className="adm-cell-muted">
+                     {prettyLocation(inc)}
+                     {inc.zone?.name ? <div style={{ fontSize: 11 }}>Zona: {inc.zone.name}</div> : null}
+                   </td>
                    <td className="adm-cell-muted adm-cell-mono">
                      {inc.createdAt
                        ? new Date(inc.createdAt).toLocaleDateString('es-PE', {
@@ -409,6 +445,30 @@ export default function IncidentsPage() {
                 />
               </div>
             )}
+            <div className="adm-form-field adm-form-field--full">
+              <label className="adm-form-label">Punto exacto (mapa)</label>
+              <div style={{ border: '1px solid #D5DCD6', borderRadius: 12, overflow: 'hidden' }}>
+                {leafletLoaded ? (
+                  <MapContainer center={[selectedLat, selectedLng]} zoom={16} style={{ height: 220, width: '100%' }}>
+                    <TileLayer
+                      attribution="&copy; OpenStreetMap"
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <CircleMarker
+                      center={[selectedLat, selectedLng]}
+                      radius={8}
+                      pathOptions={{ color: '#B91C1C', fillColor: '#DC2626', fillOpacity: 0.9 }}
+                    />
+                    <MapClickCapture onClick={onMapPick} enabled />
+                  </MapContainer>
+                ) : (
+                  <div style={{ padding: 12, fontSize: 12, color: '#6B7280' }}>Cargando mapa…</div>
+                )}
+              </div>
+              <div className="adm-cell-muted" style={{ marginTop: 6 }}>
+                Lat: {selectedLat.toFixed(5)} · Lng: {selectedLng.toFixed(5)} (click para mover)
+              </div>
+            </div>
           </div>
 
           <div className="adm-form-actions">
