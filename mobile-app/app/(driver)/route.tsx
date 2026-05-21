@@ -31,6 +31,8 @@ interface Execution {
   _id: string;
   status: string;
   startedAt: string;
+  operator?: { firstName?: string; lastName?: string };
+  vehicle?: { plate?: string; type?: string };
   route: {
     _id: string;
     name: string;
@@ -57,6 +59,11 @@ function haversineMeters(
 
 const AVG_SPEED_MS = 5;
 const CUSCO_CENTER = { lat: -13.52264, lng: -71.96734 };
+
+function driverDisplayName(execution: Execution | null): string {
+  const full = `${execution?.operator?.firstName ?? ''} ${execution?.operator?.lastName ?? ''}`.trim();
+  return full || 'Conductor';
+}
 
 export default function RouteMapScreen() {
   const { getActiveExecutionId } = useAuth();
@@ -128,8 +135,8 @@ export default function RouteMapScreen() {
       if (status !== 'granted') return;
       sub = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 3000,
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000,
           distanceInterval: 5,
         },
         (loc) => {
@@ -156,20 +163,37 @@ export default function RouteMapScreen() {
   );
 
   const polylines = useMemo<MapPolyline[]>(() => {
+    const visitedOrders = new Set((execution?.waypointsVisited || []).filter((w) => !w.skipped).map((w) => w.waypoint));
+    const visitedPoints = waypoints
+      .filter((wp) => visitedOrders.has(wp.order))
+      .sort((a, b) => a.order - b.order)
+      .map((wp) => [wp.location.coordinates[1], wp.location.coordinates[0]] as [number, number]);
+
     if (polylineCoords.length > 1) {
-      return [
+      const layers: MapPolyline[] = [
         {
           id: 'route',
           points: polylineCoords,
-          color: colors.primary,
-          width: 4,
-        },
+          color: '#0B8F66',
+          width: 5,
+        }
       ];
+      if (visitedPoints.length > 1) {
+        layers.push({
+          id: 'route-visited',
+          points: visitedPoints,
+          color: '#0EA5E9',
+          width: 4,
+          dashed: true,
+        });
+      }
+      return layers;
     }
     return [];
-  }, [polylineCoords]);
+  }, [polylineCoords, execution?.waypointsVisited, waypoints]);
 
   const markers = useMemo<MapMarker[]>(() => {
+    const name = driverDisplayName(execution);
     const items: MapMarker[] = waypoints.map((wp) => {
       const visited = visitedSet.get(wp.order);
       const color = visited
@@ -177,17 +201,29 @@ export default function RouteMapScreen() {
           ? colors.danger
           : colors.primary
         : colors.textMuted;
+      const state = visited ? (visited.skipped ? 'Omitido' : 'Visitado') : 'Pendiente';
       return {
         id: `wp-${wp.order}`,
         lat: wp.location.coordinates[1],
         lng: wp.location.coordinates[0],
         color,
+        variant: visited ? 'dot' : 'pin',
         label: String(wp.order),
-        popup: `${wp.order}. ${wp.name}`,
+        popup: `Parada #${wp.order}<br/>${wp.name}<br/><b>${state}</b>`,
       };
     });
+    if (myLocation) {
+      items.push({
+        id: 'driver-live',
+        lat: myLocation.latitude,
+        lng: myLocation.longitude,
+        color: '#0EA5E9',
+        variant: 'pulse',
+        popup: `<b>${name}</b><br/>Tu posicion en vivo`,
+      });
+    }
     return items;
-  }, [waypoints, visitedSet]);
+  }, [waypoints, visitedSet, myLocation, execution]);
 
   const nextWaypoint = useMemo(() => {
     const sorted = [...waypoints].sort((a, b) => a.order - b.order);
@@ -288,6 +324,10 @@ export default function RouteMapScreen() {
   };
 
   const userLoc = myLocation ? { lat: myLocation.latitude, lng: myLocation.longitude } : null;
+  const conductor = driverDisplayName(execution);
+  const plate = execution.vehicle?.plate || 'Sin placa';
+  const visitedCount = execution.waypointsVisited?.filter((w) => !w.skipped).length ?? 0;
+  const skippedCount = execution.waypointsVisited?.filter((w) => w.skipped).length ?? 0;
 
   return (
     <View style={s.container}>
@@ -300,11 +340,35 @@ export default function RouteMapScreen() {
           zoom={15}
           markers={markers}
           polylines={polylines}
-          showUserLocation
+          showUserLocation={false}
           userLocation={userLoc}
           style={s.map}
         />
       </ErrorBoundary>
+
+      <View style={s.topInfoCard}>
+        <View style={s.topInfoRow}>
+          <Feather name="user" size={13} color={colors.primaryDark} />
+          <Text style={s.topInfoText}>{conductor}</Text>
+        </View>
+        <View style={s.topInfoRow}>
+          <Feather name="truck" size={13} color={colors.primaryDark} />
+          <Text style={s.topInfoText}>{plate}</Text>
+        </View>
+        <View style={s.topInfoRow}>
+          <Feather name="map-pin" size={13} color={colors.primaryDark} />
+          <Text style={s.topInfoText}>Visitadas {visitedCount} · Omitidas {skippedCount}</Text>
+        </View>
+      </View>
+
+      <View style={s.legendCard}>
+        <Text style={s.legendTitle}>Referencia</Text>
+        <View style={s.legendRow}><View style={[s.legendDot, { backgroundColor: '#0B8F66' }]} /><Text style={s.legendText}>Ruta planificada</Text></View>
+        <View style={s.legendRow}><View style={[s.legendDot, { backgroundColor: '#0EA5E9' }]} /><Text style={s.legendText}>Tramo recorrido</Text></View>
+        <View style={s.legendRow}><View style={[s.legendDot, { backgroundColor: colors.textMuted }]} /><Text style={s.legendText}>Parada pendiente</Text></View>
+        <View style={s.legendRow}><View style={[s.legendDot, { backgroundColor: colors.primary }]} /><Text style={s.legendText}>Parada visitada</Text></View>
+        <View style={s.legendRow}><View style={[s.legendDot, { backgroundColor: colors.danger }]} /><Text style={s.legendText}>Parada omitida</Text></View>
+      </View>
 
       <View style={s.bottomCard}>
         {nextWaypoint ? (
@@ -475,6 +539,51 @@ const s = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
+  },
+  topInfoCard: {
+    position: 'absolute',
+    top: 84,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    gap: 4,
+  },
+  topInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  topInfoText: {
+    fontFamily: fontFamily.sansSemibold,
+    color: colors.ink,
+    fontSize: 12,
+  },
+  legendCard: {
+    position: 'absolute',
+    top: 170,
+    left: 16,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    gap: 5,
+  },
+  legendTitle: {
+    fontFamily: fontFamily.sansBold,
+    color: colors.textSecondary,
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: {
+    fontFamily: fontFamily.sansMedium,
+    color: colors.textSecondary,
+    fontSize: 11,
   },
   bottomRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   nextBadge: {

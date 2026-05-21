@@ -89,6 +89,9 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
 ) {
   const webRef = useRef<WebView>(null);
   const isReadyRef = useRef(false);
+  const lastMarkersPayloadRef = useRef<string>('');
+  const lastPolylinesPayloadRef = useRef<string>('');
+  const lastUserPayloadRef = useRef<string>('');
 
   const sendCommand = useCallback((cmd: object) => {
     if (!webRef.current || !isReadyRef.current) return;
@@ -107,14 +110,23 @@ export const OSMMap = forwardRef<OSMMapRef, OSMMapProps>(function OSMMap(
 
   // Re-sync de markers / polylines / user location cuando cambian.
   useEffect(() => {
+    const payload = JSON.stringify(markers);
+    if (payload === lastMarkersPayloadRef.current) return;
+    lastMarkersPayloadRef.current = payload;
     sendCommand({ type: 'setMarkers', markers });
   }, [markers, sendCommand]);
 
   useEffect(() => {
+    const payload = JSON.stringify(polylines);
+    if (payload === lastPolylinesPayloadRef.current) return;
+    lastPolylinesPayloadRef.current = payload;
     sendCommand({ type: 'setPolylines', polylines });
   }, [polylines, sendCommand]);
 
   useEffect(() => {
+    const payload = JSON.stringify({ showUserLocation, userLocation });
+    if (payload === lastUserPayloadRef.current) return;
+    lastUserPayloadRef.current = payload;
     sendCommand({ type: 'setUser', enabled: showUserLocation, location: userLocation });
   }, [showUserLocation, userLocation, sendCommand]);
 
