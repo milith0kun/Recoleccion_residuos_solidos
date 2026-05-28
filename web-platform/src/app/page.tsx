@@ -78,6 +78,7 @@ export default function HomePage() {
   const [gisReady, setGisReady] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const userRole = user?.role;
   const year = new Date().getFullYear();
 
   useEffect(() => {
@@ -92,14 +93,14 @@ export default function HomePage() {
       setError('');
       try {
         await loginWithGoogle(resp.credential);
-        router.push(resolveHomeByRole(user?.role));
+        router.push(resolveHomeByRole(userRole));
       } catch (err: unknown) {
         setError((err as Error).message || 'Error con Google');
       } finally {
         setSubmitting(false);
       }
     },
-    [loginWithGoogle, router, user?.role],
+    [loginWithGoogle, router, userRole],
   );
 
   useEffect(() => {
@@ -177,16 +178,23 @@ export default function HomePage() {
       <header className="home-top">
         <div className="home-top-inner">
           <BrandLockup size={30} />
-          <a
-            href="https://github.com/milith0kun/Recoleccion_residuos_solidos#readme"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="home-top-link"
-          >
-            <BookOpen size={14} strokeWidth={2} />
-            <span>Documentación</span>
-            <ArrowRight size={13} strokeWidth={2} />
-          </a>
+          <nav className="home-top-actions" aria-label="Recursos">
+            <Link href="/user-story-mapping" className="home-top-link">
+              <BookOpen size={14} strokeWidth={2} />
+              <span>Mapa HU</span>
+              <ArrowRight size={13} strokeWidth={2} />
+            </Link>
+            <a
+              href="https://github.com/milith0kun/Recoleccion_residuos_solidos#readme"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="home-top-link"
+            >
+              <BookOpen size={14} strokeWidth={2} />
+              <span>Documentación</span>
+              <ArrowRight size={13} strokeWidth={2} />
+            </a>
+          </nav>
         </div>
       </header>
 
@@ -399,6 +407,13 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+  }
+  .home-top-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
   }
   .home-top-link {
     display: inline-flex;
