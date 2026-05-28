@@ -239,7 +239,7 @@ const styles = `
       #fbfcfb;
     color: #001e2b;
     font-family: 'Geist', 'Outfit', sans-serif;
-    padding: 14px 22px;
+    padding: 12px 18px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -248,7 +248,7 @@ const styles = `
   .usm-header {
     max-width: 1440px;
     width: 100%;
-    margin: 0 auto 10px;
+    margin: 0 auto 8px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 28px;
@@ -261,7 +261,7 @@ const styles = `
     font-size: 12px;
     font-weight: 700;
     text-decoration: none;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .usm-kicker {
@@ -276,7 +276,7 @@ const styles = `
   .usm-header h1 {
     margin: 0;
     font-family: 'Newsreader', Georgia, serif;
-    font-size: clamp(28px, 3.8vw, 42px);
+    font-size: clamp(26px, 3.2vw, 36px);
     font-weight: 500;
     line-height: 0.98;
     letter-spacing: -0.024em;
@@ -285,12 +285,12 @@ const styles = `
   .usm-legend {
     max-width: 1440px;
     width: 100%;
-    margin: 0 auto 10px;
+    margin: 0 auto 8px;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 7px 10px;
+    padding: 6px 9px;
     background: #ffffff;
     border: 1px solid #e0e8e4;
     border-radius: 8px;
@@ -394,7 +394,7 @@ const styles = `
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-rows: repeat(4, minmax(0, 1fr));
-    gap: 8px;
+    gap: 7px;
     align-items: stretch;
   }
 
@@ -407,7 +407,7 @@ const styles = `
     border: 1px solid #e4ebe7;
     border-left: 3px solid #d8b453;
     border-radius: 8px;
-    padding: 8px 9px;
+    padding: 8px 10px;
     box-shadow: 0 1px 0 rgba(0, 30, 43, 0.04);
   }
 
@@ -427,7 +427,7 @@ const styles = `
 
   .story-stage {
     color: #00684a;
-    font-size: 9px;
+    font-size: 9.5px;
     font-weight: 850;
     letter-spacing: 0.1em;
     line-height: 1.3;
@@ -440,7 +440,7 @@ const styles = `
     gap: 6px;
     margin-bottom: 5px;
     color: #475760;
-    font-size: 9.5px;
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -463,7 +463,7 @@ const styles = `
     flex: 0 0 auto;
     color: #001e2b;
     font-family: 'Geist Mono', ui-monospace, monospace;
-    font-size: 9px;
+    font-size: 9.5px;
     font-weight: 800;
     padding: 1px 5px;
     border-radius: 5px;
@@ -473,9 +473,11 @@ const styles = `
 
   .story-card p {
     margin: 0;
-    color: #1f3138;
-    font-size: 11.3px;
-    line-height: 1.34;
+    color: #001e2b;
+    font-size: clamp(12px, 0.86vw, 13.4px);
+    line-height: 1.38;
+    font-weight: 500;
+    letter-spacing: 0;
   }
 
   .story-badges {
